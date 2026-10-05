@@ -1,0 +1,219 @@
+.trigger {
+  display: inline-flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.8rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.62rem 0.7rem 0.62rem 0.75rem;
+  border: 1px solid var(--control-border);
+  border-radius: 0.74rem;
+  color: var(--ink);
+  background: var(--control-bg);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease;
+}
+
+.trigger:hover:not(:disabled) {
+  border-color: var(--focus);
+  background: var(--surface-strong);
+}
+
+.trigger:focus-visible {
+  border-color: var(--focus);
+  outline: 3px solid var(--focus-halo);
+  outline-offset: 2px;
+}
+
+.trigger[aria-invalid='true'] {
+  border-color: var(--danger-line);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
+.trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.value {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.trigger[data-placeholder] .value {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.leadingIcon,
+.icon,
+.indicator {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+}
+
+.leadingIcon {
+  color: var(--muted);
+}
+
+.icon {
+  margin-left: auto;
+  color: var(--muted);
+  transition: transform 160ms ease;
+}
+
+.trigger[data-popup-open] .icon {
+  transform: rotate(180deg);
+}
+
+.filter {
+  min-height: 2.5rem;
+  padding-block: 0.5rem;
+}
+
+.compact {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.55rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.compact .value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+.trigger:active:not(:disabled) {
+  background: var(--surface-hover);
+  transform: scale(0.985);
+}
+
+.positioner {
+  z-index: 340;
+  width: min(max(var(--anchor-width), 13rem), var(--available-width));
+  max-width: calc(100vw - 1rem);
+}
+
+.popup {
+  width: 100%;
+  max-height: min(22rem, var(--available-height));
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.82rem;
+  color: var(--ink);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-lg);
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.98) translateY(-3px);
+}
+
+.list {
+  max-height: min(20rem, calc(var(--available-height) - 0.5rem));
+  padding: 0.35rem;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--control-border) var(--surface-soft);
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+}
+
+.list::-webkit-scrollbar {
+  width: 0.75rem;
+}
+
+.list::-webkit-scrollbar-track {
+  margin-block: 0.35rem;
+  border-left: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+}
+
+.list::-webkit-scrollbar-thumb {
+  min-height: 2.75rem;
+  border: 2px solid var(--surface-soft);
+  border-radius: 999px;
+  background: var(--control-border);
+}
+
+.list::-webkit-scrollbar-thumb:hover {
+  background: var(--focus);
+}
+
+.item {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0.55rem 0.62rem 0.55rem 2.15rem;
+  border-radius: 0.58rem;
+  outline: none;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.item[data-highlighted] {
+  background: var(--surface-hover);
+}
+
+.item[data-selected] {
+  color: var(--accent-green);
+  font-weight: 700;
+}
+
+.item[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.indicator {
+  position: absolute;
+  left: 0.62rem;
+  color: var(--brand-gold);
+}
+
+.itemText {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trigger,
+  .icon,
+  .popup {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .trigger,
+  .popup,
+  .item[data-highlighted] {
+    border: 1px solid ButtonText;
+  }
+}

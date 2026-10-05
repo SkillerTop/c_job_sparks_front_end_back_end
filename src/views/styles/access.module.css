@@ -1,0 +1,223 @@
+.accessStack {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.pendingCounter {
+  display: inline-flex;
+  min-height: 2.4rem;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.48rem 0.7rem;
+  border: 1px solid var(--warning-line);
+  border-radius: 999px;
+  color: var(--warning);
+  background: var(--warning-soft);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.demoDisclosure {
+  margin-top: 0.9rem;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid var(--warning-line);
+  border-radius: 0.75rem;
+  color: var(--warning);
+  background: var(--warning-soft);
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.registrationList {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.registrationCard {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--surface-soft);
+}
+
+.registrationIdentity {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.registrationTitle {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.registrationTitle h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.registrationIdentity p {
+  margin: 0.15rem 0 0.7rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.registrationMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.registrationMeta div:last-child {
+  grid-column: 1 / -1;
+}
+
+.registrationMeta dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.registrationMeta dd {
+  margin: 0.08rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.registrationActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.registrationActionGroup {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.approvalBlocked {
+  max-width: 22rem;
+  color: var(--danger);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.historyList {
+  display: grid;
+  gap: 0.1rem;
+  margin-top: 0.75rem;
+}
+
+.historyList article {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.7rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.historyList article:last-child {
+  border-bottom: 0;
+}
+
+.historyIcon {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.historyIcon[data-status='Rejected'] {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.historyIcon[data-status='Pending'] {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.historyList strong,
+.historyList p,
+.historyList small {
+  display: block;
+}
+
+.historyList p {
+  margin: 0.1rem 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.historyList small {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.historyStatus {
+  display: flex;
+  grid-column: 2;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.historyStatus small {
+  margin: 0;
+}
+
+.reviewSummary {
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid var(--success-line);
+  border-radius: 0.75rem;
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.reviewSummary svg {
+  flex: none;
+}
+
+.reviewSummary p {
+  margin: 0;
+}
+
+@media (min-width: 42rem) {
+  .registrationCard {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  .registrationActions {
+    display: flex;
+  }
+  .historyList article {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  .historyStatus {
+    grid-column: auto;
+    justify-content: flex-end;
+  }
+}
