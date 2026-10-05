@@ -1,45 +1,36 @@
-# C-Job Sparks Frontend
+# C-Job Sparks
 
-Clean frontend-only repository for the C-Job Sparks employee recognition and rewards workspace.
+C-Job Sparks is a full-stack employee recognition and rewards application. The existing React 19 interface can still run as a self-contained demo, or it can use the included Fastify/PostgreSQL backend as the authoritative source for identity, roles, organizational scope and the Spark economy.
 
-The package contains the current responsive interface, role-aware navigation, recognition and award workflows, achievements with performance data, Spark economy, Reward Shop, profile settings, administration screens, localization, light/dark themes, and accessibility states.
+## Stack
 
-## Requirements
+- React 19, TypeScript and Vite
+- Node.js 24 and Fastify 5
+- PostgreSQL 15+
+- Argon2id passwords and opaque server-side sessions
+- pnpm workspace
 
-- Node.js 24 or newer
-- pnpm 11.25 or newer
+## Run the full application locally
 
-## Start locally
+1. Create a PostgreSQL database (or run `docker compose up -d db`) and copy `server/.env.example` to `server/.env`.
+2. Set `DATABASE_URL` and replace `COOKIE_SECRET` with at least 32 random characters.
+3. Install, migrate and seed:
 
 ```bash
-pnpm install --frozen-lockfile
+pnpm install
+pnpm migrate
+pnpm --dir server seed:dev
+```
+
+4. Copy `.env.example` to `.env.local`, set `VITE_APP_MODE=api` and set `VITE_API_BASE_URL=http://localhost:3001`.
+5. Start the API and frontend in two terminals:
+
+```bash
+pnpm dev:server
 pnpm dev
 ```
 
-Open the URL printed by Vite.
-
-## Verify and build
-
-```bash
-pnpm lint
-pnpm test
-pnpm build
-pnpm preview
-```
-
-The production bundle is written to `dist/` and is not committed.
-
-## Demo access
-
-The repository is intentionally self-contained and uses browser demo data by default.
-
-Shared demo password:
-
-```text
-SparkDemo2026!
-```
-
-Representative accounts:
+The development seed uses password `SparkDemo2026!` for these accounts:
 
 | Role | Email |
 | --- | --- |
@@ -50,62 +41,41 @@ Representative accounts:
 | Top Management | `victor.hale@c-job.test` |
 | Administrator | `ida.novak@c-job.test` |
 
-Demo changes are stored only in the current browser. Clearing site data restores the initial state.
+The seed is for local development only.
 
-## Environment
+## Demo mode
 
-Copy `.env.example` to `.env.local` only when a non-default configuration is needed.
+Keep `VITE_APP_MODE=demo` to run only the browser demonstration. Demo data is isolated from API mode and is not a security or persistence implementation.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `VITE_SHOP_MODE` | `demo` | Use `demo` for browser storage or `api` for a real backend |
-| `VITE_API_BASE_URL` | empty | Optional backend origin when API mode is enabled |
-| `VITE_BASE_PATH` | `/` | Public base path, for example `/c-job-sparks/` |
+## Verification
 
-When `VITE_SHOP_MODE=api`, the browser no longer sends demo identity headers. Authentication and authorization must be provided by the backend through a trusted session.
-
-## Backend boundary
-
-This repository does not contain a database, migrations, Worker, API server, secrets, or production authentication. Most workflows currently use the frontend demo services. API mode is prepared for the Reward Shop contract:
-
-- `GET /api/shop`
-- `POST /api/shop/purchase`
-- `POST /api/shop/inventory/:id/activate`
-- `GET /api/shop/admin`
-- `POST /api/shop/admin/products`
-- `POST /api/shop/admin/balances/adjust`
-- `POST /api/shop/admin/images`
-
-Before production use, the remaining demo services must be replaced with authenticated API adapters and a single authoritative Spark Ledger.
-
-## Repository structure
-
-```text
-src/
-  app/          routing, guards, route metadata
-  constants/    navigation, labels, translations and shop copy
-  controllers/  page orchestration and React contexts
-  data/         clearly isolated demonstration fixtures
-  hooks/        reusable interaction hooks
-  models/       TypeScript domain and view models
-  services/     demo state and API adapters
-  utils/        formatting, CSV parsing and business-rule helpers
-  views/        pages, components and styles
-public/         brand, fonts, Spark icons, shop images and CSV samples
-tests/          frontend architecture, auth and domain tests
+```bash
+pnpm lint
+pnpm test
+pnpm test:server
+pnpm build:all
 ```
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for integration boundaries and conventions.
+## Backend guarantees
 
-## GitHub handoff
+- Roles and department/project scope are read from the authenticated server session.
+- The append-only Spark Ledger is the only balance source.
+- Purchases, conversions, Disenchant, awards and recognition decisions use serializable database transactions.
+- Financial POST requests require an `Idempotency-Key`.
+- Prices, category amounts, quotas, conversion rates and balances are never trusted from the browser.
+- Published rule/category/product versions and financial history are preserved; corrections use new versions or reversal entries.
+- Audit, notification and outbox rows are written with the related business transaction.
+- Unsupported product effects cannot be purchased.
 
-The repository intentionally excludes:
+See [`server/README.md`](./server/README.md) for API and operational details and [`ARCHITECTURE.md`](./ARCHITECTURE.md) for module boundaries.
 
-- `.env` files;
-- `node_modules/`;
-- `dist/`;
-- hosting configuration;
-- backend and database code;
-- generated files and local tooling state.
+## Repository layout
 
-Create an empty GitHub repository, then add its URL as `origin` and push the desired branch. No credentials are stored in this package.
+```text
+src/                 React application and API/demo adapters
+server/src/          Fastify modules
+server/migrations/   versioned PostgreSQL schema
+server/test/         backend domain and migration tests
+public/              frontend assets and CSV examples
+tests/               frontend architecture and domain tests
+```

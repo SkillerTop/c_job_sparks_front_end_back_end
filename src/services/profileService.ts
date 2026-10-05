@@ -6,6 +6,8 @@ import type {
   ProfilePreferences,
 } from '@/models/profile';
 import { normalizeEmail } from '@/services/authService';
+import { apiProfileService } from '@/services/apiProfileService';
+import { isApiMode } from '@/services/apiClient';
 
 const PROFILE_STATE_KEY = 'c-job-profile-settings-v1';
 export const PROFILE_LANGUAGE_STORAGE_KEY = 'c-job-interface-language';
@@ -66,7 +68,7 @@ const platformLabel = () => {
   return 'Windows';
 };
 
-export const profileService = {
+const demoProfileService = {
   async getPreferences(employeeId: string, accountEmail: string): Promise<ProfilePreferences> {
     return structuredClone(profileFor(readState(), employeeId, accountEmail));
   },
@@ -169,3 +171,5 @@ export const profileService = {
     saveState(state);
   },
 };
+
+export const profileService = isApiMode ? apiProfileService : demoProfileService;

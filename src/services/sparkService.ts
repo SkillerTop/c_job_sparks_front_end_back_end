@@ -11,6 +11,8 @@ import type {
   SparkType,
 } from '@/models';
 import type { ShopSparkTransaction } from '@/models/shop';
+import { apiSparkService } from '@/services/apiSparkService';
+import { isApiMode } from '@/services/apiClient';
 import { selectAwardTargets, selectGpmControlledCoordinators } from '@/models/selectors';
 import {
   calculateBalances,
@@ -261,7 +263,7 @@ const validateBlue = (employeeId: string, category: string) => {
   }
 };
 
-export const sparkService = {
+const demoSparkService = {
   async getSnapshot() {
     await wait(560);
     return clone();
@@ -1097,3 +1099,5 @@ export const sparkService = {
     return clone();
   },
 };
+
+export const sparkService = isApiMode ? apiSparkService : demoSparkService;

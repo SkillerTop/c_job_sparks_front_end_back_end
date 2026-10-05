@@ -9,10 +9,15 @@
   },
   "scripts": {
     "dev": "vite --configLoader native",
+    "dev:server": "pnpm --dir server dev",
     "build": "tsc --noEmit && vite build --configLoader native",
+    "build:server": "pnpm --dir server build",
+    "build:all": "pnpm build && pnpm build:server",
     "preview": "vite preview --configLoader native",
     "lint": "tsc --noEmit",
-    "test": "node --import ./tests/register.mjs --test --test-isolation=none tests/architecture.test.mjs tests/domain.test.mjs tests/auth.test.mjs tests/shop-demo.test.mjs"
+    "test": "node --import ./tests/register.mjs --test --test-isolation=none tests/architecture.test.mjs tests/domain.test.mjs tests/auth.test.mjs tests/shop-demo.test.mjs",
+    "test:server": "pnpm --dir server test",
+    "migrate": "pnpm --dir server migrate"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

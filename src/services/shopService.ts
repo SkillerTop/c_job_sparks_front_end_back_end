@@ -7,6 +7,7 @@ import type {
 } from '@/models/shop';
 import { demoShopService } from './demoShopService';
 import { ShopServiceError } from './shopErrors';
+import { isApiMode } from './apiClient';
 
 export { ShopServiceError } from './shopErrors';
 
@@ -65,6 +66,7 @@ const apiShopService = {
   saveProduct: (product: ProductDraft, _identity?: ShopClientIdentity) =>
     request<ShopAdminState>('/api/shop/admin/products', {
       method: 'POST',
+      headers: { 'Idempotency-Key': makeRequestId() },
       body: JSON.stringify(product),
     }),
   adjustBalance: (
@@ -76,6 +78,7 @@ const apiShopService = {
   ) =>
     request<ShopAdminState>('/api/shop/admin/balances/adjust', {
       method: 'POST',
+      headers: { 'Idempotency-Key': makeRequestId() },
       body: JSON.stringify({ userId, sparkType, amount, reason }),
     }),
   uploadProductImage: async (file: File, _identity?: ShopClientIdentity) => {
@@ -85,4 +88,7 @@ const apiShopService = {
   },
 };
 
-export const shopService = import.meta.env.VITE_SHOP_MODE === 'api' ? apiShopService : demoShopService;
+export const shopService =
+  isApiMode || (import.meta as ImportMeta & { env?: ImportMetaEnv }).env?.VITE_SHOP_MODE === 'api'
+    ? apiShopService
+    : demoShopService;

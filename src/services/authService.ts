@@ -10,6 +10,8 @@ import type {
   RegistrationInput,
 } from '@/models/auth';
 import { sparkService } from '@/services/sparkService';
+import { apiAuthService } from '@/services/apiAuthService';
+import { isApiMode } from '@/services/apiClient';
 
 const AUTH_STATE_KEY = 'c-job-auth-state-v1';
 const AUTH_SESSION_KEY = 'c-job-auth-session-v1';
@@ -352,7 +354,7 @@ const requireAdministrator = async (state: StoredAuthState) => {
   return { user, activeSession };
 };
 
-export const authService = {
+const demoAuthService = {
   async initialize() {
     await ensureInitialized();
   },
@@ -666,3 +668,5 @@ export const authService = {
     storageModes.session = null;
   },
 };
+
+export const authService = isApiMode ? apiAuthService : demoAuthService;
