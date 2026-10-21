@@ -1,10 +1,11 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Eye, EyeOff, KeyRound, LockKeyhole, Mail, ShieldCheck, UserPlus } from 'lucide-react';
+import { Building2, Eye, EyeOff, KeyRound, LockKeyhole, Mail, ShieldCheck, UserPlus } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Feedback } from '@/views/components/common/Feedback';
 import { useAuth } from '@/controllers/AuthContext';
 import { useAuthFormController } from '@/controllers/useAuthFormController';
+import { useAppMode } from '@/controllers/useAppMode';
 import authStyles from '@/views/styles/auth.module.css';
 
 type AuthMode = 'login' | 'register';
@@ -14,6 +15,7 @@ const safeReturnPath = (value: unknown) =>
   typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : '/';
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
+  const { isApiMode } = useAppMode();
   const location = useLocation();
   const navigate = useNavigate();
   const { login, register } = useAuth();
@@ -26,6 +28,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     normalizeEmail,
     validatePassword,
     isInvalidCredentialsError,
+    microsoftSignInEnabled,
+    startMicrosoftSignIn,
   } = useAuthFormController();
   const reducedMotion = useReducedMotion();
   const emailId = useId();
@@ -49,10 +53,25 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
   const passwordCheck = validatePassword(password);
   useEffect(() => {
     setErrors({});
-    setMessage(null);
+    const parameters = new URLSearchParams(location.search);
+    const microsoftError = parameters.get('microsoftError');
+    const microsoftStatus = parameters.get('microsoftStatus');
+    const microsoftEmail = parameters.get('email');
+    if (microsoftEmail) setEmail(microsoftEmail);
+    setMessage(
+      microsoftStatus === 'Pending'
+        ? 'Microsoft identity verified. Your access request is waiting for administrator approval.'
+        : microsoftError
+        ? microsoftError === 'MICROSOFT_SIGN_IN_CANCELLED'
+          ? 'Microsoft sign-in was cancelled.'
+          : microsoftError === 'FORBIDDEN'
+            ? 'This Microsoft account is not linked to an approved C-Job Sparks account.'
+            : 'Microsoft sign-in could not be completed. Try again or use your email and password.'
+        : null,
+    );
     setPassword('');
     setConfirmPassword('');
-  }, [mode]);
+  }, [location.search, mode]);
 
   const validate = () => {
     const next: FieldErrors = {};
@@ -104,7 +123,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     }
   };
 
-  const useDemoAccount = (account: (typeof primaryDemoAccounts)[number]) => {
+  const fillDemoAccount = (account: (typeof primaryDemoAccounts)[number]) => {
     setEmail(account.employee.email);
     setPassword(demoPassword);
     setConfirmPassword('');
@@ -113,7 +132,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     passwordRef.current?.focus();
   };
 
-  const useDemoRegistration = (employee: (typeof registrationDemos)[number]) => {
+  const fillDemoRegistration = (employee: (typeof registrationDemos)[number]) => {
     setEmail(employee.email);
     setPassword('');
     setConfirmPassword('');
@@ -139,13 +158,39 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           <h1 id="auth-title">{isRegister ? 'Create your account' : 'Sign in to C-Job Sparks'}</h1>
           <p>
             {isRegister
-              ? 'Use the work email from the employee directory. An administrator will review your request.'
+              ? 'Use your work email. After review, an administrator will create or link your employee profile.'
               : 'Use your approved work account to open your Spark workspace.'}
           </p>
         </div>
       </div>
 
-      {message && <Feedback tone="error">{message}</Feedback>}
+      {message && <Feedback tone={new URLSearchParams(location.search).get('microsoftStatus') === 'Pending' ? 'success' : 'error'}>{message}</Feedback>}
+
+      {isApiMode && (
+        <>
+          <button
+            className={authStyles.microsoftButton}
+            type="button"
+            disabled={!microsoftSignInEnabled}
+            onClick={() => {
+              const from =
+                typeof location.state === 'object' && location.state && 'from' in location.state
+                  ? safeReturnPath(location.state.from)
+                  : '/';
+              startMicrosoftSignIn(from);
+            }}
+          >
+            <Building2 size={19} aria-hidden="true" />
+            {isRegister ? 'Request access with Microsoft' : 'Continue with Microsoft'}
+          </button>
+          {!microsoftSignInEnabled && (
+            <p className={authStyles.microsoftSetupHint} role="status">
+              Microsoft sign-in is visible but unavailable until the administrator configures Entra ID.
+            </p>
+          )}
+          <div className={authStyles.authDivider}><span>or use your password</span></div>
+        </>
+      )}
 
       <form className={authStyles.authForm} onSubmit={submit} noValidate>
         <label className={authStyles.authField} htmlFor={emailId}>
@@ -295,7 +340,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         <Link to={isRegister ? '/login' : '/register'}>{isRegister ? 'Sign in' : 'Request access'}</Link>
       </p>
 
-      {isRegister && registrationDemos.length > 0 && (
+      {!isApiMode && isRegister && registrationDemos.length > 0 && (
         <section className={authStyles.demoPanel} aria-labelledby="demo-registration-title">
           <div>
             <p className={authStyles.eyebrow}>Try the approval flow</p>
@@ -303,7 +348,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           </div>
           <div className={authStyles.demoGrid}>
             {registrationDemos.map((employee) => (
-              <button type="button" key={employee.id} onClick={() => useDemoRegistration(employee)}>
+              <button type="button" key={employee.id} onClick={() => fillDemoRegistration(employee)}>
                 <strong>Fill {employee.name.split(' ')[0]}'s email</strong>
                 <span>{employee.email}</span>
               </button>
@@ -315,7 +360,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         </section>
       )}
 
-      {!isRegister && (
+      {!isApiMode && !isRegister && (
         <section className={authStyles.demoPanel} aria-labelledby="demo-access-title">
           <div>
             <p className={authStyles.eyebrow}>Local demo access</p>
@@ -323,7 +368,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           </div>
           <div className={authStyles.demoGrid}>
             {primaryDemoAccounts.map((account) => (
-              <button type="button" key={account.employeeId} onClick={() => useDemoAccount(account)}>
+              <button type="button" key={account.employeeId} onClick={() => fillDemoAccount(account)}>
                 <strong>{account.label}</strong>
                 <span>{account.employee.email}</span>
               </button>
@@ -333,7 +378,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
             <summary>More demo roles</summary>
             <div className={authStyles.demoGrid}>
               {moreDemoAccounts.map((account) => (
-                <button type="button" key={account.employeeId} onClick={() => useDemoAccount(account)}>
+                <button type="button" key={account.employeeId} onClick={() => fillDemoAccount(account)}>
                   <strong>{account.label}</strong>
                   <span>{account.employee.email}</span>
                 </button>

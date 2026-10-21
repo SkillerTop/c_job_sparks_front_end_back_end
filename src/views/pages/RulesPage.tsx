@@ -13,7 +13,7 @@ import { PageHeader } from '@/views/components/common/PageHeader';
 import { PageTransition } from '@/views/components/common/PageTransition';
 import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { useSpark } from '@/controllers/SparkContext';
-import type { SparkType } from '@/models';
+import type { PerformanceRewardTier, SparkCategory, SparkType } from '@/models';
 import styles from '@/views/styles/app.module.css';
 
 const tierDescriptions: Record<SparkType, string> = {
@@ -23,11 +23,27 @@ const tierDescriptions: Record<SparkType, string> = {
   Radiant: 'Permanent company-wide distinction from Top Management.',
 };
 
+const performanceThresholdDescription = (tiers: PerformanceRewardTier[]) => {
+  const score = (value: number) => value.toFixed(2);
+  return [
+    `x < ${score(tiers[0]!.minimum)} = 0`,
+    ...tiers.map((tier, index) => index < tiers.length - 1
+      ? `${score(tier.minimum)} ≤ x < ${score(tiers[index + 1]!.minimum)} = ${tier.reward}`
+      : `x ≥ ${score(tier.minimum)} = ${tier.reward}`),
+  ].join(' · ');
+};
+
 export function RulesPage() {
   const { snapshot } = useSpark();
   const settings = snapshot!.settings;
-  const categories = (type: SparkType) =>
-    snapshot!.categories.filter((category) => category.active && category.sparkType === type);
+  const categories = (type: SparkType) => {
+    const uniqueByName = new Map<string, SparkCategory>();
+    for (const category of snapshot!.categories.filter((item) => item.active && item.sparkType === type)) {
+      const existing = uniqueByName.get(category.name);
+      if (!existing || category.usageType === 'PeerRecognition') uniqueByName.set(category.name, category);
+    }
+    return [...uniqueByName.values()];
+  };
 
   return (
     <PageTransition>
@@ -192,17 +208,11 @@ export function RulesPage() {
           <dl className={styles.roleRuleList}>
             <div>
               <dt>KPI thresholds</dt>
-              <dd>
-                x &lt; 1.02 = 0 · 1.02 ≤ x &lt; 1.07 = 1 · 1.07 ≤ x &lt; 1.12 = 2 · x ≥ 1.12 = 3
-                White.
-              </dd>
+              <dd>{performanceThresholdDescription(settings.performanceThresholds.kpi)} White.</dd>
             </div>
             <div>
               <dt>Personal cards thresholds</dt>
-              <dd>
-                x &lt; 3.50 = 0 · 3.50 ≤ x &lt; 4.20 = 1 · 4.20 ≤ x &lt; 4.50 = 2 · x ≥ 4.50 = 3
-                White.
-              </dd>
+              <dd>{performanceThresholdDescription(settings.performanceThresholds.personalCards)} White.</dd>
             </div>
             <div>
               <dt>Quarterly import</dt>

@@ -8,6 +8,7 @@ import { ReferenceEditor } from './ReferenceEditor';
 import type { Department, Employee, ReferenceDraft, SparkCategory } from '@/models';
 import { createReferenceDraft } from '@/utils/referenceDraft';
 import styles from '@/views/styles/app.module.css';
+import { useAppMode } from '@/controllers/useAppMode';
 
 type VisibleReferenceKind = ReferenceDraft['kind'];
 type VisibleReferenceRow = Employee | Department | SparkCategory;
@@ -19,7 +20,8 @@ const labels: Record<VisibleReferenceKind, string> = {
 };
 
 export function ReferenceManager() {
-  const { snapshot, saveReference } = useSpark();
+  const { isApiMode } = useAppMode();
+  const { snapshot, saveReference, deleteEmployee } = useSpark();
   const [kind, setKind] = useState<VisibleReferenceKind>('employees');
   const [query, setQuery] = useState('');
   const [draft, setDraft] = useState<ReferenceDraft | null>(null);
@@ -116,7 +118,7 @@ export function ReferenceManager() {
                     {'departmentId' in item
                       ? snapshot!.departments.find((department) => department.id === item.departmentId)?.name
                       : 'period' in item
-                        ? item.period
+                        ? `${item.usageType === 'PeerRecognition' ? 'Peer Recognition' : item.usageType} · ${item.period}`
                         : 'Department-scoped approvals'}
                   </td>
                   <td>
@@ -151,14 +153,23 @@ export function ReferenceManager() {
         />
       )}
       <p className={styles.mutedCopy}>
-        Records are deactivated, never deleted. The six demo identities keep their roles and active status so
-        every workspace remains accessible.
+        {kind === 'employees'
+          ? 'Employees can be deleted from Directory. Their access is disabled, while immutable Ledger and audit history remains preserved.'
+          : isApiMode
+          ? 'Records are deactivated, never deleted, so historical references remain intact.'
+          : 'Records are deactivated, never deleted. The six demo identities keep their roles and active status so every workspace remains accessible.'}
       </p>
       {draft && (
         <ReferenceEditor
           initialDraft={draft}
           snapshot={snapshot!}
           onSave={save}
+          onDelete={draft.kind === 'employees' && Boolean(draft.data.id)
+            ? async () => {
+                await deleteEmployee(draft.data.id);
+                setMessage(`${draft.data.name} was deleted from Employee Directory.`);
+              }
+            : undefined}
           onClose={() => setDraft(null)}
         />
       )}

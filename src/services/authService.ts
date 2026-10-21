@@ -1,6 +1,7 @@
 import { DEMO_AUTH_ACCOUNTS, DEMO_PASSWORD } from '@/data/mockAuthData';
 import type {
   AuthAccessState,
+  AccessApprovalEmployeeInput,
   AuthAccount,
   AuthAccountStatus,
   AuthAuditEvent,
@@ -10,6 +11,8 @@ import type {
   RegistrationInput,
 } from '@/models/auth';
 import { sparkService } from '@/services/sparkService';
+import { apiAuthService } from '@/services/apiAuthService';
+import { isApiMode } from '@/services/apiClient';
 
 const AUTH_STATE_KEY = 'c-job-auth-state-v1';
 const AUTH_SESSION_KEY = 'c-job-auth-session-v1';
@@ -352,7 +355,15 @@ const requireAdministrator = async (state: StoredAuthState) => {
   return { user, activeSession };
 };
 
-export const authService = {
+const demoAuthService = {
+  async getMicrosoftAuthConfig() {
+    return { enabled: false, registrationEnabled: false };
+  },
+
+  microsoftSignInUrl() {
+    return '/login';
+  },
+
   async initialize() {
     await ensureInitialized();
   },
@@ -410,28 +421,14 @@ export const authService = {
     if (!passwordValidation.valid || input.password !== input.confirmPassword)
       throw new AuthServiceError('INVALID_PASSWORD', 'Check the password requirements and confirmation.');
 
-    const initialSnapshot = await sparkService.getSnapshot();
-    const employee = initialSnapshot.employees.find(
-      (item) => item.active && normalizeEmail(item.email) === email,
-    );
-    if (!employee)
-      throw new AuthServiceError(
-        'DIRECTORY_NOT_FOUND',
-        'This email is not linked to an active employee profile. Ask an administrator to update the directory.',
-      );
-
     return withAuthWriteLock(async () => {
       const snapshot = await sparkService.getSnapshot();
       const currentEmployee = snapshot.employees.find(
-        (item) => item.id === employee.id && item.active && normalizeEmail(item.email) === email,
+        (item) => normalizeEmail(item.email) === email,
       );
-      if (!currentEmployee)
-        throw new AuthServiceError(
-          'DIRECTORY_NOT_FOUND',
-          'This directory profile changed while the request was being prepared. Try again.',
-        );
       const state = requiredState();
-      const existing = state.accounts.find((item) => item.employeeId === currentEmployee.id);
+      const existing = state.accounts.find((item) => item.email === email ||
+        (currentEmployee && item.employeeId === currentEmployee.id));
       if (existing && existing.email !== email)
         throw new AuthServiceError(
           'ACCOUNT_DISABLED',
@@ -466,7 +463,7 @@ export const authService = {
           reviewedBy: undefined,
           rejectionReason: undefined,
         });
-        addAudit(state, existing, 'REGISTRATION_RESUBMITTED', currentEmployee.id, `${email} resubmitted access.`);
+        addAudit(state, existing, 'REGISTRATION_RESUBMITTED', currentEmployee?.id ?? existing.id, `${email} resubmitted access.`);
         saveState(state);
         setLastAccount(existing.id);
         return publicAccount(existing);
@@ -475,15 +472,19 @@ export const authService = {
       const credentials = await passwordRecord(input.password);
       const account: StoredAccount = {
         id: createId('account'),
-        employeeId: currentEmployee.id,
+        employeeId: currentEmployee?.id,
         email,
         status: 'Pending',
         source: 'Registration',
         requestedAt: new Date().toISOString(),
+        firstName: currentEmployee?.name.split(/\s+/)[0] ?? email.split('@')[0]!.split(/[._-]+/)[0],
+        lastName: currentEmployee?.name.split(/\s+/).slice(1).join(' ') || 'Employee',
+        requestedDepartmentId: currentEmployee?.departmentId,
+        authProvider: 'local',
         ...credentials,
       };
       state.accounts.push(account);
-      addAudit(state, account, 'REGISTRATION_SUBMITTED', currentEmployee.id, `${email} requested access.`);
+      addAudit(state, account, 'REGISTRATION_SUBMITTED', currentEmployee?.id ?? account.id, `${email} requested access.`);
       saveState(state);
       setLastAccount(account.id);
       return publicAccount(account);
@@ -494,10 +495,7 @@ export const authService = {
     await ensureInitialized();
     const email = normalizeEmail(input.email);
     const snapshot = await sparkService.getSnapshot();
-    const employee = snapshot.employees.find((item) => item.active && normalizeEmail(item.email) === email);
-    const initialAccount = employee
-      ? requiredState().accounts.find((item) => item.employeeId === employee.id && item.email === email)
-      : undefined;
+    const initialAccount = requiredState().accounts.find((item) => item.email === email);
     const matches = initialAccount
       ? (await derivePasswordHash(input.password, initialAccount.passwordSalt)) === initialAccount.passwordHash
       : false;
@@ -514,7 +512,7 @@ export const authService = {
       return publicAccount(account);
     }
     if (!(await accountUser(account, snapshot)))
-      throw new AuthServiceError('ACCOUNT_DISABLED', 'This employee profile is inactive or no longer matches the account.');
+      throw new AuthServiceError('INVALID_CREDENTIALS', 'Email or password is incorrect.');
     writeValue(
       'session',
       AUTH_SESSION_KEY,
@@ -567,6 +565,7 @@ export const authService = {
     accountId: string,
     decision: Extract<AuthAccountStatus, 'Approved' | 'Rejected'>,
     reason = '',
+    employeeInput?: AccessApprovalEmployeeInput,
   ): Promise<AuthAccount> {
     await ensureInitialized();
     return withAuthWriteLock(async () => {
@@ -578,12 +577,35 @@ export const authService = {
       if (account.status === decision) return publicAccount(account);
       if (account.status !== 'Pending')
         throw new AuthServiceError('INVALID_REVIEW', 'This registration request has already been reviewed.');
-      const user = await accountUser(account, snapshot);
+      let user = await accountUser(account, snapshot);
+      if (decision === 'Approved' && employeeInput) {
+        const existingEmployee = account.employeeId
+          ? snapshot.employees.find((employee) => employee.id === account.employeeId)
+          : snapshot.employees.find((employee) => normalizeEmail(employee.email) === account.email);
+        await sparkService.saveReference(authorization.user.employeeId, {
+          kind: 'employees',
+          data: {
+            id: existingEmployee?.id ?? '',
+            name: employeeInput.name,
+            initials: existingEmployee?.initials ?? '',
+            title: employeeInput.title,
+            departmentId: employeeInput.departmentId,
+            role: employeeInput.role,
+            email: account.email,
+            active: true,
+            hasCoordinationExperience: existingEmployee?.hasCoordinationExperience ?? false,
+            managerId: employeeInput.managerId,
+          },
+        });
+        const updatedSnapshot = await sparkService.getSnapshot();
+        const approvedEmployee = updatedSnapshot.employees.find((employee) => normalizeEmail(employee.email) === account.email);
+        if (!approvedEmployee)
+          throw new AuthServiceError('INVALID_REVIEW', 'The employee directory profile could not be created.');
+        account.employeeId = approvedEmployee.id;
+        user = await accountUser(account, updatedSnapshot);
+      }
       if (decision === 'Approved' && !user)
-        throw new AuthServiceError(
-          'INVALID_REVIEW',
-          'The linked employee is inactive or no longer exists in the directory.',
-        );
+        throw new AuthServiceError('INVALID_REVIEW', 'Complete the employee profile before approving this request.');
       const rejectionReason = reason.trim();
       if (decision === 'Rejected' && rejectionReason.length < 5)
         throw new AuthServiceError('INVALID_REVIEW', 'Add a short reason before rejecting this request.');
@@ -656,6 +678,18 @@ export const authService = {
     });
   },
 
+  async deleteEmployeeAccount(employeeId: string) {
+    await ensureInitialized();
+    return withAuthWriteLock(async () => {
+      const state = requiredState();
+      const authorization = await requireAdministrator(state);
+      if (authorization.user.employeeId === employeeId)
+        throw new AuthServiceError('INVALID_REVIEW', 'You cannot delete your own employee profile.');
+      state.accounts = state.accounts.filter((account) => account.employeeId !== employeeId);
+      saveState(state);
+    });
+  },
+
   resetForTesting() {
     removeValue('local', AUTH_STATE_KEY);
     removeValue('session', AUTH_SESSION_KEY);
@@ -666,3 +700,5 @@ export const authService = {
     storageModes.session = null;
   },
 };
+
+export const authService = isApiMode ? apiAuthService : demoAuthService;

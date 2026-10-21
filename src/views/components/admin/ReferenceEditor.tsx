@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Save } from 'lucide-react';
+import { Save, Trash2 } from 'lucide-react';
 import { ALL_ROLES } from '@/constants/app';
 import { Modal } from '@/views/components/common/Modal';
 import { Feedback } from '@/views/components/common/Feedback';
@@ -14,16 +14,19 @@ export function ReferenceEditor({
   initialDraft,
   snapshot,
   onSave,
+  onDelete,
   onClose,
 }: {
   initialDraft: ReferenceDraft;
   snapshot: AppSnapshot;
   onSave: (draft: ReferenceDraft) => Promise<void>;
+  onDelete?: () => Promise<void>;
   onClose: () => void;
 }) {
   const { accounts } = useAuth();
   const [draft, setDraft] = useState(() => structuredClone(initialDraft));
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const emailLocked =
     draft.kind === 'employees' &&
@@ -46,12 +49,27 @@ export function ReferenceEditor({
       setSaving(false);
     }
   };
+  const remove = async () => {
+    if (!onDelete || deleting || !window.confirm(
+      `Delete ${draft.data.name} from Employee Directory? Access will be disabled. Ledger and audit history will be preserved. This cannot be undone.`,
+    )) return;
+    setDeleting(true);
+    setError('');
+    try {
+      await onDelete();
+      onClose();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not delete this employee.');
+    } finally {
+      setDeleting(false);
+    }
+  };
   return (
     <Modal
       open
       title={`${draft.data.id ? 'Edit' : 'Add'} ${draft.kind === 'categories' ? 'category' : draft.kind.slice(0, -1)}`}
       description="Changes apply to future operations. Existing Ledger and audit records are preserved."
-      onClose={() => !saving && onClose()}
+      onClose={() => !saving && !deleting && onClose()}
     >
       <form onSubmit={(event) => void save(event)}>
         {error && <Feedback tone="error">{error}</Feedback>}
@@ -176,10 +194,37 @@ export function ReferenceEditor({
           {draft.kind === 'categories' && (
             <>
               <label className={styles.formField}>
+                <span>Used by</span>
+                <SelectField
+                  value={draft.data.usageType}
+                  disabled={Boolean(draft.data.id)}
+                  onChange={(value) => {
+                    const usageType = value as SparkCategory['usageType'];
+                    setDraft((current) => ({
+                      ...current,
+                      data: {
+                        ...current.data,
+                        usageType,
+                        ...(usageType === 'PeerRecognition'
+                          ? { sparkType: 'White', amount: 1, period: 'Unrestricted' }
+                          : {}),
+                      },
+                    }) as ReferenceDraft);
+                  }}
+                  options={[
+                    { value: 'PeerRecognition', label: 'Peer Recognition' },
+                    { value: 'Award', label: 'Award a Spark' },
+                    { value: 'Performance', label: 'Performance' },
+                    { value: 'Administrative', label: 'Administrative adjustment' },
+                  ]}
+                  ariaLabel="Category usage"
+                />
+              </label>
+              <label className={styles.formField}>
                 <span>Spark type</span>
                 <SelectField
                   value={draft.data.sparkType}
-                  disabled={Boolean(draft.data.id)}
+                  disabled={Boolean(draft.data.id) || draft.data.usageType === 'PeerRecognition'}
                   onChange={(value) => {
                     const sparkType = value as SparkCategory['sparkType'];
                     setDraft(
@@ -216,6 +261,7 @@ export function ReferenceEditor({
                   max={100}
                   required
                   value={draft.data.amount}
+                  disabled={draft.data.usageType === 'PeerRecognition'}
                   onChange={(event) => update('amount', Number(event.target.value))}
                 />
                 <small>White, Yellow and Blue amounts apply to future Award a Spark operations. Peer Recognition remains 1 White.</small>
@@ -224,7 +270,7 @@ export function ReferenceEditor({
                 <span>Category limit period</span>
                 <SelectField
                   value={draft.data.period}
-                  disabled={draft.data.sparkType !== 'Blue' || draft.data.id === 'blue-0'}
+                  disabled={draft.data.usageType === 'PeerRecognition' || draft.data.sparkType !== 'Blue' || draft.data.id === 'blue-0'}
                   onChange={(value) => update('period', value as SparkCategory['period'])}
                   options={(draft.data.sparkType === 'Blue'
                     ? ['Quarterly', 'Yearly', 'One-time']
@@ -245,22 +291,30 @@ export function ReferenceEditor({
               </label>
             </>
           )}
-          <label className={`${styles.checkField} ${styles.fieldFull}`}>
-            <input
-              type="checkbox"
-              checked={draft.data.active}
-              onChange={(event) => update('active', event.target.checked)}
-            />
-            <span>
-              Active record<small>Inactive records stay in historical references.</small>
-            </span>
-          </label>
+          {draft.kind !== 'employees' && (
+            <label className={`${styles.checkField} ${styles.fieldFull}`}>
+              <input
+                type="checkbox"
+                checked={draft.data.active}
+                onChange={(event) => update('active', event.target.checked)}
+              />
+              <span>
+                Active record<small>Inactive records stay in historical references.</small>
+              </span>
+            </label>
+          )}
         </div>
         <div className={styles.modalActions}>
-          <button type="button" className={styles.secondaryButton} onClick={onClose} disabled={saving}>
+          {onDelete && (
+            <button type="button" className={styles.rejectButton} onClick={() => void remove()} disabled={saving || deleting}>
+              {deleting ? <span className={styles.spinner} /> : <Trash2 size={16} />}
+              {deleting ? 'Deleting…' : 'Delete employee'}
+            </button>
+          )}
+          <button type="button" className={styles.secondaryButton} onClick={onClose} disabled={saving || deleting}>
             Cancel
           </button>
-          <button type="submit" className={styles.primaryButton} disabled={saving}>
+          <button type="submit" className={styles.primaryButton} disabled={saving || deleting}>
             {saving ? <span className={styles.spinner} /> : <Save size={16} />}
             {saving ? 'Saving…' : 'Save record'}
           </button>

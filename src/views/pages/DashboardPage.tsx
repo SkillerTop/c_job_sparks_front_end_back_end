@@ -6,13 +6,15 @@ import { PageTransition } from '@/views/components/common/PageTransition';
 import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
 import { useDashboardController } from '@/controllers/useDashboardController';
-import { useShop } from '@/controllers/ShopContext';
+import { useSpark } from '@/controllers/SparkContext';
+import { EMPTY_SHOP_EFFECTS } from '@/models/shop';
 import { formatDate } from '@/utils/formatters';
 import styles from '@/views/styles/app.module.css';
 
 export function DashboardPage() {
   const data = useDashboardController();
-  const { effects } = useShop();
+  const { snapshot } = useSpark();
+  const effects = snapshot?.shopEffects ?? EMPTY_SHOP_EFFECTS;
   if (!data) return null;
   const { user, balances, recentTransactions, pendingApprovals, department } = data;
   const isHead = user.role === 'Head';

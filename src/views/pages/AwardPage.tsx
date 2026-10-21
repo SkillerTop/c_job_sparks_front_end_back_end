@@ -33,17 +33,22 @@ export function AwardPage() {
     sparkType: allowedTypes[0],
     category: '',
     description: '',
+    fulfillmentContactId: '',
+    radiantRewardKind: 'RadiantAcrylic',
+    valuablePrizeDescription: '',
   });
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   useEffect(() => {
-    setForm({ employeeId: '', sparkType: allowedTypes[0], category: '', description: '' });
+    setForm({ employeeId: '', sparkType: allowedTypes[0], category: '', description: '',
+      fulfillmentContactId: '', radiantRewardKind: 'RadiantAcrylic', valuablePrizeDescription: '' });
     setErrors({});
     setMessage(null);
   }, [activeRole]);
   const categories = snapshot!.categories.filter(
-    (category) => category.active && category.sparkType === form.sparkType,
+    (category) =>
+      category.active && category.usageType === 'Award' && category.sparkType === form.sparkType,
   );
   const definition = categories.find((category) => category.name === form.category);
   const amount = isRadiantAward ? 1 : (definition?.amount ?? 0);
@@ -116,6 +121,10 @@ export function AwardPage() {
         ? 'Describe the reason for this Radiant award.'
         : 'Choose a category.';
     if (!form.description.trim()) next.description = 'Describe the achievement.';
+    if (isRadiantAward && !form.fulfillmentContactId) next.fulfillmentContactId = 'Choose the person responsible for fulfillment.';
+    if (isRadiantAward && !form.radiantRewardKind) next.radiantRewardKind = 'Choose the physical award.';
+    if (isRadiantAward && !form.valuablePrizeDescription?.trim())
+      next.valuablePrizeDescription = 'Describe the valuable prize selected by management.';
     if (Object.keys(next).length) {
       setErrors(next);
       setMessage({ tone: 'error', text: 'Review the highlighted fields.' });
@@ -132,7 +141,8 @@ export function AwardPage() {
             ? 'Award request sent to the Head for approval.'
             : `${form.sparkType} Spark awarded and recorded in the Ledger.`,
       });
-      setForm({ employeeId: '', sparkType: allowedTypes[0], category: '', description: '' });
+      setForm({ employeeId: '', sparkType: allowedTypes[0], category: '', description: '',
+        fulfillmentContactId: '', radiantRewardKind: 'RadiantAcrylic', valuablePrizeDescription: '' });
     } catch (caught) {
       setMessage({
         tone: 'error',
@@ -286,6 +296,54 @@ export function AwardPage() {
                   <time dateTime={awardDate}>{formatDate(awardDate)}</time>
                 </div>
               </div>
+            )}
+            {isRadiantAward && (
+              <>
+                <label className={styles.formField}>
+                  <span>Physical award <b>*</b></span>
+                  <SelectField
+                    value={form.radiantRewardKind ?? 'RadiantAcrylic'}
+                    onChange={(value) => update('radiantRewardKind', value)}
+                    options={[
+                      { value: 'RadiantAcrylic', label: 'Radiant acrylic award in presentation box' },
+                      { value: 'RadiantVesselModel', label: '3D-printed project vessel model' },
+                    ]}
+                    ariaLabel="Physical Radiant award"
+                  />
+                </label>
+                <label className={styles.formField}>
+                  <span>Responsible for fulfillment <b>*</b></span>
+                  <SelectField
+                    value={form.fulfillmentContactId ?? ''}
+                    onChange={(value) => update('fulfillmentContactId', value)}
+                    options={[
+                      { value: '', label: 'Select responsible person' },
+                      ...snapshot!.fulfillmentContacts.map((contact) => ({
+                        value: contact.id,
+                        label: `${contact.name} · ${contact.role}${contact.officeName ? ` · ${contact.officeName}` : ''}`,
+                      })),
+                    ]}
+                    ariaLabel="Responsible for Radiant fulfillment"
+                    ariaInvalid={Boolean(errors.fulfillmentContactId)}
+                    ariaDescribedBy={errors.fulfillmentContactId ? 'award-contact-error' : undefined}
+                    required
+                  />
+                  {errors.fulfillmentContactId && <small id="award-contact-error" className={styles.fieldError}>{errors.fulfillmentContactId}</small>}
+                </label>
+                <label className={`${styles.formField} ${styles.fieldFull}`}>
+                  <span>Valuable prize selected by management <b>*</b></span>
+                  <textarea
+                    rows={3}
+                    value={form.valuablePrizeDescription ?? ''}
+                    onChange={(event) => update('valuablePrizeDescription', event.target.value)}
+                    placeholder="Describe the current year's valuable prize and any ordering notes…"
+                    maxLength={1000}
+                    aria-invalid={Boolean(errors.valuablePrizeDescription)}
+                    required
+                  />
+                  {errors.valuablePrizeDescription && <small className={styles.fieldError}>{errors.valuablePrizeDescription}</small>}
+                </label>
+              </>
             )}
             <label className={`${styles.formField} ${styles.fieldFull}`}>
               <span>

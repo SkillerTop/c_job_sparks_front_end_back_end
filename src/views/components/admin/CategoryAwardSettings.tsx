@@ -1,5 +1,5 @@
 import { Save, SlidersHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { Feedback } from '@/views/components/common/Feedback';
@@ -10,23 +10,30 @@ import styles from '@/views/styles/app.module.css';
 const editableSparkTypes: SparkCategory['sparkType'][] = ['White', 'Yellow', 'Blue'];
 const sparkTypeOrder = Object.fromEntries(editableSparkTypes.map((type, index) => [type, index]));
 
-const isEditableCategory = (category: SparkCategory) => editableSparkTypes.includes(category.sparkType);
+const bySparkTypeAndName = (left: SparkCategory, right: SparkCategory) =>
+  left.sparkType === right.sparkType
+    ? left.name.localeCompare(right.name)
+    : sparkTypeOrder[left.sparkType] - sparkTypeOrder[right.sparkType];
 
 export function CategoryAwardSettings() {
   const { snapshot, saveReference, mutating } = useSpark();
   const { t } = useUserPreferences();
-  const categories = snapshot!.categories
-    .filter(isEditableCategory)
-    .sort((left, right) =>
-      left.sparkType === right.sparkType
-        ? left.name.localeCompare(right.name)
-        : sparkTypeOrder[left.sparkType] - sparkTypeOrder[right.sparkType],
-    );
+  const categorySource = snapshot!.categories;
+  const peerCategories = categorySource
+    .filter((category) => category.usageType === 'PeerRecognition')
+    .sort(bySparkTypeAndName);
+  const categories = categorySource
+    .filter((category) => category.usageType === 'Award' && editableSparkTypes.includes(category.sparkType))
+    .sort(bySparkTypeAndName);
   const [amounts, setAmounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(categories.map((category) => [category.id, category.amount])),
   );
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    setAmounts(Object.fromEntries(categories.map((category) => [category.id, category.amount])));
+  }, [categorySource]);
 
   const saveAmount = async (category: SparkCategory) => {
     const amount = amounts[category.id];
@@ -63,12 +70,43 @@ export function CategoryAwardSettings() {
         <SlidersHorizontal size={20} aria-hidden="true" />
       </div>
       {message && <Feedback tone={message.tone}>{message.text}</Feedback>}
+      <h3>Peer Recognition categories</h3>
+      <p className={styles.mutedCopy}>These categories are separated from Award a Spark and always grant exactly 1 White Spark.</p>
+      <div className={styles.tableScroller} tabIndex={0} aria-label="Peer Recognition categories">
+        <table className={styles.dataTable}>
+          <thead>
+            <tr>
+              <th>{t('adminCategory.category')}</th>
+              <th>Usage</th>
+              <th>Fixed reward</th>
+              <th>{t('adminCategory.status')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {peerCategories.map((category) => (
+              <tr key={category.id}>
+                <td><strong>{category.name}</strong><span>{category.description}</span></td>
+                <td>Peer Recognition</td>
+                <td><SparkBadge type="White" amount={1} /></td>
+                <td>
+                  <span className={`${styles.statusBadge} ${category.active ? styles.statusApproved : styles.statusCancelled}`}>
+                    {category.active ? t('adminCategory.active') : t('adminCategory.inactive')}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <h3>Award a Spark categories</h3>
+      <p className={styles.mutedCopy}>Only these versioned amounts are editable and used by Award a Spark.</p>
       <div className={styles.tableScroller} tabIndex={0} aria-label={t('adminCategory.title')}>
         <table className={styles.dataTable}>
           <caption className={styles.srOnly}>{t('adminCategory.description')}</caption>
           <thead>
             <tr>
               <th>{t('adminCategory.category')}</th>
+              <th>Usage</th>
               <th>{t('adminCategory.current')}</th>
               <th>{t('adminCategory.newReward')}</th>
               <th>{t('adminCategory.status')}</th>
@@ -86,6 +124,7 @@ export function CategoryAwardSettings() {
                     <strong>{category.name}</strong>
                     <span>{category.description}</span>
                   </td>
+                  <td>Award a Spark</td>
                   <td><SparkBadge type={category.sparkType} amount={category.amount} /></td>
                   <td>
                     <label className={styles.categoryAmountField}>

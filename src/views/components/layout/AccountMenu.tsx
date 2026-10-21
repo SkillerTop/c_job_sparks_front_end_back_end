@@ -4,7 +4,8 @@ import { NavLink } from 'react-router-dom';
 import type { Role } from '@/models';
 import type { TranslationKey } from '@/constants/translations';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
-import { useShop } from '@/controllers/ShopContext';
+import { useSpark } from '@/controllers/SparkContext';
+import { EMPTY_SHOP_EFFECTS } from '@/models/shop';
 import { ThemeToggle } from './ThemeToggle';
 import { UserAvatar } from '@/views/components/profile/UserAvatar';
 import styles from '@/views/styles/app.module.css';
@@ -25,7 +26,8 @@ export function AccountMenu({
   onSignOut: () => void;
 }) {
   const { t } = useUserPreferences();
-  const { effects } = useShop();
+  const { snapshot } = useSpark();
+  const effects = snapshot?.shopEffects ?? EMPTY_SHOP_EFFECTS;
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);

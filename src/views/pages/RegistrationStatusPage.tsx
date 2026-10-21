@@ -19,7 +19,7 @@ export function RegistrationStatusPage() {
           </span>
           <p className={authStyles.eyebrow}>Access status</p>
           <h1>No registration in progress</h1>
-          <p>Sign in with an approved account or create a request using your directory email.</p>
+          <p>Sign in with an approved account or request access with your work email.</p>
           <div className={authStyles.statusActions}>
             <Link className={authStyles.primaryLink} to="/login">Sign in</Link>
             <Link className={authStyles.secondaryLink} to="/register">Request access</Link>
@@ -53,7 +53,7 @@ export function RegistrationStatusPage() {
             ? 'Your account is ready. Sign in with the password you created.'
             : rejected
               ? 'The administrator did not approve this request. You can submit it again using the same password.'
-              : 'An administrator needs to confirm your account before you can enter the workspace.'}
+              : 'An administrator needs to complete your employee profile and approve the account before you can enter the workspace.'}
         </p>
         {rejected && registrationAccount.rejectionReason && (
           <div className={authStyles.rejectionReason} role="note">

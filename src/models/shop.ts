@@ -6,6 +6,8 @@ export type ShopCategory = 'Popular' | 'Boosters' | 'Customization' | 'Features'
 export type ShopCategoryFilter = 'All' | ShopCategory;
 export type ProductRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary';
 export type ProductType = 'Consumable' | 'Activatable' | 'Permanent';
+export type FulfillmentKind = 'Virtual' | 'Physical' | 'Certificate' | 'ITEquipment';
+export type DeliveryMethod = 'OfficePickup' | 'EmployeePaidDelivery' | 'WorkEmail' | 'InternalCoordination';
 export type InventoryStatus = 'Owned' | 'Active' | 'Used' | 'Expired';
 export type ShopSort = 'popular' | 'price-asc' | 'price-desc' | 'newest';
 export type ShopTransactionType = 'purchase' | 'refund' | 'adjustment';
@@ -16,12 +18,17 @@ export interface ShopProduct {
   name: string;
   description: string;
   imageUrl: string | null;
+  imageSrcSet?: string | null;
+  imageSizes?: string;
   icon: string;
   category: ShopCategory;
   rarity: ProductRarity;
   price: number;
   priceSparkType: SpendableSparkType;
   productType: ProductType;
+  fulfillmentKind: FulfillmentKind;
+  fulfillmentContactId: string | null;
+  effectCode?: string;
   durationHours: number | null;
   stock: number | null;
   isActive: boolean;
@@ -75,6 +82,7 @@ export interface ShopSnapshot {
   inventory: ShopInventoryItem[];
   transactions: ShopSparkTransaction[];
   identity: ShopIdentity;
+  fulfillmentContacts: import('@/models').FulfillmentContact[];
 }
 
 export interface ShopEffects {
@@ -86,9 +94,19 @@ export interface ShopEffects {
   vipStatus: boolean;
 }
 
+export const EMPTY_SHOP_EFFECTS: ShopEffects = {
+  doubleWhiteSparks: false,
+  focusMode: false,
+  goldenProfileFrame: false,
+  neonTheme: false,
+  signatureBadge: false,
+  vipStatus: false,
+};
+
 export interface PurchaseResult extends ShopSnapshot {
   purchase: ShopPurchase;
   inventoryItem: ShopInventoryItem;
+  fulfillment: { id: string; status: 'Requested' } | null;
 }
 
 export interface AdminBalance {
@@ -102,6 +120,32 @@ export interface ShopAdminState {
   products: ShopProduct[];
   purchases: ShopPurchase[];
   balances: AdminBalance[];
+  fulfillmentContacts: import('@/models').FulfillmentContact[];
+  fulfillments: RewardFulfillment[];
+}
+
+export interface RewardFulfillment {
+  id: string;
+  sourceType: 'RadiantAward' | 'ShopPurchase';
+  awardId: string | null;
+  purchaseId: string | null;
+  employeeId: string;
+  employeeName: string;
+  contactName: string;
+  contactEmail: string;
+  rewardKind: 'RadiantAcrylic' | 'RadiantVesselModel' | 'ShopPhysical' | 'ShopCertificate' | 'ShopEquipment';
+  deliveryMethod: DeliveryMethod;
+  officeName: string | null;
+  valuablePrizeDescription: string | null;
+  status: 'Requested' | 'InProgress' | 'Ordered' | 'Ready' | 'Delivered' | 'Cancelled';
+  requestedAt: string;
+  updatedAt: string;
+  notes: string | null;
+}
+
+export interface PurchaseFulfillmentChoice {
+  deliveryMethod: DeliveryMethod;
+  officeName?: string;
 }
 
 export interface ProductDraft extends Omit<ShopProduct, 'id' | 'createdAt'> {

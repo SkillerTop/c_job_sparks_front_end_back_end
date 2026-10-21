@@ -706,6 +706,20 @@
 .purchaseAfter { background: var(--accent-soft); }
 .purchaseAfter dd { color: var(--accent-green); }
 
+.fulfillmentFields {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--surface-soft);
+}
+
+.fulfillmentFields p,
+.fulfillmentFields small { margin: 0; color: var(--muted-strong); font-size: 0.8rem; }
+.fulfillmentFields p strong { color: var(--ink); }
+.fulfillmentFields label { display: grid; gap: 0.42rem; color: var(--ink); font-size: 0.78rem; font-weight: 700; }
+
 .secureNote {
   display: flex;
   align-items: flex-start;
@@ -1085,8 +1099,57 @@
   background: var(--surface-hover);
 }
 
-.adminProductRow > .shopSecondaryButton {
+.adminProductActions {
+  display: flex;
   width: 100%;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.adminProductActions > button {
+  flex: 1 1 auto;
+}
+
+.shopDangerButton {
+  display: inline-flex;
+  min-height: 2.55rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  padding: 0.6rem 0.82rem;
+  border: 1px solid var(--danger-line);
+  border-radius: 0.72rem;
+  color: var(--danger);
+  background: var(--danger-soft);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.shopDangerButton:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+
+.shopDangerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.deleteProductConfirmation {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.deleteProductConfirmation > strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.deleteProductConfirmation > p {
+  margin: 0;
+  color: var(--muted-strong);
+  line-height: 1.55;
 }
 
 .adminForm,
@@ -1289,7 +1352,7 @@
   .categoryScroller { padding-bottom: 0.12rem; }
   .historyHeader { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
   .adminProductRow { grid-template-columns: auto minmax(0, 1fr) auto auto; }
-  .adminProductRow > .shopSecondaryButton { width: auto; }
+  .adminProductActions { width: auto; flex-wrap: nowrap; }
   .editorGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 

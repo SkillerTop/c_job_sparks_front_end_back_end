@@ -1,0 +1,40 @@
+name: Staging Microsoft and Graph smoke test
+
+on:
+  workflow_dispatch:
+    inputs:
+      mail_recipient:
+        description: Mailbox that must receive the Graph test message
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify-integrations:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify an authenticated Microsoft staging session
+        run: node scripts/verify-staging-microsoft-session.mjs
+        env:
+          STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+          STAGING_MICROSOFT_SESSION_COOKIE: ${{ secrets.STAGING_MICROSOFT_SESSION_COOKIE }}
+      - name: Send Graph staging message
+        run: pnpm test:staging:mail
+        env:
+          MICROSOFT_TENANT_ID: ${{ secrets.MICROSOFT_TENANT_ID }}
+          MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          MICROSOFT_CLIENT_SECRET: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          MAIL_SENDER_USER_ID: ${{ secrets.MAIL_SENDER_USER_ID }}
+          STAGING_MAIL_TEST_RECIPIENT: ${{ inputs.mail_recipient }}

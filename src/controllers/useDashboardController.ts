@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useSpark } from './SparkContext';
+import { useSpark } from '@/controllers/SparkContext';
 import { calculateBalances } from '@/utils/sparkRules';
 import { selectPendingRequests } from '@/models/selectors';
 import { quarterForDate, quarterOrder } from '@/utils/quarter';

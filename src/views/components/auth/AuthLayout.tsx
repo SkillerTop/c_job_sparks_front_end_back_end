@@ -3,9 +3,11 @@ import { ShieldCheck, Sparkles } from 'lucide-react';
 import { AnimatedWaves } from '@/views/components/common/AnimatedWaves';
 import { BrandLockup } from '@/views/components/common/BrandLockup';
 import { ThemeToggle } from '@/views/components/layout/ThemeToggle';
+import { useAppMode } from '@/controllers/useAppMode';
 import authStyles from '@/views/styles/auth.module.css';
 
 export function AuthLayout({ children }: { children: ReactNode }) {
+  const { isApiMode } = useAppMode();
   return (
     <div className={authStyles.authShell}>
       <a className={authStyles.skipLink} href="#auth-content">
@@ -34,9 +36,11 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <div className={authStyles.authToolbar}>
           <ThemeToggle />
         </div>
-        <div className={authStyles.authDemoBanner} role="note">
-          Local browser demo · approvals are not shared with other devices · do not use real credentials
-        </div>
+        {!isApiMode && (
+          <div className={authStyles.authDemoBanner} role="note">
+            Local browser demo · approvals are not shared with other devices · do not use real credentials
+          </div>
+        )}
         <div className={authStyles.authContent}>{children}</div>
         <p className={authStyles.authFootnote}>© 2026 C-Job Naval Architects · Spark System</p>
       </main>

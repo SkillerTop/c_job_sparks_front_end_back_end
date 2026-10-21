@@ -124,6 +124,7 @@ export const SHOP_TEXT = {
     activateItem: 'The item could not be activated.',
     loadAdmin: 'Shop management could not be loaded.',
     saveProduct: 'The item could not be saved.',
+    deleteProduct: 'The item could not be deleted.',
     uploadImage: 'The image could not be uploaded.',
     adjustBalance: 'The balance could not be adjusted.',
   },
@@ -137,6 +138,7 @@ export const SHOP_TEXT = {
     active: 'Active',
     disabled: 'Disabled',
     edit: 'Edit',
+    delete: 'Delete',
     balanceEyebrow: 'Controlled adjustment',
     balanceTitle: 'Adjust Spark balance',
     user: 'User',
@@ -183,6 +185,10 @@ export const SHOP_TEXT = {
     cancel: 'Cancel',
     save: 'Save item',
     productSaved: 'The item was saved and the catalog was refreshed.',
+    productDeleted: 'The item was removed from the catalog. Existing purchase and Ledger history was preserved.',
+    deleteProductTitle: 'Delete shop item?',
+    deleteProductDescription: 'The item will disappear from the catalog and Shop Management. Existing purchases, inventory and Ledger history will remain available.',
+    confirmDeleteProduct: 'Delete item',
     balanceSaved: 'The Spark balance was updated and the transaction was added to the ledger.',
   },
 } as const;
@@ -191,6 +197,13 @@ export const PRODUCT_TYPE_OPTIONS = [
   { value: 'Consumable', label: 'Consumable' },
   { value: 'Activatable', label: 'Activatable' },
   { value: 'Permanent', label: 'Permanent' },
+] as const;
+
+export const FULFILLMENT_KIND_OPTIONS = [
+  { value: 'Virtual', label: 'Virtual / automatic' },
+  { value: 'Physical', label: 'Physical reward' },
+  { value: 'Certificate', label: 'Certificate to work email' },
+  { value: 'ITEquipment', label: 'IT equipment / monitor / peripheral' },
 ] as const;
 
 export const PRODUCT_ICON_OPTIONS = [

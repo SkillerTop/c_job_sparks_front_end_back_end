@@ -15,7 +15,7 @@ import { SHOP_CATEGORIES, SHOP_SORTS, SHOP_TEXT } from '@/constants/shop';
 import { isInsufficientSparksError, useShop } from '@/controllers/ShopContext';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
-import type { ShopCategoryFilter, ShopProduct, ShopSort } from '@/models/shop';
+import type { PurchaseFulfillmentChoice, ShopCategoryFilter, ShopProduct, ShopSort } from '@/models/shop';
 import { emptySpendableBalances, filterAndSortProducts, type ProductAction } from '@/utils/shop';
 import styles from '@/views/styles/shop.module.css';
 
@@ -61,12 +61,12 @@ export function ShopPage() {
     if (action === 'buy') setSelected(product);
   };
 
-  const confirmPurchase = async () => {
+  const confirmPurchase = async (fulfillment?: PurchaseFulfillmentChoice) => {
     if (!selected || purchasingId) return;
     setPurchaseError(null);
     try {
       const bought = selected;
-      await purchase(bought.id);
+      await purchase(bought.id, fulfillment);
       setSelected(null);
       setSuccessful(bought);
     } catch (caught) {
@@ -125,11 +125,12 @@ export function ShopPage() {
         balances={currentBalances}
         loading={Boolean(selected && purchasingId === selected.id)}
         error={purchaseError}
+        contacts={snapshot?.fulfillmentContacts ?? []}
         onClose={() => {
           setSelected(null);
           setPurchaseError(null);
         }}
-        onConfirm={() => void confirmPurchase()}
+        onConfirm={(fulfillment) => void confirmPurchase(fulfillment)}
       />
       <InsufficientSparksModal
         product={insufficient}

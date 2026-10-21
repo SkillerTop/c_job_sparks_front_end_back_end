@@ -3,14 +3,12 @@
 Source: the user-provided **Brand Book update 2024.pdf**.
 
 - `c-job-nikolayev.png`: the exact transparent white C-Job Nikolayev wordmark supplied by the user. Used in the sidebar, authentication screens and footer.
-- `c-job-emblem-red.png`: the previously supplied standalone red company emblem, retained as a source asset.
-- `c-job-logo-white.png`: original transparent red/white horizontal logo, extracted without redrawing from page 4. Retained as the previous full wordmark.
-- `c-job-logo.png`: original transparent red/blue plain horizontal logo, extracted without redrawing from page 5. Retained for use on light surfaces.
+- Original red emblem and historical logo variants are kept under `docs/assets/brand-source` as design sources. They are intentionally outside `public` so Vite does not copy unused artwork into the production bundle.
 - Brand colors from page 9: navy `#1F3B5D`, green `#60765E`, mustard `#C29247`, gray `#515151`. Logo red is `#E42313`; the source logo artwork is preserved unchanged.
 - Open Sans is the website typeface on page 8. Locally hosted variable WOFF2 files were obtained from the official Google Fonts CSS service. Latin, Latin Extended, Cyrillic and Cyrillic Extended are included for both normal and italic. The SIL Open Font License is in `../fonts/Open-Sans-OFL.txt` (upstream: https://github.com/google/fonts/tree/main/ofl/opensans).
 - Light/dark UI shades are accessibility adaptations of this palette. Red is reserved for the logo; error states use warm mustard-derived shades with explicit labels/icons. The rainbow Radiant star remains as previously requested.
 
-`../og-brand.png` is the refreshed social preview, created with the built-in Imagegen tool. The previous `../og.png` is preserved. It is a decorative cover, not a geographic or engineering chart. Small contour numbers in the artwork are decorative.
+`../og-brand.jpg` is the optimized social preview. Editable source images are kept under `docs/assets` so they are not copied into the production bundle. It is a decorative cover, not a geographic or engineering chart. Small contour numbers in the artwork are decorative.
 
 Generation prompt:
 

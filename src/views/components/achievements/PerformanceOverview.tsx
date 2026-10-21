@@ -6,6 +6,7 @@ import { EmptyState } from '@/views/components/common/EmptyState';
 import { useSpark } from '@/controllers/SparkContext';
 import { quarterOrder } from '@/utils/quarter';
 import styles from '@/views/styles/app.module.css';
+import performanceStyles from '@/views/styles/performance.module.css';
 
 export function PerformanceOverview() {
   const { snapshot, currentUserId } = useSpark();
@@ -21,14 +22,14 @@ export function PerformanceOverview() {
   }));
 
   return (
-    <section className={styles.performanceOverview} id="performance" aria-labelledby="performance-title">
+    <section className={performanceStyles.performanceOverview} id="performance" aria-labelledby="performance-title">
       <div className={styles.sectionHeading}>
         <div>
           <p className={styles.eyebrow}>Automatic recognition</p>
           <h2 id="performance-title">Performance &amp; automatic rewards</h2>
         </div>
       </div>
-      <div className={styles.performanceExplanation}>
+      <div className={performanceStyles.performanceExplanation}>
         <p>
           Scores come from quarterly KPI and Personal Cards results imported and validated by an administrator.
           White Sparks are awarded from the published score bands after validation; an active Quality Gate blocks
@@ -81,7 +82,7 @@ export function PerformanceOverview() {
               </div>
               <span className={styles.subtlePill}>KPI: left · Personal Cards: right</span>
             </div>
-            <div className={styles.chartWrap} aria-hidden="true">
+            <div className={performanceStyles.chartWrap} aria-hidden="true">
               <ResponsiveContainer
                 width="100%"
                 height="100%"

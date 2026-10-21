@@ -1,0 +1,22 @@
+.adminPage {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.adminPage :global(section),
+.adminPage :global(aside),
+.adminPage :global(form),
+.adminPage :global(fieldset) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 39.99rem) {
+  .adminPage :global(input),
+  .adminPage :global(select),
+  .adminPage :global(textarea) {
+    max-width: 100%;
+  }
+}

@@ -21,10 +21,12 @@ export function MySparksPage() {
       <PageHeader
         eyebrow="Personal ledger"
         title="My Sparks"
-        description="Every credit and debit remains visible. Your balance is calculated from this immutable history."
+        description={controller.radiantOnly
+          ? 'This role keeps a Radiant-only personal ledger. Radiant awards are permanent and read-only.'
+          : 'Every credit and debit remains visible. Your balance is calculated from this immutable history.'}
       />
       <div className={styles.balanceGridCompact}>
-        {(['White', 'Yellow', 'Blue', 'Radiant'] as SparkType[]).map((type, index) => (
+        {controller.visibleTypes.map((type, index) => (
           <BalanceCard key={type} type={type} value={controller.balances[type]} index={index} />
         ))}
       </div>
@@ -47,7 +49,7 @@ export function MySparksPage() {
             <SelectField
               value={controller.type}
               onChange={(value) => controller.setType(value as 'All' | SparkType)}
-              options={['All', 'White', 'Yellow', 'Blue', 'Radiant'].map((value) => ({
+              options={['All', ...controller.visibleTypes].map((value) => ({
                 value: value as 'All' | SparkType,
                 label: value,
               }))}

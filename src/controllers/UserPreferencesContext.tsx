@@ -6,7 +6,7 @@ import {
   PROFILE_LANGUAGE_STORAGE_KEY,
   profileService,
 } from '@/services/profileService';
-import { useAuth } from './AuthContext';
+import { useAuth } from '@/controllers/AuthContext';
 import { useDocumentLocalization } from '@/hooks/useDocumentLocalization';
 
 interface UserPreferencesContextValue {

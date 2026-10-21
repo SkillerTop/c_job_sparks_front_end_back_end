@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useSpark } from './SparkContext';
+import { useSpark } from '@/controllers/SparkContext';
 import { selectPendingRequests } from '@/models/selectors';
 
 export type QueueItem = {

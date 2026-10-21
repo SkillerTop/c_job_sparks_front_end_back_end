@@ -213,15 +213,38 @@ test('a directory email change fails closed instead of transferring the old pass
   );
 });
 
-test('unknown directory emails and incorrect passwords are rejected', async () => {
-  await assert.rejects(
-    authService.register({
-      email: 'outside@example.com',
-      password: 'Outside2026',
-      confirmPassword: 'Outside2026',
-    }),
-    (error) => error instanceof AuthServiceError && error.code === 'DIRECTORY_NOT_FOUND',
-  );
+test('an unknown work email is provisioned in the directory during approval', async () => {
+  const registration = await authService.register({
+    email: 'new.employee@example.com',
+    password: 'Outside2026',
+    confirmPassword: 'Outside2026',
+  });
+  assert.equal(registration.status, 'Pending');
+  assert.equal(registration.employeeId, undefined);
+
+  await authService.login({ email: ADMIN_EMAIL, password: DEMO_PASSWORD });
+  const snapshot = await sparkService.getSnapshot();
+  const departmentId = snapshot.departments.find((department) => department.active)?.id;
+  assert.ok(departmentId);
+  const approved = await authService.reviewRegistration(registration.id, 'Approved', '', {
+    name: 'New Employee',
+    title: 'QA Engineer',
+    departmentId,
+    role: 'Employee',
+  });
+  assert.equal(approved.status, 'Approved');
+  assert.ok(approved.employeeId);
+  authService.logout();
+
+  await authService.login({ email: registration.email, password: 'Outside2026' });
+  const user = await authService.restoreSession();
+  assert.equal(user?.name, 'New Employee');
+  assert.equal(user?.title, 'QA Engineer');
+  authService.logout();
+  await authService.login({ email: ADMIN_EMAIL, password: DEMO_PASSWORD });
+  await sparkService.deleteEmployee('emp-ida', approved.employeeId);
+  await authService.deleteEmployeeAccount(approved.employeeId);
+  assert.equal((await authService.getAccessState()).accounts.some((account) => account.id === registration.id), false);
   await assert.rejects(
     authService.login({ email: ADMIN_EMAIL, password: 'wrong-password' }),
     (error) => error instanceof AuthServiceError && error.code === 'INVALID_CREDENTIALS',

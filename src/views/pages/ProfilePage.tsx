@@ -51,7 +51,7 @@ export function ProfilePage() {
         {([
           ['profile', t('profile.sectionProfile')],
           ['preferences', t('profile.sectionPreferences')],
-          ['security', t('profile.sectionSecurity')],
+          ...(profile.user?.authProvider === 'entra' ? [] : [['security', t('profile.sectionSecurity')] as const]),
           ['sessions', t('profile.sectionSessions')],
         ] as const).map(([section, label]) => (
           <button
@@ -79,12 +79,9 @@ export function ProfilePage() {
         <EmployeeProfileCard
           employee={profile.employee}
           department={profile.department}
-          manager={profile.manager}
+          managerName={profile.managerName}
           role={profile.role}
           avatarDataUrl={preferences.avatarDataUrl}
-          busy={busyAction === 'avatar'}
-          onUpdateAvatar={async (file) => { await controller.updateAvatar(file); }}
-          onRemoveAvatar={async () => { await controller.removeAvatar(); }}
         />
       </section>
 
@@ -98,8 +95,7 @@ export function ProfilePage() {
         <div className={styles.settingsGrid}>
           <ContactSettings
             preferences={preferences}
-            busy={busyAction === 'email' ? 'email' : busyAction === 'preferences' ? 'preferences' : null}
-            onRequestVerification={async (email) => { await controller.requestEmailVerification(email); }}
+            busy={busyAction === 'preferences'}
             onSaveLanguage={async (language) => {
               await controller.savePreferences(language, preferences.notifications);
             }}
@@ -114,18 +110,20 @@ export function ProfilePage() {
         </div>
       </section>
 
-      <section
-        id="profile-panel-security"
-        className={`${styles.profileSection} ${styles.settingsSingle}`}
-        role="tabpanel"
-        aria-labelledby="profile-tab-security"
-        hidden={activeSection !== 'security'}
-      >
-        <PasswordSettings
-          busy={busyAction === 'password'}
-          onChangePassword={async (input) => { await controller.changePassword(input); }}
-        />
-      </section>
+      {profile.user?.authProvider !== 'entra' && (
+        <section
+          id="profile-panel-security"
+          className={`${styles.profileSection} ${styles.settingsSingle}`}
+          role="tabpanel"
+          aria-labelledby="profile-tab-security"
+          hidden={activeSection !== 'security'}
+        >
+          <PasswordSettings
+            busy={busyAction === 'password'}
+            onChangePassword={async (input) => { await controller.changePassword(input); }}
+          />
+        </section>
+      )}
 
       <section
         id="profile-panel-sessions"

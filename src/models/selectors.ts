@@ -47,12 +47,21 @@ export const selectAwardTargets = (snapshot: AppSnapshot, actorId: string, role:
       ? selectActiveProjectColleagues(snapshot, actorId).map((employee) => employee.id)
       : [],
   );
+  const gpmTeamMemberIds = new Set(
+    role === 'GPM'
+      ? snapshot.projectTeams
+          .filter((team) => team.active && team.gpmId === actorId)
+          .flatMap((team) => team.members.map((member) => member.employeeId))
+      : [],
+  );
   return snapshot.employees.filter((employee) => {
-    if (!employee.active || employee.role === 'Administrator') return false;
+    if (!employee.active || employee.role === 'Administrator' || employee.id === actorId) return false;
+    if (role === 'Top Management') return true;
+    if (!['Employee', 'Coordinator'].includes(employee.role)) return false;
     if (role === 'Coordinator') return activeProjectColleagueIds.has(employee.id);
     if (role === 'Head') return employee.departmentId === actor?.departmentId;
-    if (role === 'GPM') return true;
-    return role === 'Top Management';
+    if (role === 'GPM') return gpmTeamMemberIds.has(employee.id);
+    return false;
   });
 };
 

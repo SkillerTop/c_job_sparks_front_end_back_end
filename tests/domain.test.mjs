@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, mock, test } from 'node:test';
 import { sparkService } from '../src/services/sparkService.ts';
 import { BLUE_CATEGORIES, RECOGNITION_CATEGORIES, YELLOW_CATEGORIES } from '../src/constants/app.ts';
-import { calculateBalances, calculateLifetimeEarnings, conversionRule, evaluationReward, isQualityGateActive, kpiReward, recognitionQuota } from '../src/utils/sparkRules.ts';
+import { calculateBalances, calculateLifetimeEarnings, conversionRule, evaluationReward, isQualityGateActive, kpiReward, performanceThresholdValidationIssue, recognitionQuota } from '../src/utils/sparkRules.ts';
 import { isValidIsoDate, quarterForDate, quarterOrder } from '../src/utils/quarter.ts';
 import { parseCsv } from '../src/utils/parseCsv.ts';
 import { selectAwardTargets, selectPendingDepartmentDisenchantRequests, selectPendingRequests, selectTeamMembers } from '../src/models/selectors.ts';
@@ -44,6 +44,61 @@ test('KPI thresholds retain exact boundary values', () => {
 test('Personal cards reward thresholds retain exact boundary values', () => {
   assert.deepEqual([0, 3.49, 3.5, 4.19, 4.2, 4.49, 4.5, 5, NaN, -1].map(evaluationReward), [0, 0, 1, 1, 2, 2, 3, 3, 0, 0]);
 });
+test('Performance reward helpers accept admin-configured thresholds', () => {
+  const kpi = [
+    { minimum: 0.8, reward: 2 },
+    { minimum: 1, reward: 4 },
+    { minimum: 1.2, reward: 7 },
+  ];
+  const personalCards = [
+    { minimum: 2.5, reward: 1 },
+    { minimum: 3.5, reward: 3 },
+    { minimum: 4.5, reward: 6 },
+  ];
+  assert.equal(kpiReward(1.1, kpi), 4);
+  assert.equal(evaluationReward(4.7, personalCards), 6);
+});
+test('Admin performance settings update the workspace snapshot and future CSV previews', async () => {
+  const performanceThresholds = {
+    kpi: [
+      { minimum: 0.8, reward: 2 },
+      { minimum: 1, reward: 4 },
+      { minimum: 1.2, reward: 7 },
+    ],
+    personalCards: [
+      { minimum: 2.5, reward: 1 },
+      { minimum: 3.5, reward: 3 },
+      { minimum: 4.5, reward: 6 },
+    ],
+  };
+  const state = await sparkService.updateSettings(ADMIN, { performanceThresholds });
+  assert.deepEqual(state.settings.performanceThresholds, performanceThresholds);
+  const preview = await sparkService.previewImport('KPI', 'Q1 2032', csv('Name,KPI\nAlex Stone,1.10'), ADMIN);
+  assert.equal(preview.rows[0].reward, 4);
+});
+test('Rules validation explains the exact descending reward tier', () => {
+  assert.equal(performanceThresholdValidationIssue({
+    kpi: [
+      { minimum: 1.02, reward: 1 },
+      { minimum: 1.07, reward: 15 },
+      { minimum: 1.12, reward: 3 },
+    ],
+    personalCards: [
+      { minimum: 3.5, reward: 1 },
+      { minimum: 4.2, reward: 2 },
+      { minimum: 4.5, reward: 3 },
+    ],
+  }), 'KPI Tier 3: White reward cannot be lower than Tier 2.');
+});
+test('Demo and API contracts expose the complete role-specific category catalog', async () => {
+  const categories = (await snapshot()).categories;
+  const count = (sparkType, usageType) => categories.filter((category) =>
+    category.active && category.sparkType === sparkType && category.usageType === usageType).length;
+  assert.equal(count('White', 'PeerRecognition'), 11);
+  assert.equal(count('White', 'Award'), 11);
+  assert.equal(count('Yellow', 'Award'), 10);
+  assert.equal(count('Blue', 'Award'), 6);
+});
 test('Dates reject impossible days and quarters sort chronologically', () => {
   assert.equal(isValidIsoDate('2028-02-29'), true);
   for (const value of ['2026-02-29', '2026-02-31', '2026-99-99', '2026-1-01']) assert.equal(isValidIsoDate(value), false);
@@ -70,7 +125,9 @@ test('Snapshot mutations never modify service data', async () => {
   assert.equal((await snapshot()).employees[0].name, 'Alex Stone');
 });
 test('Seed balances use signed completed Ledger transactions', async () => {
-  assert.deepEqual(calculateBalances((await snapshot()).transactions, 'emp-alex'), { White: 18, Yellow: 7, Blue: 2, Radiant: 1 });
+  const state = await snapshot();
+  assert.deepEqual(calculateBalances(state.transactions, 'emp-alex'), { White: 18, Yellow: 7, Blue: 2, Radiant: 1 });
+  assert.deepEqual(state.departmentBalances['emp-alex'], { White: 18, Yellow: 7, Blue: 2, Radiant: 1 });
 });
 test('Reward Shop debits sync into the existing Spark ledger exactly once', async () => {
   const transaction = {
@@ -119,6 +176,11 @@ test('Administrator category amounts affect future awards without rewriting earl
   assert.equal((await snapshot()).awardRequests.find((request) => request.id === first.request.id).amount, 1);
   await assert.rejects(updateCategory(definition.id, { amount: 101 }), /1 to 100/);
 
+  const peerDefinition = (await snapshot()).categories.find(
+    (item) => item.sparkType === 'White' && item.usageType === 'PeerRecognition',
+  );
+  await assert.rejects(updateCategory(peerDefinition.id, { amount: 2 }), /exactly 1 White/);
+
   const whiteCategory = RECOGNITION_CATEGORIES[0];
   const firstWhiteRecipient = await addEmployee();
   const secondWhiteRecipient = await addEmployee();
@@ -128,7 +190,7 @@ test('Administrator category amounts affect future awards without rewriting earl
     award(firstWhiteRecipient.id, 'White', whiteCategory),
   );
   const whiteDefinition = (await snapshot()).categories.find(
-    (item) => item.sparkType === 'White' && item.name === whiteCategory,
+    (item) => item.sparkType === 'White' && item.usageType === 'Award' && item.name === whiteCategory,
   );
   await updateCategory(whiteDefinition.id, { amount: 2 });
   const secondWhite = await sparkService.createAward(
@@ -237,6 +299,27 @@ test('Department and role scopes are checked in the service', async () => {
   await assert.rejects(sparkService.createAward(ADMIN, 'Head', award('emp-alex', 'White', RECOGNITION_CATEGORIES[0])), /active role/);
   await assert.rejects(sparkService.createAward(HEAD, 'Head', award('emp-daniel', 'Blue', BLUE_CATEGORIES[1])), /department/);
 });
+test('Award recipient selectors enforce economy roles, scope and no self-awards', async () => {
+  const state = await snapshot();
+  const coordinator = selectAwardTargets(state, 'emp-sam', 'Coordinator');
+  assert.ok(coordinator.every((employee) => ['Employee', 'Coordinator'].includes(employee.role)));
+  assert.equal(coordinator.some((employee) => employee.id === 'emp-sam'), false);
+  assert.equal(coordinator.some((employee) => employee.id === 'emp-maya'), false);
+
+  const gpm = selectAwardTargets(state, 'emp-elena', 'GPM');
+  assert.ok(gpm.every((employee) => ['Employee', 'Coordinator'].includes(employee.role)));
+  assert.equal(gpm.some((employee) => employee.id === 'emp-elena'), false);
+
+  const head = selectAwardTargets(state, HEAD, 'Head');
+  assert.ok(head.every((employee) =>
+    employee.departmentId === 'dep-eng' && ['Employee', 'Coordinator'].includes(employee.role)));
+  assert.equal(head.some((employee) => employee.id === HEAD), false);
+
+  const top = selectAwardTargets(state, 'emp-victor', 'Top Management');
+  assert.equal(top.some((employee) => employee.id === 'emp-victor'), false);
+  assert.equal(top.some((employee) => employee.role === 'Administrator'), false);
+  assert.equal(top.some((employee) => employee.role === 'Head'), true);
+});
 test('Calendar rollover resets quota selection without allowing unlimited submissions', async () => {
   mock.timers.setTime(new Date('2026-10-01T12:00:00Z').getTime());
   await sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-alex'));
@@ -250,24 +333,33 @@ test('Direct Yellow cap is unchanged by spending or conversion', async () => {
   await assert.rejects(sparkService.createAward(HEAD, 'Head', award('emp-alex', 'Yellow', YELLOW_CATEGORIES[0].label)), /quarterly limit/);
 });
 test('Yellow request reserves its category and approval creates the configured amount', async () => {
-  const employee = await addEmployee();
-  const input = award(employee.id, 'Yellow', YELLOW_CATEGORIES[1].label);
+  const employeeId = 'emp-nora';
+  await sparkService.reviewAward('award-001', 'Rejected', 'Replace the seeded request for this test.', HEAD);
+  const beforeYellow = calculateBalances((await snapshot()).transactions, employeeId).Yellow;
+  const input = award(employeeId, 'Yellow', YELLOW_CATEGORIES[0].label);
   const result = await sparkService.createAward('emp-elena', 'GPM', input);
   assert.equal(result.request.status, 'Pending');
   await assert.rejects(sparkService.createAward('emp-elena', 'GPM', input), /already awarded or pending/);
   const state = await sparkService.reviewAward(result.request.id, 'Approved', '', HEAD);
-  assert.equal(calculateBalances(state.transactions, employee.id).Yellow, 2);
-  assert.equal(state.achievements.filter((item) => item.employeeId === employee.id).length, 1);
+  assert.equal(calculateBalances(state.transactions, employeeId).Yellow, beforeYellow + 1);
+  assert.ok(state.achievements.some((item) => item.employeeId === employeeId && item.title === input.category));
 });
 test('Coordinator awards require a shared project with worked hours while the team view remains departmental', async () => {
   const employee = await addEmployee({ departmentId: 'dep-ops' });
   await assert.rejects(sparkService.createAward('emp-sam', 'Coordinator', award(employee.id, 'Yellow', YELLOW_CATEGORIES[0].label)), /shared active project/);
-  const projectColleague = await sparkService.createAward('emp-sam', 'Coordinator', award('emp-maya', 'Yellow', YELLOW_CATEGORIES[0].label));
+  await sparkService.reviewAward('award-001', 'Rejected', 'Replace the seeded request for this test.', HEAD);
+  const projectColleague = await sparkService.createAward('emp-sam', 'Coordinator', award('emp-nora', 'Yellow', YELLOW_CATEGORIES[0].label));
   assert.equal(projectColleague.request.status, 'Pending');
   const state = await snapshot();
   assert.equal(selectTeamMembers(state, 'emp-sam', 'Coordinator').some((item) => item.id === employee.id), true);
   assert.equal(selectAwardTargets(state, 'emp-sam', 'Coordinator').some((item) => item.id === employee.id), false);
-  const result = await sparkService.createAward('emp-elena', 'GPM', award(employee.id, 'Yellow', YELLOW_CATEGORIES[0].label));
+  assert.equal(selectAwardTargets(state, 'emp-sam', 'Coordinator').some((item) => item.id === 'emp-maya'), false);
+  assert.equal(selectAwardTargets(state, 'emp-elena', 'GPM').some((item) => item.id === employee.id), false);
+  await assert.rejects(
+    sparkService.createAward('emp-elena', 'GPM', award(employee.id, 'Yellow', YELLOW_CATEGORIES[0].label)),
+    /eligible|scope|target/i,
+  );
+  const result = await sparkService.createAward('emp-elena', 'GPM', award('emp-sam', 'Yellow', YELLOW_CATEGORIES[0].label));
   assert.equal(result.request.status, 'Pending');
 });
 test('GPM can request White awards using the controlled Coordinator quota', async () => {
@@ -348,6 +440,33 @@ test('Disenchant debits immediately and snapshots accounting terms', async () =>
   await sparkService.updateSettings(ADMIN, { disenchantRate: 0.5 });
   assert.equal((await snapshot()).disenchantRequests.find((item) => item.id === result.request.id).rate, 0.8);
   await assert.rejects(sparkService.disenchant('emp-alex', 'White', 0.5), /whole|integer/i);
+});
+test('Administrator exports created Disenchant requests and only then marks them paid', async () => {
+  const created = await sparkService.disenchant('emp-alex', 'White', 1);
+  const exported = await sparkService.exportDisenchantRequests(ADMIN, [created.request.id], 'QA-DEMO-EXPORT');
+  assert.match(exported.csv, new RegExp(created.request.id));
+  assert.equal(exported.snapshot.disenchantRequests.find((item) => item.id === created.request.id).status, 'Exported');
+  const paid = await sparkService.markDisenchantPaid(ADMIN, created.request.id);
+  assert.equal(paid.disenchantRequests.find((item) => item.id === created.request.id).status, 'Paid');
+  await assert.rejects(sparkService.markDisenchantPaid(ADMIN, created.request.id), /Only an exported/);
+});
+test('Head can repeatedly export every department Disenchant request for a selected month', async () => {
+  const created = await sparkService.disenchant('emp-alex', 'White', 1);
+  const result = await sparkService.createMonthlyDisenchantReport(HEAD, '2026-08');
+  assert.equal(result.report.reportMonth, '2026-08');
+  assert.equal(result.report.itemCount, 1);
+  assert.equal(result.report.lines[0].employeeName, 'Alex Stone');
+  assert.equal(result.snapshot.disenchantRequests.find((item) => item.id === created.request.id).status, 'Exported');
+  const repeated = await sparkService.createMonthlyDisenchantReport(HEAD, '2026-08');
+  assert.equal(repeated.report.id, result.report.id);
+  assert.equal(repeated.report.itemCount, 1);
+  const next = await sparkService.disenchant('emp-alex', 'White', 1);
+  const refreshed = await sparkService.createMonthlyDisenchantReport(HEAD, '2026-08');
+  assert.equal(refreshed.report.id, result.report.id);
+  assert.equal(refreshed.report.itemCount, 2);
+  assert.equal(refreshed.snapshot.disenchantRequests.find((item) => item.id === next.request.id).status, 'Exported');
+  await assert.rejects(sparkService.createMonthlyDisenchantReport(HEAD, '2026-09'), /future month/);
+  await assert.rejects(sparkService.createMonthlyDisenchantReport('emp-alex', '2026-08'), /role cannot perform/i);
 });
 test('Quality Gates validate real dates and allow future scheduling', async () => {
   const employee = await addEmployee();
@@ -430,12 +549,16 @@ test('Reference validation protects identity, unique emails, reporting cycles an
   const state = await snapshot();
   await assert.rejects(sparkService.saveReference(ADMIN, { kind: 'departments', data: { ...state.departments[0], active: false } }), /active employees/);
 });
-test('Reference soft-deactivation hides new options without deleting Ledger history', async () => {
-  const employee = await addEmployee();
-  const result = await sparkService.createAward(HEAD, 'Head', award(employee.id, 'Blue', BLUE_CATEGORIES[2]));
-  const history = result.snapshot.transactions.find((item) => item.employeeId === employee.id);
-  const state = await updateEmployee(employee.id, { active: false });
-  assert.equal(selectAwardTargets(state, HEAD, 'Head').some((item) => item.id === employee.id), false);
+test('Employees can be deleted while immutable history is preserved', async () => {
+  const removable = await addEmployee();
+  const removed = await sparkService.deleteEmployee(ADMIN, removable.id);
+  assert.equal(removed.employees.some((item) => item.id === removable.id), false);
+
+  const protectedEmployee = await addEmployee();
+  const result = await sparkService.createAward(HEAD, 'Head', award(protectedEmployee.id, 'Blue', BLUE_CATEGORIES[2]));
+  const history = result.snapshot.transactions.find((item) => item.employeeId === protectedEmployee.id);
+  const state = await sparkService.deleteEmployee(ADMIN, protectedEmployee.id);
+  assert.equal(state.employees.some((item) => item.id === protectedEmployee.id), false);
   assert.deepEqual(state.transactions.find((item) => item.id === history.id), history);
 });
 test('Settings validate all numeric and money values and drive conversion', async () => {

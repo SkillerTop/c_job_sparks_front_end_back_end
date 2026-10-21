@@ -10,6 +10,7 @@ import {
 } from 'react';
 import type {
   AuthAccessState,
+  AccessApprovalEmployeeInput,
   AuthAccount,
   AuthAccountStatus,
   AuthUser,
@@ -31,6 +32,7 @@ interface AuthContextValue extends AuthAccessState {
     accountId: string,
     decision: Extract<AuthAccountStatus, 'Approved' | 'Rejected'>,
     reason?: string,
+    employee?: AccessApprovalEmployeeInput,
   ) => Promise<AuthAccount>;
   refreshAuth: () => Promise<void>;
 }
@@ -128,8 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRegistrationAccount(null);
   };
 
-  const reviewRegistration: AuthContextValue['reviewRegistration'] = async (accountId, decision, reason) => {
-    const account = await authService.reviewRegistration(accountId, decision, reason);
+  const reviewRegistration: AuthContextValue['reviewRegistration'] = async (accountId, decision, reason, employee) => {
+    const account = await authService.reviewRegistration(accountId, decision, reason, employee);
     await refreshAuth();
     return account;
   };

@@ -1,4 +1,4 @@
-import { Check, Clock3, Play, Sparkles } from 'lucide-react';
+import { Check, Play, Sparkles } from 'lucide-react';
 import type { ShopInventoryItem } from '@/models/shop';
 import { SHOP_TEXT } from '@/constants/shop';
 import { durationLabel } from '@/utils/shop';

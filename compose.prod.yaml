@@ -1,0 +1,128 @@
+name: c-job-sparks
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    shm_size: 256mb
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  migrate:
+    image: c-job-sparks-api:${APP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      target: api
+    restart: "no"
+    env_file:
+      - .env.production
+    command: ["node", "dist/src/db/migrate-cli.js", "up"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+
+  api:
+    image: c-job-sparks-api:${APP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - media_data:/app/server/data/media
+    networks:
+      - backend
+      - edge
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  web:
+    image: c-job-sparks-web:${APP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      target: web
+      args:
+        VITE_APP_MODE: api
+        VITE_SHOP_MODE: api
+        VITE_API_BASE_URL: ""
+        VITE_BASE_PATH: /
+        VITE_PUBLIC_ORIGIN: ${PUBLIC_ORIGIN}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:80"
+    networks:
+      - edge
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+
+volumes:
+  postgres_data:
+    name: c_job_sparks_postgres
+  media_data:
+    name: c_job_sparks_media
+
+networks:
+  edge:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true

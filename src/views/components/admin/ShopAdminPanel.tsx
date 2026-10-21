@@ -1,12 +1,14 @@
 import {
   Edit3,
   ImagePlus,
+  PackageCheck,
   Plus,
   ReceiptText,
   Save,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
-import { type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Feedback } from '@/views/components/common/Feedback';
 import { Modal } from '@/views/components/common/Modal';
 import { ProductVisual } from '@/views/components/shop/ProductVisual';
@@ -16,6 +18,7 @@ import { ShopSkeleton } from '@/views/components/shop/ShopSkeleton';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
 import { SelectField } from '@/views/components/ui/SelectField';
 import {
+  FULFILLMENT_KIND_OPTIONS,
   PRODUCT_ICON_OPTIONS,
   PRODUCT_TYPE_OPTIONS,
   SHOP_CATEGORIES,
@@ -23,7 +26,8 @@ import {
   RARITY_LABELS,
 } from '@/constants/shop';
 import { useShopAdminController } from '@/controllers/useShopAdminController';
-import type { ProductRarity, ProductType, ShopCategory } from '@/models/shop';
+import { FULFILLMENT_ROLE_LABELS } from '@/constants/fulfillment';
+import type { ProductRarity, ProductType, ShopCategory, ShopProduct } from '@/models/shop';
 import { formatDateTime } from '@/utils/formatters';
 import { SPENDABLE_SPARK_TYPES } from '@/utils/shop';
 import styles from '@/views/styles/shop.module.css';
@@ -62,9 +66,17 @@ export function ShopAdminPanel() {
     previewProduct,
     openProduct,
     saveProduct,
+    deleteProduct,
     uploadImage,
     submitAdjustment,
+    updateFulfillment,
   } = useShopAdminController();
+  const [productPendingDelete, setProductPendingDelete] = useState<ShopProduct | null>(null);
+
+  const confirmDeleteProduct = async () => {
+    if (!productPendingDelete) return;
+    if (await deleteProduct(productPendingDelete.id)) setProductPendingDelete(null);
+  };
 
   const submitProductForm = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -100,16 +112,61 @@ export function ShopAdminPanel() {
                 <RarityBadge rarity={product.rarity} />
                 <h3>{product.name}</h3>
                 <p><SparkAmount amount={product.price} sparkType={product.priceSparkType} /> · {product.stock === null ? SHOP_TEXT.admin.unlimited : `${product.stock} ${SHOP_TEXT.admin.units}`}</p>
+                {product.fulfillmentKind !== 'Virtual' && (
+                  <small>
+                    Responsible: {state.fulfillmentContacts.find((contact) => contact.id === product.fulfillmentContactId)?.name ?? 'Not assigned'}
+                  </small>
+                )}
               </div>
               <span className={product.isActive ? styles.adminStatusActive : styles.adminStatusDisabled}>
                 {product.isActive ? SHOP_TEXT.admin.active : SHOP_TEXT.admin.disabled}
               </span>
-              <button className={styles.shopSecondaryButton} type="button" onClick={() => openProduct(product)}>
-                <Edit3 size={15} /> {SHOP_TEXT.admin.edit}
-              </button>
+              <div className={styles.adminProductActions}>
+                <button className={styles.shopSecondaryButton} type="button" onClick={() => openProduct(product)}>
+                  <Edit3 size={15} /> {SHOP_TEXT.admin.edit}
+                </button>
+                <button className={styles.shopDangerButton} type="button" onClick={() => setProductPendingDelete(product)}>
+                  <Trash2 size={15} /> {SHOP_TEXT.admin.delete}
+                </button>
+              </div>
             </article>
           ))}
         </div>
+      </section>
+
+      <section className={styles.shopAdminPanel} aria-labelledby="reward-fulfillment-title">
+        <div className={styles.shopAdminHeader}>
+          <div>
+            <p className={styles.adminEyebrow}>Ordering and handover</p>
+            <h2 id="reward-fulfillment-title">Reward fulfillment</h2>
+            <p>Physical rewards, certificates, IT equipment and Radiant prizes stay tracked until delivery.</p>
+          </div>
+          <PackageCheck size={21} />
+        </div>
+        {state?.fulfillments.length ? (
+          <div className={styles.adminPurchaseList}>
+            {state.fulfillments.map((fulfillment) => (
+              <article key={fulfillment.id}>
+                <span className={styles.adminPurchaseIcon}><PackageCheck size={14} /></span>
+                <div>
+                  <strong>{fulfillment.employeeName} · {fulfillment.rewardKind}</strong>
+                  <small>
+                    {fulfillment.contactName} · {fulfillment.contactEmail}
+                    {fulfillment.officeName ? ` · ${fulfillment.officeName}` : ''}
+                    {fulfillment.valuablePrizeDescription ? ` · ${fulfillment.valuablePrizeDescription}` : ''}
+                  </small>
+                </div>
+                <SelectField
+                  value={fulfillment.status}
+                  disabled={saving || fulfillment.status === 'Delivered' || fulfillment.status === 'Cancelled'}
+                  onChange={(status) => void updateFulfillment(fulfillment.id, status, '')}
+                  options={['Requested','InProgress','Ordered','Ready','Delivered','Cancelled'].map((status) => ({ value: status, label: status }))}
+                  ariaLabel={`Fulfillment status for ${fulfillment.employeeName}`}
+                />
+              </article>
+            ))}
+          </div>
+        ) : <p className={styles.adminEmpty}>No reward fulfillment requests yet.</p>}
       </section>
 
       <div className={styles.shopAdminGrid}>
@@ -274,6 +331,35 @@ export function ShopAdminPanel() {
                 <SelectField value={editing.productType} onChange={(productType) => setEditing({ ...editing, productType })} options={TYPE_OPTIONS} ariaLabel={SHOP_TEXT.admin.productTypeAria} />
               </label>
               <label>
+                <span>Fulfillment</span>
+                <SelectField
+                  value={editing.fulfillmentKind}
+                  onChange={(fulfillmentKind) => setEditing({
+                    ...editing,
+                    fulfillmentKind,
+                    fulfillmentContactId: fulfillmentKind === 'Virtual'
+                      ? null
+                      : (editing.fulfillmentContactId ?? state?.fulfillmentContacts[0]?.id ?? null),
+                  })}
+                  options={FULFILLMENT_KIND_OPTIONS}
+                  ariaLabel="Reward fulfillment type"
+                />
+              </label>
+              {editing.fulfillmentKind !== 'Virtual' && (
+                <label className={styles.editorWide}>
+                  <span>Responsible person *</span>
+                  <SelectField
+                    value={editing.fulfillmentContactId ?? ''}
+                    onChange={(fulfillmentContactId) => setEditing({ ...editing, fulfillmentContactId })}
+                    options={(state?.fulfillmentContacts ?? []).map((contact) => ({
+                      value: contact.id,
+                      label: `${contact.name} · ${FULFILLMENT_ROLE_LABELS[contact.role]} · ${contact.email}${contact.officeName ? ` · ${contact.officeName}` : ''}`,
+                    }))}
+                    ariaLabel="Responsible for reward fulfillment"
+                  />
+                </label>
+              )}
+              <label>
                 <span>{SHOP_TEXT.admin.icon}</span>
                 <SelectField value={editing.icon} onChange={(icon) => setEditing({ ...editing, icon })} options={ICON_OPTIONS} ariaLabel={SHOP_TEXT.admin.iconAria} />
               </label>
@@ -304,6 +390,29 @@ export function ShopAdminPanel() {
               </button>
             </div>
           </form>
+        )}
+      </Modal>
+
+      <Modal
+        open={Boolean(productPendingDelete)}
+        title={SHOP_TEXT.admin.deleteProductTitle}
+        description={SHOP_TEXT.admin.deleteProductDescription}
+        onClose={() => !saving && setProductPendingDelete(null)}
+      >
+        {productPendingDelete && (
+          <div className={styles.deleteProductConfirmation}>
+            <strong>{productPendingDelete.name}</strong>
+            <p>{SHOP_TEXT.admin.deleteProductDescription}</p>
+            <div className={styles.shopModalActions}>
+              <button className={styles.shopSecondaryButton} type="button" disabled={saving} onClick={() => setProductPendingDelete(null)}>
+                {SHOP_TEXT.admin.cancel}
+              </button>
+              <button className={styles.shopDangerButton} type="button" disabled={saving} onClick={() => void confirmDeleteProduct()}>
+                {saving ? <span className={styles.shopSpinner} /> : <Trash2 size={16} />}
+                {SHOP_TEXT.admin.confirmDeleteProduct}
+              </button>
+            </div>
+          </div>
         )}
       </Modal>
     </div>

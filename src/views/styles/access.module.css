@@ -204,6 +204,11 @@
   margin: 0;
 }
 
+.approvalProfile {
+  display: grid;
+  gap: 1rem;
+}
+
 @media (min-width: 42rem) {
   .registrationCard {
     grid-template-columns: minmax(0, 1fr) auto;

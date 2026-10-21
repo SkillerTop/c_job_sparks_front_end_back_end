@@ -1,10 +1,12 @@
 import type { AppSnapshot, Role } from '@/models';
 import {
   BLUE_CATEGORY_DEFINITIONS,
+  DEFAULT_PERFORMANCE_THRESHOLDS,
   RECOGNITION_CATEGORIES,
   RECOGNITION_CATEGORY_DESCRIPTIONS,
   YELLOW_CATEGORIES,
 } from '@/constants/app';
+import { REWARD_FULFILLMENT_CONTACTS } from '@/constants/fulfillment';
 
 export const CURRENT_USER_ID = 'emp-alex';
 export const DEMO_ROLE_ACTORS: Record<Role, string> = {
@@ -17,14 +19,28 @@ export const DEMO_ROLE_ACTORS: Record<Role, string> = {
 };
 
 export const initialSnapshot: AppSnapshot = {
+  fulfillmentContacts: REWARD_FULFILLMENT_CONTACTS.map((contact) => ({ ...contact })),
+  disenchantReports: [],
+  departmentBalances: {},
   categories: [
     ...RECOGNITION_CATEGORIES.map((name, index) => ({
       id: `white-${index}`,
       name,
       description: RECOGNITION_CATEGORY_DESCRIPTIONS[name],
       sparkType: 'White' as const,
+      usageType: 'PeerRecognition' as const,
       amount: 1,
       period: 'Unrestricted' as const,
+      active: true,
+    })),
+    ...RECOGNITION_CATEGORIES.map((name, index) => ({
+      id: name === 'Smart Solution' ? 'white-award-smart-solution' : `white-award-${index}`,
+      name,
+      description: RECOGNITION_CATEGORY_DESCRIPTIONS[name],
+      sparkType: 'White' as const,
+      usageType: 'Award' as const,
+      amount: 1,
+      period: 'Quarterly' as const,
       active: true,
     })),
     ...YELLOW_CATEGORIES.map((category) => ({
@@ -32,6 +48,7 @@ export const initialSnapshot: AppSnapshot = {
       name: category.label,
       description: category.description,
       sparkType: 'Yellow' as const,
+      usageType: 'Award' as const,
       amount: category.amount,
       period: 'Quarterly' as const,
       active: true,
@@ -41,6 +58,7 @@ export const initialSnapshot: AppSnapshot = {
       name: category.name,
       description: category.description,
       sparkType: 'Blue' as const,
+      usageType: 'Award' as const,
       amount: category.amount,
       period: 'Yearly' as const,
       active: true,
@@ -634,5 +652,6 @@ export const initialSnapshot: AppSnapshot = {
     disenchantRate: 0.8,
     currency: 'EUR',
     sparkMoneyValues: { White: 1, Yellow: 10, Blue: 80 },
+    performanceThresholds: structuredClone(DEFAULT_PERFORMANCE_THRESHOLDS),
   },
 };

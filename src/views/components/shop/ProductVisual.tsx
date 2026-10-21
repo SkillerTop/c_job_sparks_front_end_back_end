@@ -30,7 +30,7 @@ export function ProductVisual({
   product,
   size = 'card',
 }: {
-  product: Pick<ShopProduct, 'name' | 'imageUrl' | 'icon' | 'rarity'>;
+  product: Pick<ShopProduct, 'name' | 'imageUrl' | 'imageSrcSet' | 'imageSizes' | 'icon' | 'rarity'>;
   size?: 'card' | 'modal' | 'inventory';
 }) {
   const Icon = ICONS[product.icon] ?? Gift;
@@ -42,6 +42,8 @@ export function ProductVisual({
       {product.imageUrl ? (
         <img
           src={product.imageUrl}
+          srcSet={product.imageSrcSet ?? undefined}
+          sizes={product.imageSizes}
           alt={SHOP_TEXT.product.imageAlt(product.name)}
           loading="lazy"
           decoding="async"

@@ -1,9 +1,13 @@
 import { ShieldCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Modal } from '@/views/components/common/Modal';
 import { Feedback } from '@/views/components/common/Feedback';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
 import { SHOP_TEXT } from '@/constants/shop';
-import type { ShopProduct, SpendableSparkBalances } from '@/models/shop';
+import { FULFILLMENT_ROLE_LABELS } from '@/constants/fulfillment';
+import type { FulfillmentContact } from '@/models';
+import type { DeliveryMethod, PurchaseFulfillmentChoice, ShopProduct, SpendableSparkBalances } from '@/models/shop';
+import { SelectField } from '@/views/components/ui/SelectField';
 import { ProductVisual } from './ProductVisual';
 import { RarityBadge } from './RarityBadge';
 import { SparkAmount } from './SparkAmount';
@@ -14,6 +18,7 @@ export function PurchaseModal({
   balances,
   loading,
   error,
+  contacts,
   onClose,
   onConfirm,
 }: {
@@ -21,11 +26,37 @@ export function PurchaseModal({
   balances: SpendableSparkBalances;
   loading: boolean;
   error: string | null;
+  contacts: FulfillmentContact[];
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (fulfillment?: PurchaseFulfillmentChoice) => void;
 }) {
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('OfficePickup');
+  const [officeName, setOfficeName] = useState('Main office');
+  const assignedContact = contacts.find((contact) => contact.id === product?.fulfillmentContactId);
+  const officeOptions = contacts
+    .filter((contact) => contact.role === 'OfficeManager' && contact.officeName)
+    .map((contact) => contact.officeName!)
+    .filter((office, index, offices) => offices.indexOf(office) === index);
+  useEffect(() => {
+    if (!product) return;
+    const preferredOffice = contacts.find((contact) => contact.role === 'OfficeManager' && contact.officeName === 'Main office')
+      ?.officeName ?? officeOptions[0] ?? '';
+    setOfficeName(preferredOffice);
+    setDeliveryMethod(product.fulfillmentKind === 'Certificate'
+      ? 'WorkEmail'
+      : product.fulfillmentKind === 'ITEquipment'
+        ? 'InternalCoordination'
+        : 'OfficePickup');
+  }, [product?.id, contacts]);
   const available = product ? balances[product.priceSparkType] : 0;
   const after = product ? available - product.price : available;
+  const needsFulfillment = product?.fulfillmentKind !== 'Virtual';
+  const fulfillment = needsFulfillment && product ? {
+    deliveryMethod,
+    ...(deliveryMethod === 'OfficePickup' && officeName
+      ? { officeName }
+      : {}),
+  } : undefined;
   return (
     <Modal
       open={Boolean(product)}
@@ -44,6 +75,50 @@ export function PurchaseModal({
             </div>
           </div>
           {error && <Feedback tone="error">{error}</Feedback>}
+          {needsFulfillment && !assignedContact && (
+            <Feedback tone="error">This product has no active responsible person. Contact an administrator.</Feedback>
+          )}
+          {needsFulfillment && (
+            <div className={styles.fulfillmentFields}>
+              <p><strong>Reward fulfillment</strong><br />The responsible person is configured by an administrator for this product.</p>
+              {assignedContact && (
+                <p>
+                  <strong>Responsible person:</strong><br />
+                  {assignedContact.name} · {FULFILLMENT_ROLE_LABELS[assignedContact.role]} · {assignedContact.email}
+                  {assignedContact.officeName ? ` · ${assignedContact.officeName}` : ''}
+                </p>
+              )}
+              {product.fulfillmentKind === 'Physical' && (
+                <>
+                  <label>
+                    <span>Delivery</span>
+                    <SelectField
+                      value={deliveryMethod}
+                      onChange={setDeliveryMethod}
+                      options={[
+                        { value: 'OfficePickup', label: 'Pick up at the selected office' },
+                        { value: 'EmployeePaidDelivery', label: 'Delivery paid by employee' },
+                      ]}
+                      ariaLabel="Reward delivery method"
+                    />
+                  </label>
+                  {deliveryMethod === 'OfficePickup' && (
+                    <label>
+                      <span>Pickup office</span>
+                      <SelectField
+                        value={officeName}
+                        onChange={setOfficeName}
+                        options={officeOptions.map((office) => ({ value: office, label: office }))}
+                        ariaLabel="Reward pickup office"
+                      />
+                    </label>
+                  )}
+                </>
+              )}
+              {product.fulfillmentKind === 'Certificate' && <small>The certificate will be ordered to your work email.</small>}
+              {product.fulfillmentKind === 'ITEquipment' && <small>Your manager will coordinate one request with IT and accounting.</small>}
+            </div>
+          )}
           <dl className={styles.purchaseSummary}>
             <div>
               <dt>{SHOP_TEXT.labels.price}</dt>
@@ -65,7 +140,7 @@ export function PurchaseModal({
             <button className={styles.shopSecondaryButton} type="button" disabled={loading} onClick={onClose}>
               {SHOP_TEXT.purchase.cancel}
             </button>
-            <button className={styles.shopPrimaryButton} type="button" disabled={loading} onClick={onConfirm}>
+            <button className={styles.shopPrimaryButton} type="button" disabled={loading || (needsFulfillment && !assignedContact) || (needsFulfillment && deliveryMethod === 'OfficePickup' && !officeName)} onClick={() => onConfirm(fulfillment)}>
               {loading ? <span className={styles.shopSpinner} aria-hidden="true" /> : (
                 <SparkIcon type={product.priceSparkType} size={16} animated={false} />
               )}

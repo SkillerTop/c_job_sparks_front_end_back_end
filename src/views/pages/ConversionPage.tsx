@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, Info, LockKeyhole, Repeat2, Sparkles } from 'lucide-react';
+import { ArrowRight, Info, LockKeyhole, Repeat2, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Feedback } from '@/views/components/common/Feedback';
 import { Modal } from '@/views/components/common/Modal';

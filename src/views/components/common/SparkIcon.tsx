@@ -3,10 +3,10 @@ import type { SparkType } from '@/models';
 import styles from '@/views/styles/app.module.css';
 
 const iconPaths: Record<SparkType, string> = {
-  White: `${import.meta.env.BASE_URL}spark-icons/white.png`,
-  Yellow: `${import.meta.env.BASE_URL}spark-icons/yellow.png`,
-  Blue: `${import.meta.env.BASE_URL}spark-icons/blue.png`,
-  Radiant: `${import.meta.env.BASE_URL}spark-icons/radiant.png`,
+  White: `${import.meta.env.BASE_URL}spark-icons/white.webp`,
+  Yellow: `${import.meta.env.BASE_URL}spark-icons/yellow.webp`,
+  Blue: `${import.meta.env.BASE_URL}spark-icons/blue.webp`,
+  Radiant: `${import.meta.env.BASE_URL}spark-icons/radiant.webp`,
 };
 
 const animationProfiles: Record<
@@ -51,6 +51,8 @@ export function SparkIcon({
         aria-hidden="true"
         draggable={false}
         decoding="async"
+        width={displaySize}
+        height={displaySize}
       />
     </motion.span>
   );

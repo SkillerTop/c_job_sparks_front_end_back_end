@@ -3,8 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './app/App';
 import { ErrorBoundary } from './views/components/common/ErrorBoundary';
-import { ThemeProvider } from './controllers/ThemeContext';
+import { ThemeProvider } from '@/controllers/ThemeContext';
 import './views/styles/globals.css';
+import { startWebVitalsRum } from '@/services/webVitalsRum';
 
 const PRELOAD_RECOVERY_KEY = 'c-job-sparks:preload-recovery';
 
@@ -38,3 +39,5 @@ createRoot(document.getElementById('root')!).render(
     </ThemeProvider>
   </StrictMode>,
 );
+
+startWebVitalsRum();

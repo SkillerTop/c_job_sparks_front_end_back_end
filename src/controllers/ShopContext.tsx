@@ -8,12 +8,21 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { PurchaseResult, ShopEffects, ShopSnapshot, SpendableSparkBalances } from '@/models/shop';
+import { useLocation } from 'react-router-dom';
+import {
+  EMPTY_SHOP_EFFECTS,
+  type PurchaseFulfillmentChoice,
+  type PurchaseResult,
+  type ShopEffects,
+  type ShopSnapshot,
+  type SpendableSparkBalances,
+} from '@/models/shop';
 import { SHOP_TEXT } from '@/constants/shop';
+import { SHOP_ROLES } from '@/constants/app';
 import { ShopServiceError, shopService } from '@/services/shopService';
 import { calculateBalances } from '@/utils/sparkRules';
-import { useAuth } from './AuthContext';
-import { useSpark } from './SparkContext';
+import { useAuth } from '@/controllers/AuthContext';
+import { useSpark } from '@/controllers/SparkContext';
 
 interface ShopContextValue {
   snapshot: ShopSnapshot | null;
@@ -24,22 +33,14 @@ interface ShopContextValue {
   activatingId: string | null;
   effects: ShopEffects;
   refresh: () => Promise<void>;
-  purchase: (productId: string) => Promise<PurchaseResult>;
+  purchase: (productId: string, fulfillment?: PurchaseFulfillmentChoice) => Promise<PurchaseResult>;
   activate: (inventoryId: string) => Promise<void>;
 }
 
 const ShopContext = createContext<ShopContextValue | null>(null);
 
-const EMPTY_EFFECTS: ShopEffects = {
-  doubleWhiteSparks: false,
-  focusMode: false,
-  goldenProfileFrame: false,
-  neonTheme: false,
-  signatureBadge: false,
-  vipStatus: false,
-};
-
 export function ShopProvider({ children }: { children: ReactNode }) {
+  const location = useLocation();
   const { user } = useAuth();
   const { snapshot: sparkSnapshot, currentUserId, syncShopTransactions } = useSpark();
   const [snapshot, setSnapshot] = useState<ShopSnapshot | null>(null);
@@ -50,7 +51,12 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const generation = useRef(0);
   const mutationLock = useRef(false);
   const hasSnapshot = useRef(false);
+  const lastRefreshAt = useRef(0);
   const accountId = user?.accountId;
+  const shouldLoadShop =
+    location.pathname === '/shop' ||
+    location.pathname === '/inventory' ||
+    (location.pathname === '/admin' && new URLSearchParams(location.search).get('tab') === 'shop');
   const ledgerBalances = useMemo<SpendableSparkBalances | null>(
     () => {
       if (!sparkSnapshot || !currentUserId) return null;
@@ -64,22 +70,22 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     [user?.employeeId, user?.email, user?.role],
   );
   const effects = useMemo<ShopEffects>(() => {
-    if (!snapshot) return EMPTY_EFFECTS;
+    if (!snapshot) return sparkSnapshot?.shopEffects ?? EMPTY_SHOP_EFFECTS;
     const now = Date.now();
-    const activeIds = new Set(
-      snapshot.inventory
-        .filter((item) => item.status === 'Active' && (!item.expiresAt || Date.parse(item.expiresAt) > now))
-        .map((item) => item.product.id),
+    const activeItems = snapshot.inventory.filter(
+      (item) => item.status === 'Active' && (!item.expiresAt || Date.parse(item.expiresAt) > now),
     );
+    const activeIds = new Set(activeItems.map((item) => item.product.id));
+    const activeCodes = new Set(activeItems.map((item) => item.product.effectCode).filter(Boolean));
     return {
-      doubleWhiteSparks: activeIds.has('double-stars-24h'),
-      focusMode: activeIds.has('focus-beacon'),
-      goldenProfileFrame: activeIds.has('gold-profile-frame'),
-      neonTheme: activeIds.has('neon-theme'),
-      signatureBadge: activeIds.has('personal-badge'),
+      doubleWhiteSparks: activeCodes.has('double_white') || activeIds.has('double-stars-24h'),
+      focusMode: activeCodes.has('focus_mode') || activeIds.has('focus-beacon'),
+      goldenProfileFrame: activeCodes.has('profile_frame') || activeIds.has('gold-profile-frame'),
+      neonTheme: activeCodes.has('theme_unlock') || activeIds.has('neon-theme'),
+      signatureBadge: activeCodes.has('badge_unlock') || activeIds.has('personal-badge'),
       vipStatus: activeIds.has('vip-seven-days'),
     };
-  }, [snapshot]);
+  }, [snapshot, sparkSnapshot?.shopEffects]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -97,7 +103,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   }, [effects]);
 
   const refresh = useCallback(async () => {
-    if (!accountId) {
+    if (!shouldLoadShop || !accountId || !user || !SHOP_ROLES.includes(user.role)) {
       hasSnapshot.current = false;
       setSnapshot(null);
       setError(null);
@@ -112,6 +118,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       await syncShopTransactions(next.transactions);
       if (requestId !== generation.current) return;
       hasSnapshot.current = true;
+      lastRefreshAt.current = Date.now();
       setSnapshot(next);
       setError(null);
     } catch (caught) {
@@ -120,24 +127,26 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     } finally {
       if (requestId === generation.current) setLoading(false);
     }
-  }, [accountId, clientIdentity, syncShopTransactions]);
+  }, [accountId, clientIdentity, shouldLoadShop, syncShopTransactions, user]);
 
   useEffect(() => {
     generation.current += 1;
-    if (!accountId) {
-      hasSnapshot.current = false;
-      setSnapshot(null);
+    if (!shouldLoadShop || !accountId || !user || !SHOP_ROLES.includes(user.role)) {
       setError(null);
       setLoading(false);
       return;
     }
     void refresh();
-  }, [accountId, refresh]);
+  }, [accountId, refresh, shouldLoadShop, user]);
 
   useEffect(() => {
-    if (!accountId) return;
+    if (!accountId || !shouldLoadShop) return;
     const sync = () => {
-      if (document.visibilityState === 'visible' && !mutationLock.current) void refresh();
+      if (
+        document.visibilityState === 'visible' &&
+        !mutationLock.current &&
+        Date.now() - lastRefreshAt.current >= 5 * 60_000
+      ) void refresh();
     };
     window.addEventListener('focus', sync);
     document.addEventListener('visibilitychange', sync);
@@ -145,15 +154,15 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('focus', sync);
       document.removeEventListener('visibilitychange', sync);
     };
-  }, [accountId, refresh]);
+  }, [accountId, refresh, shouldLoadShop]);
 
-  const purchase = useCallback(async (productId: string) => {
+  const purchase = useCallback(async (productId: string, fulfillment?: PurchaseFulfillmentChoice) => {
     if (mutationLock.current) throw new ShopServiceError(SHOP_TEXT.errors.purchaseInProgress, 'PURCHASE_IN_PROGRESS');
     if (!clientIdentity) throw new ShopServiceError(SHOP_TEXT.status.identityRequired, 'IDENTITY_REQUIRED', 401);
     mutationLock.current = true;
     setPurchasingId(productId);
     try {
-      const result = await shopService.purchase(productId, clientIdentity);
+      const result = await shopService.purchase(productId, clientIdentity, undefined, fulfillment);
       await syncShopTransactions(result.transactions);
       const { purchase: _purchase, inventoryItem: _item, ...nextSnapshot } = result;
       setSnapshot(nextSnapshot);

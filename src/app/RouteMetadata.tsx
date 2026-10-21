@@ -5,7 +5,10 @@ import type { InterfaceLanguage } from '@/models/profile';
 
 type RouteMeta = { title: string; description: string };
 
-const SITE_ORIGIN = 'https://c-job-sparks-final.workspace-523885.chatgpt.site';
+const SITE_ORIGIN = (import.meta.env.VITE_PUBLIC_ORIGIN || window.location.origin).replace(/\/$/, '');
+// Every application route is private. A future public rules page must live
+// outside RequireAuth before it can be made indexable.
+const INDEXABLE_ROUTES = new Set<string>();
 
 const en: Record<string, RouteMeta> = {
   '/': { title: 'Home', description: 'Your C-Job Sparks balance, recognition activity and current impact.' },
@@ -76,6 +79,12 @@ export function RouteMetadata() {
     setMeta('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
     setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', fullTitle);
     setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', base.description);
+    setMeta(
+      'meta[name="robots"]',
+      'name',
+      'robots',
+      INDEXABLE_ROUTES.has(pathname) ? 'index,follow' : 'noindex,nofollow,noarchive',
+    );
     const canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (canonical) canonical.href = canonicalUrl;
   }, [language, pathname]);

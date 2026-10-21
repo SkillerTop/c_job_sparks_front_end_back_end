@@ -5,6 +5,8 @@ import { AlertTriangle, RefreshCcw, Sparkles } from 'lucide-react';
 import {
   COMPANY_ACHIEVEMENT_ROLES,
   MEMBER_WORKSPACE_ROLES,
+  PERSONAL_ECONOMY_ROLES,
+  PERSONAL_LEDGER_ROLES,
   PEER_RECOGNITION_ROLES,
   PERFORMANCE_ROLES,
   SHOP_ROLES,
@@ -53,14 +55,34 @@ function RouteLoading() {
 
 function WorkspaceLayout() {
   const location = useLocation();
-  const { currentUserId } = useSpark();
+  const { currentUserId, snapshot, loading, sectionLoading, error, refresh } = useSpark();
+  if (error)
+    return (
+      <div className={styles.fullState} role="alert">
+        <AlertTriangle size={34} />
+        <h1>Workspace unavailable</h1>
+        <p>{error}</p>
+        <button className={styles.primaryButton} onClick={() => void refresh()} type="button">
+          <RefreshCcw size={16} /> Try again
+        </button>
+      </div>
+    );
+  if (loading || !snapshot)
+    return (
+      <div className={styles.loadingScreen} role="status" aria-live="polite">
+        <span className={styles.loadingMark}><Sparkles size={24} /></span>
+        <strong>Loading workspace</strong>
+        <p>Balances, permissions and company data are being refreshed.</p>
+        <div className={styles.loadingLine}><span /></div>
+      </div>
+    );
   return (
     <AsyncBoundary>
       <AppShell key={currentUserId}>
         <Suspense fallback={<RouteLoading />}>
           <AnimatePresence mode="wait" initial={false}>
             <div key={location.pathname}>
-              <Outlet />
+              {sectionLoading ? <RouteLoading /> : <Outlet />}
             </div>
           </AnimatePresence>
         </Suspense>
@@ -82,7 +104,7 @@ export function AppRouter() {
     return (
       <div className={styles.loadingScreen} role="status" aria-live="polite">
         <span className={styles.loadingMark}><Sparkles size={24} /></span>
-        <strong>Preparing demo access</strong>
+        <strong>Preparing access</strong>
         <p>Account status and permissions are loading.</p>
         <div className={styles.loadingLine}><span /></div>
       </div>
@@ -116,7 +138,7 @@ export function AppRouter() {
           <Route
             path="sparks"
             element={
-              <RouteGuard roles={MEMBER_WORKSPACE_ROLES}>
+              <RouteGuard roles={PERSONAL_LEDGER_ROLES}>
                 <MySparksPage />
               </RouteGuard>
             }
@@ -140,7 +162,7 @@ export function AppRouter() {
           <Route
             path="achievements"
             element={
-              <RouteGuard roles={MEMBER_WORKSPACE_ROLES}>
+              <RouteGuard roles={PERSONAL_LEDGER_ROLES}>
                 <AchievementsPage />
               </RouteGuard>
             }
@@ -164,7 +186,7 @@ export function AppRouter() {
           <Route
             path="inventory"
             element={
-              <RouteGuard roles={MEMBER_WORKSPACE_ROLES}>
+              <RouteGuard roles={PERSONAL_ECONOMY_ROLES}>
                 <InventoryPage />
               </RouteGuard>
             }
@@ -172,7 +194,7 @@ export function AppRouter() {
           <Route
             path="convert"
             element={
-              <RouteGuard roles={MEMBER_WORKSPACE_ROLES}>
+              <RouteGuard roles={PERSONAL_ECONOMY_ROLES}>
                 <ConversionPage />
               </RouteGuard>
             }
@@ -180,7 +202,7 @@ export function AppRouter() {
           <Route
             path="disenchant"
             element={
-              <RouteGuard roles={MEMBER_WORKSPACE_ROLES}>
+              <RouteGuard roles={PERSONAL_ECONOMY_ROLES}>
                 <DisenchantPage />
               </RouteGuard>
             }

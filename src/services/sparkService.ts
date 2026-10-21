@@ -11,6 +11,8 @@ import type {
   SparkType,
 } from '@/models';
 import type { ShopSparkTransaction } from '@/models/shop';
+import { apiSparkService } from '@/services/apiSparkService';
+import { isApiMode } from '@/services/apiClient';
 import { selectAwardTargets, selectGpmControlledCoordinators } from '@/models/selectors';
 import {
   calculateBalances,
@@ -19,6 +21,7 @@ import {
   kpiReward,
   evaluationReward,
   gpmWhiteAwardQuota,
+  performanceThresholdValidationIssue,
   recognitionQuota,
 } from '@/utils/sparkRules';
 import { makeId } from '@/utils/formatters';
@@ -31,17 +34,20 @@ const createDatabase = () => {
   snapshot.transactions.forEach((item) => {
     item.departmentId = snapshot.employees.find((employee) => employee.id === item.employeeId)?.departmentId;
     item.categoryId = snapshot.categories.find(
-      (category) => category.name === item.category && category.sparkType === item.sparkType,
+      (category) => category.name === item.category && category.sparkType === item.sparkType &&
+        category.usageType === 'Award',
     )?.id;
   });
   snapshot.awardRequests.forEach((item) => {
     item.categoryId = snapshot.categories.find(
-      (category) => category.name === item.category && category.sparkType === item.sparkType,
+      (category) => category.name === item.category && category.sparkType === item.sparkType &&
+        category.usageType === 'Award',
     )?.id;
   });
   snapshot.recognitions.forEach((item) => {
     item.categoryId = snapshot.categories.find(
-      (category) => category.name === item.category && category.sparkType === 'White',
+      (category) => category.name === item.category && category.sparkType === 'White' &&
+        category.usageType === 'PeerRecognition',
     )?.id;
   });
   return snapshot;
@@ -50,6 +56,9 @@ let database: AppSnapshot = createDatabase();
 const wait = (milliseconds = 420) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const clone = () => {
   database.settings.currentQuarter = quarterForDate(new Date());
+  database.departmentBalances = Object.fromEntries(
+    database.employees.map((employee) => [employee.id, calculateBalances(database.transactions, employee.id)]),
+  );
   return structuredClone(database);
 };
 const importPreviews = new Map<string, ImportPreview>();
@@ -201,10 +210,6 @@ const validateDirectYellow = (
       directSources.includes(item.source),
   );
   const reserved = pending.reduce((total, item) => total + item.amount, 0);
-  if (directTotal + reserved + amount > yellowQuarterlyLimit)
-    throw new Error(
-      `This award would exceed the ${yellowQuarterlyLimit} Yellow quarterly limit, including pending requests.`,
-    );
   const duplicate = database.transactions.some(
     (item) =>
       item.employeeId === employeeId &&
@@ -216,6 +221,10 @@ const validateDirectYellow = (
   const pendingDuplicate = pending.some((item) => categoryMatches(item, categoryId, category));
   if (duplicate || pendingDuplicate)
     throw new Error('This Yellow category is already awarded or pending for the current quarter.');
+  if (directTotal + reserved + amount > yellowQuarterlyLimit)
+    throw new Error(
+      `This award would exceed the ${yellowQuarterlyLimit} Yellow quarterly limit, including pending requests.`,
+    );
 };
 
 const validateBlue = (employeeId: string, category: string) => {
@@ -261,9 +270,14 @@ const validateBlue = (employeeId: string, category: string) => {
   }
 };
 
-export const sparkService = {
+const demoSparkService = {
   async getSnapshot() {
     await wait(560);
+    return clone();
+  },
+
+  async getLayoutSnapshot() {
+    await wait(120);
     return clone();
   },
 
@@ -320,7 +334,8 @@ export const sparkService = {
     const sender = requireActor(senderId, PEER_RECOGNITION_ROLES);
     if (sender.role !== role) throw new Error('The selected demo role no longer matches this employee.');
     const recognitionCategory = database.categories.find(
-      (category) => category.active && category.sparkType === 'White' && category.name === input.category,
+      (category) => category.active && category.sparkType === 'White' &&
+        category.usageType === 'PeerRecognition' && category.name === input.category,
     );
     if (!recognitionCategory || !input.description.trim())
       throw new Error('Choose a category and describe the contribution.');
@@ -487,7 +502,8 @@ export const sparkService = {
     const definition = freeRadiantReason
       ? undefined
       : database.categories.find(
-          (item) => item.active && item.name === category && item.sparkType === input.sparkType,
+          (item) => item.active && item.name === category && item.sparkType === input.sparkType &&
+            item.usageType === 'Award',
         );
     const recipient = database.employees.find(
       (employee) => employee.id === input.employeeId && employee.active,
@@ -502,15 +518,15 @@ export const sparkService = {
     const amount = freeRadiantReason ? 1 : definition!.amount;
     if (!['Coordinator', 'GPM', 'Head', 'Top Management'].includes(role))
       throw new Error('Your active role cannot issue awards.');
-    if (
-      role === 'Coordinator' &&
-      !selectAwardTargets(database, actorId, role).some((employee) => employee.id === recipient.id)
-    )
-      throw new Error(
-        'Coordinators can award only colleagues in a shared active project who have recorded project hours.',
-      );
-    if (role === 'Head' && actor.departmentId !== recipient.departmentId)
-      throw new Error('Heads can award only within their department.');
+    const canTarget = selectAwardTargets(database, actorId, role)
+      .some((employee) => employee.id === recipient.id);
+    if (!canTarget) {
+      if (role === 'Coordinator')
+        throw new Error('Coordinators can award only eligible colleagues in a shared active project who have recorded project hours.');
+      if (role === 'GPM') throw new Error('GPMs can award only eligible Employees or Coordinators in managed teams.');
+      if (role === 'Head') throw new Error('Heads can award only eligible Employees or Coordinators within their department.');
+      throw new Error('Choose an eligible award recipient.');
+    }
     if (definition?.id === 'yellow-acting-lead') {
       const employee = database.employees.find((item) => item.id === input.employeeId);
       if (employee?.hasCoordinationExperience)
@@ -644,7 +660,7 @@ export const sparkService = {
 
   async disenchant(employeeId: string, sparkType: Exclude<SparkType, 'Radiant'>, amount: number) {
     await wait(720);
-    const employee = requireActor(employeeId, ['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management']);
+    const employee = requireActor(employeeId, ['Employee', 'Coordinator']);
     if (!['White', 'Yellow', 'Blue'].includes(sparkType))
       throw new Error('Radiant Sparks cannot be disenchanted.');
     if (!Number.isInteger(amount) || amount <= 0) throw new Error('Enter a positive whole number of Sparks.');
@@ -680,6 +696,92 @@ export const sparkService = {
     });
     addAudit('DISENCHANT_CREATED', employeeId, request.id, `${amount} ${sparkType} disenchanted.`);
     return { request, snapshot: clone() };
+  },
+
+  async exportDisenchantRequests(actorId: string, requestIds: string[], exportReference: string) {
+    await wait();
+    requireActor(actorId, ['Administrator']);
+    const uniqueIds = new Set(requestIds);
+    if (uniqueIds.size === 0 || uniqueIds.size !== requestIds.length)
+      throw new Error('Choose one or more unique Disenchant requests.');
+    const selected = requestIds.map((id) => database.disenchantRequests.find((request) => request.id === id));
+    if (selected.some((request) => !request)) throw new Error('One or more Disenchant requests no longer exist.');
+    if (selected.some((request) => request?.status !== 'Created'))
+      throw new Error('Only created requests can be exported.');
+    const reference = exportReference.trim();
+    if (!reference) throw new Error('An export reference is required.');
+    for (const request of selected) {
+      request!.status = 'Exported';
+      addAudit('DISENCHANT_EXPORTED', actorId, request!.id, `Exported as ${reference}.`);
+    }
+    const csvCell = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+    const rows = [
+      ['Request ID','Employee','Department','Spark type','Spark amount','Rate','Money amount','Currency','Created at','Accounting period','Export reference'],
+      ...selected.map((request) => [request!.id,employeeName(request!.employeeId),
+        database.departments.find((department) => department.id === request!.departmentId)?.name ?? '',
+        request!.sparkType,request!.amount,request!.rate,request!.moneyValue,request!.currency,request!.createdAt,
+        request!.accountingPeriod,reference]),
+    ];
+    const safeReference = reference.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-|-$/g, '') || 'export';
+    return {
+      fileName: `disenchant-${safeReference}.csv`,
+      csv: `\uFEFF${rows.map((row) => row.map(csvCell).join(',')).join('\r\n')}\r\n`,
+      snapshot: clone(),
+    };
+  },
+
+  async markDisenchantPaid(actorId: string, requestId: string) {
+    await wait();
+    requireActor(actorId, ['Administrator']);
+    const request = database.disenchantRequests.find((item) => item.id === requestId);
+    if (!request) throw new Error('This Disenchant request no longer exists.');
+    if (request.status !== 'Exported') throw new Error('Only an exported request can be marked paid.');
+    request.status = 'Paid';
+    addAudit('DISENCHANT_PAID', actorId, request.id, 'Marked as paid.');
+    return clone();
+  },
+
+  async createMonthlyDisenchantReport(actorId: string, reportMonth: string) {
+    await wait();
+    const actor = requireActor(actorId, ['Head']);
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(reportMonth)) throw new Error('Choose a valid report month.');
+    if (reportMonth > new Date().toISOString().slice(0, 7))
+      throw new Error('A Disenchant report cannot be created for a future month.');
+    const existingReport = database.disenchantReports.find((report) => report.reportMonth === reportMonth);
+    const selected = database.disenchantRequests.filter(
+      (request) => request.departmentId === actor.departmentId && request.status !== 'Cancelled' &&
+        request.createdAt.slice(0, 7) === reportMonth,
+    );
+    if (!selected.length) throw new Error('There are no Disenchant requests for the selected month.');
+    selected.forEach((request) => {
+      if (request.status === 'Created') request.status = 'Exported';
+    });
+    const grouped = new Map<string, { employeeName: string; sparkType: Exclude<SparkType, 'Radiant'>;
+      sparkAmount: number; moneyAmount: number; currency: string }>();
+    for (const request of selected) {
+      const key = `${request.employeeId}:${request.sparkType}:${request.currency}`;
+      const line = grouped.get(key) ?? { employeeName: employeeName(request.employeeId), sparkType: request.sparkType,
+        sparkAmount: 0, moneyAmount: 0, currency: request.currency };
+      line.sparkAmount += request.amount;
+      line.moneyAmount += request.moneyValue;
+      grouped.set(key, line);
+    }
+    const lines = [...grouped.values()];
+    const createdAt = new Date().toISOString();
+    const moneyTotal = lines.reduce((sum, line) => sum + line.moneyAmount, 0);
+    const report = existingReport ?? { id: makeId('dis-report'), reportMonth,
+      rangeStartedAt: `${reportMonth}-01T00:00:00.000Z`, rangeEndedAt: createdAt,
+      status: 'Created' as const, itemCount: selected.length, moneyTotal, createdAt };
+    report.rangeEndedAt = createdAt;
+    report.itemCount = selected.length;
+    report.moneyTotal = moneyTotal;
+    if (!existingReport) database.disenchantReports.unshift(report);
+    addAudit('DISENCHANT_MONTHLY_REPORT_EXPORTED', actorId, report.id, `${selected.length} requests included.`);
+    const csvCell = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+    const csvRows = [['Employee','Spark type','Spark amount','Money equivalent','Currency'],
+      ...lines.map((line) => [line.employeeName,line.sparkType,line.sparkAmount,line.moneyAmount.toFixed(2),line.currency])];
+    return { report: { ...report, lines, fileName: `disenchant-${reportMonth}.csv`,
+      csv: `\uFEFF${csvRows.map((row) => row.map(csvCell).join(',')).join('\r\n')}\r\n` }, snapshot: clone() };
   },
 
   async toggleQualityGate(employeeId: string, actorId: string, input?: QualityGateInput) {
@@ -786,8 +888,8 @@ export const sparkService = {
         reward: blocked
           ? 0
           : kind === 'KPI'
-            ? kpiReward(Number(row.value))
-            : evaluationReward(Number(row.value)),
+            ? kpiReward(Number(row.value), database.settings.performanceThresholds.kpi)
+            : evaluationReward(Number(row.value), database.settings.performanceThresholds.personalCards),
         status: blocked ? 'Blocked' : 'Ready',
         error: blocked
           ? 'Active Quality Gate: raw performance is stored, White credit is blocked.'
@@ -843,9 +945,7 @@ export const sparkService = {
         .reduce((sum, transaction) => sum + transaction.amount, 0);
       const reward = isQualityGateActive(employee.id, database.qualityGates)
         ? 0
-        : validated.kind === 'KPI'
-          ? kpiReward(row.value)
-          : evaluationReward(row.value);
+        : row.reward;
       if (calculateBalances(database.transactions, employee.id).White + reward - previousReward < 0)
         throw new Error(
           `${employee.name} has already spent the affected White Sparks. Replacement needs a reviewed adjustment policy.`,
@@ -948,6 +1048,8 @@ export const sparkService = {
       throw new Error('Each Spark base value must be a positive number.');
     if (!['EUR', 'USD', 'GBP'].includes(next.currency))
       throw new Error('Choose a supported demo currency: EUR, USD or GBP.');
+    const performanceIssue = performanceThresholdValidationIssue(next.performanceThresholds);
+    if (performanceIssue) throw new Error(performanceIssue);
     if (next.currentQuarter !== database.settings.currentQuarter)
       throw new Error('The current quarter follows the calendar and cannot be edited.');
     database.settings = next;
@@ -971,7 +1073,11 @@ export const sparkService = {
           entry.id !== item.id &&
           entry.name.toLowerCase() === item.name.toLowerCase() &&
           (draft.kind !== 'categories' ||
-            ('sparkType' in entry && 'sparkType' in item && entry.sparkType === item.sparkType)),
+            ('sparkType' in entry && 'sparkType' in item && entry.sparkType === item.sparkType &&
+              'usageType' in entry && entry.usageType ===
+                ('usageType' in item && item.usageType
+                  ? item.usageType
+                  : item.sparkType === 'White' ? 'PeerRecognition' : 'Award'))),
       )
     )
       throw new Error('A record with this name already exists.');
@@ -1039,7 +1145,7 @@ export const sparkService = {
           !department.active &&
           database.employees.some((entry) => entry.active && entry.departmentId === department.id)
         )
-          throw new Error('Move or deactivate this department’s active employees first.');
+          throw new Error('Move or delete this department’s active employees first.');
         if (
           department.headId &&
           !database.employees.some(
@@ -1061,19 +1167,28 @@ export const sparkService = {
         const category = item as AppSnapshot['categories'][number];
         if (!['White', 'Yellow', 'Blue'].includes(category.sparkType))
           throw new Error('Choose a valid Spark type.');
+        category.usageType ||= category.sparkType === 'White' ? 'PeerRecognition' : 'Award';
         const existing = database.categories.find((entry) => entry.id === category.id);
         if (existing && existing.sparkType !== category.sparkType)
           throw new Error('A category’s Spark type is immutable. Create a new category instead.');
+        if (existing && existing.usageType !== category.usageType)
+          throw new Error('A category’s usage type is immutable. Create a new category instead.');
         if (
           !Number.isInteger(category.amount) ||
           category.amount < 1 ||
           category.amount > 100
         )
           throw new Error('Category amounts must be whole numbers from 1 to 100.');
+        if (
+          category.usageType === 'PeerRecognition' &&
+          (category.sparkType !== 'White' || category.amount !== 1 || category.period !== 'Unrestricted')
+        )
+          throw new Error('Peer Recognition categories must award exactly 1 White Spark and use the unrestricted period.');
         if (category.sparkType === 'Blue' && !['Quarterly', 'Yearly', 'One-time'].includes(category.period))
           throw new Error('Choose a Blue category period.');
         if (category.sparkType === 'Yellow') category.period = 'Quarterly';
-        if (category.sparkType === 'White') category.period = 'Unrestricted';
+        if (category.sparkType === 'White')
+          category.period = category.usageType === 'Award' ? 'Quarterly' : 'Unrestricted';
         if (category.id === 'blue-0') category.period = 'Yearly';
         category.description = category.description.trim();
         category.id ||= makeId(`category-${category.sparkType.toLowerCase()}`);
@@ -1091,9 +1206,33 @@ export const sparkService = {
     });
   },
 
+  async deleteEmployee(actorId: string, employeeId: string) {
+    await wait();
+    requireActor(actorId, ['Administrator']);
+    if (actorId === employeeId) throw new Error('You cannot delete your own employee profile.');
+    const employee = database.employees.find((item) => item.id === employeeId);
+    if (!employee) throw new Error('This employee no longer exists. Refresh the directory.');
+    return atomic(() => {
+      database.employees = database.employees
+        .filter((item) => item.id !== employeeId)
+        .map((item) => item.managerId === employeeId ? { ...item, managerId: undefined } : item);
+      database.departments = database.departments.map((department) =>
+        department.headId === employeeId ? { ...department, headId: '' } : department);
+      database.projectTeams = database.projectTeams.map((project) => ({
+        ...project,
+        gpmId: project.gpmId === employeeId ? '' : project.gpmId,
+        members: project.members.filter((member) => member.employeeId !== employeeId),
+      }));
+      addAudit('EMPLOYEE_DELETED', actorId, employeeId, `Deleted ${employee.name} from Employee Directory.`);
+      return clone();
+    });
+  },
+
   reset() {
     database = createDatabase();
     importPreviews.clear();
     return clone();
   },
 };
+
+export const sparkService = isApiMode ? apiSparkService : demoSparkService;

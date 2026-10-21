@@ -3,7 +3,8 @@ import { Save, Settings2 } from 'lucide-react';
 import { useSpark } from '@/controllers/SparkContext';
 import { Feedback } from '@/views/components/common/Feedback';
 import { SelectField } from '@/views/components/ui/SelectField';
-import type { SparkSettings } from '@/models';
+import type { PerformanceThresholdSettings, SparkSettings } from '@/models';
+import { performanceThresholdValidationIssue } from '@/utils/sparkRules';
 import styles from '@/views/styles/app.module.css';
 
 const numericFields: Array<{
@@ -32,8 +33,26 @@ export function EconomySettings() {
   const [settings, setSettings] = useState(() => structuredClone(snapshot!.settings));
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const updatePerformanceTier = (
+    source: keyof PerformanceThresholdSettings,
+    index: number,
+    field: 'minimum' | 'reward',
+    value: number,
+  ) => setSettings((current) => ({
+    ...current,
+    performanceThresholds: {
+      ...current.performanceThresholds,
+      [source]: current.performanceThresholds[source].map((tier, tierIndex) =>
+        tierIndex === index ? { ...tier, [field]: value } : tier),
+    },
+  }));
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const validationIssue = performanceThresholdValidationIssue(settings.performanceThresholds);
+    if (validationIssue) {
+      setMessage({ tone: 'error', text: validationIssue });
+      return;
+    }
     setSaving(true);
     setMessage(null);
     try {
@@ -121,6 +140,57 @@ export function EconomySettings() {
             />
           </label>
         ))}
+        <section className={`${styles.settingsSection} ${styles.fieldFull}`} aria-labelledby="performance-thresholds-title">
+          <div>
+            <p className={styles.eyebrow}>Automatic White Sparks</p>
+            <h3 id="performance-thresholds-title">Performance reward thresholds</h3>
+            <p className={styles.mutedCopy}>
+              Each row defines the minimum score and White reward for that tier. Scores below the first tier receive 0 White.
+            </p>
+          </div>
+          <div className={styles.thresholdGroups}>
+            {([
+              ['kpi', 'KPI', 0.01, undefined],
+              ['personalCards', 'Personal Cards', 0.01, 5],
+            ] as const).map(([source, label, step, max]) => (
+              <fieldset className={styles.thresholdGroup} key={source}>
+                <legend>{label}</legend>
+                <div className={styles.thresholdHeader} aria-hidden="true">
+                  <span>Tier</span><span>Minimum score</span><span>White reward</span>
+                </div>
+                {settings.performanceThresholds[source].map((tier, index) => (
+                  <div className={styles.thresholdRow} key={`${source}-${index}`}>
+                    <strong>Tier {index + 1}</strong>
+                    <label>
+                      <span className={styles.srOnly}>{label} tier {index + 1} minimum score</span>
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        {...(max === undefined ? {} : { max })}
+                        step={step}
+                        value={tier.minimum}
+                        onChange={(event) => updatePerformanceTier(source, index, 'minimum', Number(event.target.value))}
+                      />
+                    </label>
+                    <label>
+                      <span className={styles.srOnly}>{label} tier {index + 1} White reward</span>
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={tier.reward}
+                        onChange={(event) => updatePerformanceTier(source, index, 'reward', Number(event.target.value))}
+                      />
+                    </label>
+                  </div>
+                ))}
+              </fieldset>
+            ))}
+          </div>
+        </section>
       </div>
       <p className={styles.mutedCopy}>
         Conversion fees are added on top of the displayed ratio. Base values and currency are

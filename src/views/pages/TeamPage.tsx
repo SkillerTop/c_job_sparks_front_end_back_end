@@ -1,4 +1,4 @@
-import { ChevronDown, Coins, Search, ShieldAlert, Star } from 'lucide-react';
+import { ChevronDown, Download, Search, ShieldAlert, Star } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -11,17 +11,21 @@ import { StatusBadge } from '@/views/components/common/StatusBadge';
 import { useSpark } from '@/controllers/SparkContext';
 import type { Employee } from '@/models';
 import { selectTeamMembers } from '@/models/selectors';
-import { calculateBalances, formatMoney, isQualityGateActive } from '@/utils/sparkRules';
+import { formatMoney, isQualityGateActive } from '@/utils/sparkRules';
 import { formatDate } from '@/utils/formatters';
 import { todayIso } from '@/utils/quarter';
 import styles from '@/views/styles/app.module.css';
 
 export function TeamPage() {
-  const { snapshot, activeRole, currentUserId, toggleQualityGate } = useSpark();
+  const { snapshot, activeRole, currentUserId, toggleQualityGate, createMonthlyDisenchantReport } = useSpark();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Employee | null>(null);
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [reportError, setReportError] = useState('');
+  const [creatingReport, setCreatingReport] = useState(false);
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const [reportMonth, setReportMonth] = useState(currentMonth);
   const reducedMotion = useReducedMotion();
   const canPeerRecognize = activeRole !== 'Head';
   const current = snapshot!.employees.find((item) => item.id === currentUserId)!;
@@ -41,6 +45,28 @@ export function TeamPage() {
   const accounting = snapshot!.disenchantRequests.filter(
     (request) => request.departmentId === current.departmentId,
   ).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const selectedMonthReport = snapshot!.disenchantReports.find((report) => report.reportMonth === reportMonth);
+  const reportableCount = accounting.filter(
+    (request) => request.status !== 'Cancelled' && request.createdAt.slice(0, 7) === reportMonth,
+  ).length;
+  const createMonthlyReport = async () => {
+    setCreatingReport(true);
+    setReportError('');
+    try {
+      const report = await createMonthlyDisenchantReport(reportMonth);
+      const url = URL.createObjectURL(new Blob([report.csv], { type: 'text/csv;charset=utf-8' }));
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = report.fileName;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setMessage(`Report for ${report.reportMonth} exported: ${report.itemCount} request(s) included.`);
+    } catch (caught) {
+      setReportError(caught instanceof Error ? caught.message : 'Could not create the monthly report.');
+    } finally {
+      setCreatingReport(false);
+    }
+  };
   const departmentGates = snapshot!.qualityGates
     .filter((gate) =>
       snapshot!.employees.some(
@@ -82,13 +108,19 @@ export function TeamPage() {
         }
       />
       {message && <Feedback tone="success">{message}</Feedback>}
+      {reportError && <Feedback tone="error">{reportError}</Feedback>}
       {members.length === 0 ? (
         <EmptyState title="No people found" description="Try a different search term." />
       ) : (
         <div className={styles.peopleGrid}>
           {members.map((member) => {
             const gate = gateFor(member.id);
-            const balances = calculateBalances(snapshot!.transactions, member.id);
+            const balances = snapshot!.departmentBalances[member.id] ?? {
+              White: 0,
+              Yellow: 0,
+              Blue: 0,
+              Radiant: 0,
+            };
             const activeGate = isQualityGateActive(member.id, snapshot!.qualityGates);
             const expanded = canPeerRecognize && expandedMemberId === member.id;
             const recognitionActionId = `recognize-${member.id}`;
@@ -252,8 +284,52 @@ export function TeamPage() {
                 </p>
                 <h2>Disenchant requests</h2>
               </div>
-              <Coins size={20} />
+              <div className={styles.reportControls}>
+                <label>
+                  <span>Report month</span>
+                  <input
+                    type="month"
+                    value={reportMonth}
+                    max={currentMonth}
+                    onChange={(event) => {
+                      setReportMonth(event.target.value);
+                      setReportError('');
+                      setMessage('');
+                    }}
+                  />
+                </label>
+                <button
+                  className={styles.primaryButton}
+                  type="button"
+                  disabled={creatingReport || !reportMonth || reportableCount === 0}
+                  onClick={() => void createMonthlyReport()}
+                >
+                  <Download size={16} />
+                  {creatingReport ? 'Exporting…' : selectedMonthReport ? 'Export again' : 'Export monthly report'}
+                </button>
+              </div>
             </div>
+            <p className={styles.mutedCopy}>
+              Includes all non-cancelled requests from {reportMonth || 'the selected month'} for this department only.
+              {' '}You can export the month again at any time; newly created requests are included automatically.
+              {' '}{reportableCount} request(s) will be exported.
+            </p>
+            {snapshot!.disenchantReports.length > 0 && (
+              <div className={styles.tableScroller} tabIndex={0} aria-label="Monthly Disenchant report history">
+                <table className={styles.dataTable}>
+                  <thead><tr><th>Month</th><th>Requests</th><th>Total</th><th>Created</th><th>Status</th></tr></thead>
+                  <tbody>{snapshot!.disenchantReports.map((report) => (
+                    <tr key={report.id}>
+                      <td>{report.reportMonth}</td>
+                      <td>{report.itemCount}</td>
+                      <td>{formatMoney(report.moneyTotal, snapshot!.settings.currency)}</td>
+                      <td>{formatDate(report.createdAt)}</td>
+                      <td><StatusBadge status={report.status} /></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            )}
             {accounting.length === 0 ? (
               <EmptyState
                 title="No accounting requests yet"
@@ -279,7 +355,11 @@ export function TeamPage() {
                     {accounting.map((request) => (
                       <tr key={request.id}>
                         <td>{request.id}</td>
-                        <td>{snapshot!.employees.find((item) => item.id === request.employeeId)?.name}</td>
+                        <td>
+                          {request.employeeName ??
+                            snapshot!.employees.find((item) => item.id === request.employeeId)?.name ??
+                            'Deleted employee'}
+                        </td>
                         <td>
                           {request.amount} {request.sparkType}
                         </td>

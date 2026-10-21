@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  Banknote,
   CheckCircle2,
   Database,
   FileSpreadsheet,
@@ -25,16 +26,20 @@ import { EconomySettings } from '@/views/components/admin/EconomySettings';
 import { CategoryAwardSettings } from '@/views/components/admin/CategoryAwardSettings';
 import { RegistrationManager } from '@/views/components/admin/RegistrationManager';
 import { ShopAdminPanel } from '@/views/components/admin/ShopAdminPanel';
+import { DisenchantAdminPanel } from '@/views/components/admin/DisenchantAdminPanel';
 import { useSpark } from '@/controllers/SparkContext';
 import type { ImportPreview } from '@/models';
 import { formatDateTime } from '@/utils/formatters';
 import { quarterForDate } from '@/utils/quarter';
+import { useAppMode } from '@/controllers/useAppMode';
 import styles from '@/views/styles/app.module.css';
+import adminStyles from '@/views/styles/admin.module.css';
 
-type Tab = 'Access' | 'Shop' | 'Import' | 'Directory' | 'Rules' | 'Audit';
-const ADMIN_TABS: Tab[] = ['Access', 'Shop', 'Import', 'Directory', 'Rules', 'Audit'];
+type Tab = 'Access' | 'Shop' | 'Accounting' | 'Import' | 'Directory' | 'Rules' | 'Audit';
+const ADMIN_TABS: Tab[] = ['Access', 'Shop', 'Accounting', 'Import', 'Directory', 'Rules', 'Audit'];
 
 export function AdminPage() {
+  const { isApiMode } = useAppMode();
   const { snapshot, currentUserId, mutating, previewImport, confirmImport, resetDemo } = useSpark();
   const location = useLocation();
   const navigate = useNavigate();
@@ -118,12 +123,12 @@ export function AdminPage() {
     }
   };
   return (
-    <PageTransition>
+    <PageTransition className={adminStyles.adminPage}>
       <PageHeader
         eyebrow="System administration"
         title="Admin Settings"
         description="Review account access, manage the reward shop, validate imports and configure Spark rules. Administrative access does not grant award permissions."
-        action={
+        action={!isApiMode ? (
           <button
             className={styles.secondaryButton}
             type="button"
@@ -132,7 +137,7 @@ export function AdminPage() {
           >
             <RefreshCcw size={15} /> Reset demo
           </button>
-        }
+        ) : undefined}
       />
       {message && <Feedback tone={message.tone}>{message.text}</Feedback>}
       <div className={styles.adminTabs} role="group" aria-label="Admin sections">
@@ -153,6 +158,8 @@ export function AdminPage() {
               <UserCheck size={16} />
             ) : item === 'Shop' ? (
               <Store size={16} />
+            ) : item === 'Accounting' ? (
+              <Banknote size={16} />
             ) : item === 'Import' ? (
               <Upload size={16} />
             ) : item === 'Directory' ? (
@@ -170,6 +177,8 @@ export function AdminPage() {
       {tab === 'Access' && <RegistrationManager />}
 
       {tab === 'Shop' && <ShopAdminPanel />}
+
+      {tab === 'Accounting' && <DisenchantAdminPanel />}
 
       {tab === 'Import' && (
         <div className={styles.adminGrid}>
@@ -221,15 +230,16 @@ export function AdminPage() {
               <strong>{validating ? 'Validating file…' : `Choose ${kindLabel} CSV`}</strong>
               <span>
                 {kind === 'KPI'
-                  ? 'Expected columns: Name | KPI'
-                  : 'Expected columns: Name | Average Quarter Mark'}
+                  ? 'Expected columns: Name/Resource | KPI/Efficiency'
+                  : 'Expected columns: Name/Resource | Average Quarter Mark/Personal cards'}
               </span>
             </label>
             <div className={styles.infoNote}>
               <Database size={17} />
               <p>
-                The CSV is parsed locally. Comma, semicolon and pipe delimiters are supported. No file is
-                uploaded to a server.{' '}
+                {isApiMode
+                  ? 'The CSV is uploaded to the backend for preview and validation. Comma, semicolon and pipe delimiters are supported. '
+                  : 'The CSV is parsed locally. Comma, semicolon and pipe delimiters are supported. No file is uploaded to a server. '}
                 <a href={`${import.meta.env.BASE_URL}samples/${kind === 'Evaluation' ? 'personal-cards' : 'kpi'}.csv`} download>
                   Download a sample
                 </a>
@@ -390,7 +400,7 @@ export function AdminPage() {
               </p>
               <dl className={styles.miniDefinition}>
                 <div>
-                  <dt>Signed-in demo actor</dt>
+                  <dt>{isApiMode ? 'Signed-in administrator' : 'Signed-in demo actor'}</dt>
                   <dd>{snapshot!.employees.find((item) => item.id === currentUserId)?.name}</dd>
                 </div>
                 <div>
@@ -436,30 +446,32 @@ export function AdminPage() {
         </section>
       )}
 
-      <Modal
-        open={resetOpen}
-        title="Reset all demo data?"
-        description="This replaces every in-memory workspace change with the original C-Job Sparks demo dataset. Access approvals, shop balances, purchases and inventory are stored separately and are kept."
-        onClose={() => setResetOpen(false)}
-      >
-        <div className={styles.warningBox}>
-          <AlertTriangle size={19} />
-          <p>Created recognitions, awards, conversions, imports and edited settings in this session will be lost. Registration approvals and shop records are not reset.</p>
-        </div>
-        <div className={styles.modalActions}>
-          <button className={styles.secondaryButton} type="button" disabled={mutating} onClick={() => setResetOpen(false)}>
-            Keep current data
-          </button>
-          <button
-            className={styles.rejectButton}
-            type="button"
-            disabled={mutating}
-            onClick={() => void runReset()}
-          >
-            <RefreshCcw size={16} /> Reset demo
-          </button>
-        </div>
-      </Modal>
+      {!isApiMode && (
+        <Modal
+          open={resetOpen}
+          title="Reset all demo data?"
+          description="This replaces every in-memory workspace change with the original C-Job Sparks demo dataset. Access approvals, shop balances, purchases and inventory are stored separately and are kept."
+          onClose={() => setResetOpen(false)}
+        >
+          <div className={styles.warningBox}>
+            <AlertTriangle size={19} />
+            <p>Created recognitions, awards, conversions, imports and edited settings in this session will be lost. Registration approvals and shop records are not reset.</p>
+          </div>
+          <div className={styles.modalActions}>
+            <button className={styles.secondaryButton} type="button" disabled={mutating} onClick={() => setResetOpen(false)}>
+              Keep current data
+            </button>
+            <button
+              className={styles.rejectButton}
+              type="button"
+              disabled={mutating}
+              onClick={() => void runReset()}
+            >
+              <RefreshCcw size={16} /> Reset demo
+            </button>
+          </div>
+        </Modal>
+      )}
 
       <Modal
         open={replaceOpen}

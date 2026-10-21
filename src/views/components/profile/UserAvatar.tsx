@@ -12,9 +12,10 @@ export function UserAvatar({
   size?: 'small' | 'large';
 }) {
   const className = size === 'large' ? styles.avatarLarge : styles.avatar;
+  const pixelSize = size === 'large' ? 50 : 34;
   return (
     <span className={className} data-profile-avatar role="img" aria-label={`${name} profile photo`}>
-      {src ? <img src={src} alt="" /> : initials}
+      {src ? <img src={src} alt="" width={pixelSize} height={pixelSize} decoding="async" /> : initials}
     </span>
   );
 }
