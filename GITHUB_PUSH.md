@@ -17,7 +17,7 @@ Review and commit the prepared changes:
 ```bash
 git add -A
 git status
-git commit -m "Add production Docker deployment"
+git commit -m "Finalize full-stack application and production deployment"
 git push origin 'front-end+back-end'
 ```
 

@@ -3,3 +3,4 @@
 *.png binary
 *.webp binary
 *.woff2 binary
+server/migrations/*.sql whitespace=-blank-at-eof

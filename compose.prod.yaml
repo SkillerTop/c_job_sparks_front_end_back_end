@@ -27,9 +27,6 @@ services:
 
   migrate:
     image: c-job-sparks-api:${APP_IMAGE_TAG:-latest}
-    build:
-      context: .
-      target: api
     restart: "no"
     env_file:
       - .env.production

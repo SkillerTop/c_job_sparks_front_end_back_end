@@ -15,9 +15,12 @@ COPY server/package.json ./server/package.json
 RUN pnpm install --frozen-lockfile
 
 
-FROM dependencies AS build
+FROM dependencies AS source
 
 COPY . .
+
+
+FROM source AS frontend-build
 
 ARG VITE_APP_MODE=api
 ARG VITE_SHOP_MODE=api
@@ -32,6 +35,10 @@ ENV VITE_BASE_PATH=${VITE_BASE_PATH}
 ENV VITE_PUBLIC_ORIGIN=${VITE_PUBLIC_ORIGIN}
 
 RUN pnpm build
+
+
+FROM source AS server-build
+
 RUN pnpm --dir server build
 
 
@@ -58,9 +65,9 @@ WORKDIR /app
 
 COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=production-dependencies /app/server/node_modules ./server/node_modules
-COPY --from=build /app/server/package.json ./server/package.json
-COPY --from=build /app/server/dist ./server/dist
-COPY --from=build /app/server/migrations ./server/migrations
+COPY --from=server-build /app/server/package.json ./server/package.json
+COPY --from=server-build /app/server/dist ./server/dist
+COPY --from=server-build /app/server/migrations ./server/migrations
 
 RUN mkdir -p /app/server/data/media \
     && chown -R node:node /app/server/data
@@ -77,6 +84,6 @@ CMD ["node", "dist/src/server.js"]
 FROM nginx:stable-alpine AS web
 
 COPY deploy/web-nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=frontend-build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
