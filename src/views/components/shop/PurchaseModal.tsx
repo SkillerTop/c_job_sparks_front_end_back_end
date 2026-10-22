@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Modal } from '@/views/components/common/Modal';
 import { Feedback } from '@/views/components/common/Feedback';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
-import { SHOP_TEXT } from '@/constants/shop';
+
 import { FULFILLMENT_ROLE_LABELS } from '@/constants/fulfillment';
 import type { FulfillmentContact } from '@/models';
 import type { DeliveryMethod, PurchaseFulfillmentChoice, ShopProduct, SpendableSparkBalances } from '@/models/shop';
@@ -11,7 +11,9 @@ import { SelectField } from '@/views/components/ui/SelectField';
 import { ProductVisual } from './ProductVisual';
 import { RarityBadge } from './RarityBadge';
 import { SparkAmount } from './SparkAmount';
-import styles from '@/views/styles/shop.module.css';
+import styles from '@/views/styles/shop.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
+
 
 export function PurchaseModal({
   product,
@@ -30,6 +32,7 @@ export function PurchaseModal({
   onClose: () => void;
   onConfirm: (fulfillment?: PurchaseFulfillmentChoice) => void;
 }) {
+  const shopText = useLocalizedShopText();
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('OfficePickup');
   const [officeName, setOfficeName] = useState('Main office');
   const assignedContact = contacts.find((contact) => contact.id === product?.fulfillmentContactId);
@@ -60,8 +63,8 @@ export function PurchaseModal({
   return (
     <Modal
       open={Boolean(product)}
-      title={SHOP_TEXT.purchase.title}
-      description={SHOP_TEXT.purchase.serverCheck}
+      title={shopText.purchase.title}
+      description={shopText.purchase.serverCheck}
       onClose={() => !loading && onClose()}
     >
       {product && (
@@ -76,22 +79,22 @@ export function PurchaseModal({
           </div>
           {error && <Feedback tone="error">{error}</Feedback>}
           {needsFulfillment && !assignedContact && (
-            <Feedback tone="error">This product has no active responsible person. Contact an administrator.</Feedback>
+            <Feedback tone="error"><LocalizedText>This product has no active responsible person. Contact an administrator.</LocalizedText></Feedback>
           )}
           {needsFulfillment && (
             <div className={styles.fulfillmentFields}>
-              <p><strong>Reward fulfillment</strong><br />The responsible person is configured by an administrator for this product.</p>
+              <p><strong><LocalizedText>Reward fulfillment</LocalizedText></strong><br /><LocalizedText>The responsible person is configured by an administrator for this product.</LocalizedText></p>
               {assignedContact && (
                 <p>
-                  <strong>Responsible person:</strong><br />
+                  <strong><LocalizedText>Responsible person:</LocalizedText></strong><br />
                   {assignedContact.name} · {FULFILLMENT_ROLE_LABELS[assignedContact.role]} · {assignedContact.email}
-                  {assignedContact.officeName ? ` · ${assignedContact.officeName}` : ''}
+                  <LocalizedText>{assignedContact.officeName ? ` · ${assignedContact.officeName}` : ''}</LocalizedText>
                 </p>
               )}
               {product.fulfillmentKind === 'Physical' && (
                 <>
                   <label>
-                    <span>Delivery</span>
+                    <span><LocalizedText>Delivery</LocalizedText></span>
                     <SelectField
                       value={deliveryMethod}
                       onChange={setDeliveryMethod}
@@ -104,7 +107,7 @@ export function PurchaseModal({
                   </label>
                   {deliveryMethod === 'OfficePickup' && (
                     <label>
-                      <span>Pickup office</span>
+                      <span><LocalizedText>Pickup office</LocalizedText></span>
                       <SelectField
                         value={officeName}
                         onChange={setOfficeName}
@@ -115,36 +118,36 @@ export function PurchaseModal({
                   )}
                 </>
               )}
-              {product.fulfillmentKind === 'Certificate' && <small>The certificate will be ordered to your work email.</small>}
-              {product.fulfillmentKind === 'ITEquipment' && <small>Your manager will coordinate one request with IT and accounting.</small>}
+              {product.fulfillmentKind === 'Certificate' && <small><LocalizedText>The certificate will be ordered to your work email.</LocalizedText></small>}
+              {product.fulfillmentKind === 'ITEquipment' && <small><LocalizedText>Your manager will coordinate one request with IT and accounting.</LocalizedText></small>}
             </div>
           )}
           <dl className={styles.purchaseSummary}>
             <div>
-              <dt>{SHOP_TEXT.labels.price}</dt>
+              <dt>{shopText.labels.price}</dt>
               <dd><SparkAmount amount={product.price} sparkType={product.priceSparkType} /></dd>
             </div>
             <div>
-              <dt>{SHOP_TEXT.purchase.currentBalance}</dt>
+              <dt>{shopText.purchase.currentBalance}</dt>
               <dd><SparkAmount amount={available} sparkType={product.priceSparkType} /></dd>
             </div>
             <div className={styles.purchaseAfter}>
-              <dt>{SHOP_TEXT.purchase.afterPurchase}</dt>
+              <dt>{shopText.purchase.afterPurchase}</dt>
               <dd><SparkAmount amount={Math.max(0, after)} sparkType={product.priceSparkType} /></dd>
             </div>
           </dl>
           <p className={styles.secureNote}>
-            <ShieldCheck size={16} aria-hidden="true" /> {SHOP_TEXT.purchase.atomicOperation}
+            <ShieldCheck size={16} aria-hidden="true" /> {shopText.purchase.atomicOperation}
           </p>
           <div className={styles.shopModalActions}>
             <button className={styles.shopSecondaryButton} type="button" disabled={loading} onClick={onClose}>
-              {SHOP_TEXT.purchase.cancel}
+              {shopText.purchase.cancel}
             </button>
             <button className={styles.shopPrimaryButton} type="button" disabled={loading || (needsFulfillment && !assignedContact) || (needsFulfillment && deliveryMethod === 'OfficePickup' && !officeName)} onClick={() => onConfirm(fulfillment)}>
               {loading ? <span className={styles.shopSpinner} aria-hidden="true" /> : (
                 <SparkIcon type={product.priceSparkType} size={16} animated={false} />
               )}
-              {loading ? SHOP_TEXT.purchase.processing : SHOP_TEXT.purchase.confirm}
+              {loading ? shopText.purchase.processing : shopText.purchase.confirm}
             </button>
           </div>
         </div>

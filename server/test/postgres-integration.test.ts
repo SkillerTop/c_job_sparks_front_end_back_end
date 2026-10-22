@@ -158,12 +158,12 @@ if (!sourceDatabaseUrl) {
         amount: number;
         active: boolean;
       }> }>().categories;
-      const count = (sparkType: string, usageType: string) => categories.filter((category) =>
+      const categoryCount = (sparkType: string, usageType: string) => categories.filter((category) =>
         category.active && category.sparkType === sparkType && category.usageType === usageType).length;
-      assert.equal(count('White', 'PeerRecognition'), 11);
-      assert.equal(count('White', 'Award'), 11);
-      assert.equal(count('Yellow', 'Award'), 10);
-      assert.equal(count('Blue', 'Award'), 6);
+      assert.equal(categoryCount('White', 'PeerRecognition'), 11);
+      assert.equal(categoryCount('White', 'Award'), 11);
+      assert.equal(categoryCount('Yellow', 'Award'), 10);
+      assert.equal(categoryCount('Blue', 'Award'), 6);
       assert.equal(categories.find((category) => category.name === 'Knowledge Sharing' &&
         category.usageType === 'Award')?.description,
       'Shares useful knowledge in a form colleagues can understand and reuse.');
@@ -223,7 +223,7 @@ if (!sourceDatabaseUrl) {
       assert.notEqual(secondLedgerPage.items[0]!.id, firstLedgerPage.items[0]!.id);
 
       const peer = categories.find((category) => category.usageType === 'PeerRecognition')!;
-      const invalidPeerAmount = await authenticated('Administrator', 'PATCH',
+      const updatedPeerAmount = await authenticated('Administrator', 'PATCH',
         `/api/v1/admin/spark-categories/${encodeURIComponent(categoryIds.peer)}`, {
           id: categoryIds.peer,
           name: peer.name,
@@ -234,8 +234,18 @@ if (!sourceDatabaseUrl) {
           period: 'Unrestricted',
           active: peer.active,
         });
-      assert.equal(invalidPeerAmount.statusCode, 400, invalidPeerAmount.body);
-      assert.equal(invalidPeerAmount.json<{ code: string }>().code, 'PEER_CATEGORY_INVARIANT');
+      assert.equal(updatedPeerAmount.statusCode, 200, updatedPeerAmount.body);
+      assert.equal(await count(`SELECT count(*) FROM app.spark_category_versions
+        WHERE category_id=$1 AND amount=2 AND status='Active'`, [categoryIds.peer]), 1);
+
+      const departmentName = `Department ${randomUUID()}`;
+      const department = await authenticated('Administrator', 'POST', '/api/v1/admin/departments', {
+        id: '', name: departmentName, headId: '', active: true,
+      });
+      assert.equal(department.statusCode, 200, department.body);
+      const createdDepartmentId = department.json<{ id: string }>().id;
+      assert.equal(await count(`SELECT count(*) FROM app.departments
+        WHERE id=$1 AND name=$2 AND head_employee_id IS NULL`, [createdDepartmentId, departmentName]), 1);
     });
 
     test('Recognition persists audit, outbox and approval notification', async () => {
@@ -245,11 +255,18 @@ if (!sourceDatabaseUrl) {
         description: 'Shared a reusable engineering walkthrough.',
       }, `recognition-${randomUUID()}`);
       assert.equal(response.statusCode, 201, response.body);
-      const recognition = response.json<{ id: string; status: string }>();
+      const recognition = response.json<{ id: string; status: string; amount: number }>();
       assert.equal(recognition.status, 'Pending');
+      assert.equal(recognition.amount, 2);
       assert.equal(await count(`SELECT count(*) FROM app.audit_events WHERE entity_type='Recognition' AND entity_id=$1`, [recognition.id]), 1);
       assert.equal(await count(`SELECT count(*) FROM app.outbox_events WHERE aggregate_type='Recognition' AND aggregate_id=$1`, [recognition.id]), 1);
       assert.equal(await count(`SELECT count(*) FROM app.notifications WHERE object_type='Recognition' AND object_id=$1`, [recognition.id]), 1);
+      const decision = await authenticated('Head', 'POST', `/api/v1/recognitions/${recognition.id}/decision`, {
+        decision: 'Approved', reason: '',
+      }, `recognition-decision-${randomUUID()}`);
+      assert.equal(decision.statusCode, 200, decision.body);
+      assert.equal(await count(`SELECT count(*) FROM app.spark_ledger_entries
+        WHERE source_type='Recognition' AND source_id=$1 AND amount=2`, [recognition.id]), 1);
     });
 
     test('Award supports Coordinator, GPM, Head and Top Management scenarios', async () => {

@@ -7,11 +7,14 @@ import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
 import { useDashboardController } from '@/controllers/useDashboardController';
 import { useSpark } from '@/controllers/SparkContext';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { EMPTY_SHOP_EFFECTS } from '@/models/shop';
 import { formatDate } from '@/utils/formatters';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function DashboardPage() {
+  const { localize, locale } = useUserPreferences();
   const data = useDashboardController();
   const { snapshot } = useSpark();
   const effects = snapshot?.shopEffects ?? EMPTY_SHOP_EFFECTS;
@@ -19,7 +22,7 @@ export function DashboardPage() {
   const { user, balances, recentTransactions, pendingApprovals, department } = data;
   const isHead = user.role === 'Head';
   const isAdmin = user.role === 'Administrator';
-  const dateLabel = new Intl.DateTimeFormat('en-GB', {
+  const dateLabel = new Intl.DateTimeFormat(locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -31,19 +34,19 @@ export function DashboardPage() {
       <section className={styles.welcomePanel} data-focus-surface={effects.focusMode || undefined}>
         <div>
           <p className={styles.eyebrow}>{dateLabel}</p>
-          <h1>{greeting}, {user.name.split(' ')[0]}.</h1>
-          <p>
+          <h1><LocalizedText>{`${greeting}, ${user.name.split(' ')[0]}.`}</LocalizedText></h1>
+          <p><LocalizedText>
             {isAdmin
               ? 'Keep recognition fair: maintain the directory, validate imports and configure the Spark rules.'
               : isHead
                 ? `${pendingApprovals} decisions are waiting for your review in ${department.name}.`
                 : 'Your work is creating momentum. Here is how it is being recognized.'}
-          </p>
+          </LocalizedText></p>
           {(effects.focusMode || effects.doubleWhiteSparks || effects.vipStatus) && (
-            <div className={styles.activeRewardStrip} aria-label="Active rewards">
-              {effects.focusMode && <span>Focus mode active</span>}
-              {effects.doubleWhiteSparks && <span>2× White Sparks</span>}
-              {effects.vipStatus && <span>VIP active</span>}
+            <div className={styles.activeRewardStrip} aria-label={localize('Active rewards')}>
+              {effects.focusMode && <span><LocalizedText>Focus mode active</LocalizedText></span>}
+              {effects.doubleWhiteSparks && <span><LocalizedText>2× White Sparks</LocalizedText></span>}
+              {effects.vipStatus && <span><LocalizedText>VIP active</LocalizedText></span>}
             </div>
           )}
         </div>
@@ -52,7 +55,7 @@ export function DashboardPage() {
           to={isAdmin ? '/admin' : isHead ? '/approvals' : '/recognition'}
         >
           {isHead || isAdmin ? <ShieldCheck size={18} /> : <Star size={18} />}
-          {isAdmin ? 'Open administration' : isHead ? 'Review approvals' : 'Recognize a colleague'}
+          <LocalizedText>{isAdmin ? 'Open administration' : isHead ? 'Review approvals' : 'Recognize a colleague'}</LocalizedText>
           <ArrowRight size={16} />
         </Link>
       </section>
@@ -60,8 +63,8 @@ export function DashboardPage() {
       <section aria-labelledby="wallet-title">
         <div className={styles.sectionHeading}>
           <div>
-            <p className={styles.eyebrow}>Your balance</p>
-            <h2 id="wallet-title">Spark wallet</h2>
+            <p className={styles.eyebrow}><LocalizedText>Your balance</LocalizedText></p>
+            <h2 id="wallet-title"><LocalizedText>Spark wallet</LocalizedText></h2>
           </div>
         </div>
         <div className={styles.balanceGrid}>
@@ -75,10 +78,10 @@ export function DashboardPage() {
         <section className={styles.panel} aria-labelledby="recent-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Immutable history</p>
-              <h2 id="recent-title">Recent activity</h2>
+              <p className={styles.eyebrow}><LocalizedText>Immutable history</LocalizedText></p>
+              <h2 id="recent-title"><LocalizedText>Recent activity</LocalizedText></h2>
             </div>
-            <span className={styles.subtlePill}>Latest</span>
+            <span className={styles.subtlePill}><LocalizedText>Latest</LocalizedText></span>
           </div>
           <div className={styles.activityList}>
             {recentTransactions.length === 0 && (
@@ -110,43 +113,43 @@ export function DashboardPage() {
         <aside className={styles.panel} aria-labelledby="impact-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Quarter snapshot</p>
-              <h2 id="impact-title">Your impact</h2>
+              <p className={styles.eyebrow}><LocalizedText>Quarter snapshot</LocalizedText></p>
+              <h2 id="impact-title"><LocalizedText>Your impact</LocalizedText></h2>
             </div>
             <TrendingUp size={20} />
           </div>
           <div className={styles.impactScore}>
             <div>
               <strong>{data.received.length}</strong>
-              <span>achievements received</span>
+              <span><LocalizedText>achievements received</LocalizedText></span>
             </div>
             <span>{data.settings.currentQuarter}</span>
           </div>
           <p className={styles.mutedCopy}>
-            Every recognition keeps its story, even when the related Sparks are converted or spent.
-          </p>
+            <LocalizedText>Every recognition keeps its story, even when the related Sparks are converted or spent.
+          </LocalizedText></p>
           <div className={styles.miniMetrics}>
             <div>
               <Star size={15} />
               <span>
-                <strong>{data.categories}</strong> categories
-              </span>
+                <strong>{data.categories}</strong> <LocalizedText>categories
+              </LocalizedText></span>
             </div>
             <div>
               <Award size={15} />
               <span>
-                <strong>{data.lifetimeAchievements}</strong> lifetime achievements
-              </span>
+                <strong>{data.lifetimeAchievements}</strong> <LocalizedText>lifetime achievements
+              </LocalizedText></span>
             </div>
             <div>
               <BarChart3 size={15} />
               <span>
-                <strong>{data.latestPerformance?.kpi.toFixed(2) ?? '—'}</strong> latest KPI
-              </span>
+                <strong>{data.latestPerformance?.kpi.toFixed(2) ?? '—'}</strong> <LocalizedText>latest KPI
+              </LocalizedText></span>
             </div>
           </div>
           <Link className={styles.darkButton} to={isAdmin ? '/admin' : '/achievements'}>
-            {isAdmin ? 'Manage Spark rules' : 'Explore achievements'} <ArrowRight size={15} />
+            <LocalizedText>{isAdmin ? 'Manage Spark rules' : 'Explore achievements'}</LocalizedText> <ArrowRight size={15} />
           </Link>
         </aside>
       </div>

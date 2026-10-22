@@ -49,11 +49,14 @@ const contact = (db: Db, id: string) => one<any>(db, `
 const fulfillmentRecipient = (db: Db, employeeId: string) => one<{
   name: string;
   email: string | null;
+  language: 'en' | 'uk' | 'ru';
 }>(db, `
   SELECT employee.display_name AS name,
-         COALESCE(account_user.email::text,employee.contact_email::text) AS email
+         COALESCE(account_user.email::text,employee.contact_email::text) AS email,
+         CASE WHEN preferences.language IN ('uk','ru') THEN preferences.language ELSE 'en' END AS language
     FROM app.employees employee
     LEFT JOIN app.users account_user ON account_user.id=employee.user_id
+    LEFT JOIN app.user_preferences preferences ON preferences.user_id=account_user.id
    WHERE employee.id=$1`, [employeeId]);
 
 const notifyByEmails = async (
@@ -120,6 +123,7 @@ export const createRadiantFulfillment = async (
   await enqueueOutbox(db, 'RewardFulfillmentRequested', 'RewardFulfillment', id, {
     sourceType: 'RadiantAward', awardId, recipientEmployeeId, rewardKind: input.rewardKind,
     recipientName: recipient.name, recipientEmail: recipient.email,
+    language: recipient.language,
     valuablePrizeDescription: input.valuablePrizeDescription.trim(), assignedTo: assigned,
     emailTo: emails,
   });
@@ -174,6 +178,7 @@ export const createShopFulfillment = async (
   await enqueueOutbox(db, 'RewardFulfillmentRequested', 'RewardFulfillment', id, {
     sourceType: 'ShopPurchase', purchaseId, recipientEmployeeId: principal.employeeId,
     recipientName: recipient.name, recipientEmail: recipient.email,
+    language: recipient.language,
     productName, fulfillmentKind: kind, deliveryMethod: choice.deliveryMethod, officeName,
     assignedTo: assigned, emailTo: emails,
     ...(kind === 'ITEquipment' ? { emailInstruction: 'Send one email to the manager, IT department and accounting.' } : {}),

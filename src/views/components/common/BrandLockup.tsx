@@ -1,4 +1,5 @@
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function BrandLockup({ compact = false }: { compact?: boolean }) {
   return (
@@ -11,7 +12,7 @@ export function BrandLockup({ compact = false }: { compact?: boolean }) {
         height="292"
         decoding="async"
       />
-      {!compact && <small className={styles.brandSystemLabel}>SPARK FORGE</small>}
+      {!compact && <small className={styles.brandSystemLabel}><LocalizedText>SPARK FORGE</LocalizedText></small>}
     </span>
   );
 }

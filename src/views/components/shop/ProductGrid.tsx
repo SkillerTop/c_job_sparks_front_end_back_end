@@ -1,8 +1,9 @@
 import type { ShopInventoryItem, ShopProduct, SpendableSparkBalances } from '@/models/shop';
-import { SHOP_TEXT } from '@/constants/shop';
+
 import type { ProductAction } from '@/utils/shop';
 import { ProductCard } from './ProductCard';
-import styles from '@/views/styles/shop.module.css';
+import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
+
 
 export function ProductGrid({
   products,
@@ -19,8 +20,9 @@ export function ProductGrid({
   readOnly?: boolean;
   onAction: (product: ShopProduct, action: ProductAction) => void;
 }) {
+  const shopText = useLocalizedShopText();
   return (
-    <section className={styles.productGrid} aria-label={SHOP_TEXT.aria.catalog}>
+    <section className={styles.productGrid} aria-label={shopText.aria.catalog}>
       {products.map((product) => (
         <ProductCard
           key={product.id}

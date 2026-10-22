@@ -81,6 +81,7 @@ export interface PeerRecognition {
   recipientId: string;
   category: string;
   categoryId?: string;
+  amount: number;
   description: string;
   createdAt: string;
   status: RequestStatus;

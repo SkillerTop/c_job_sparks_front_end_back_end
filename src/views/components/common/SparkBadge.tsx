@@ -1,6 +1,7 @@
 import { SparkIcon } from './SparkIcon';
 import type { SparkType } from '@/models';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function SparkBadge({
   type,
@@ -18,7 +19,7 @@ export function SparkBadge({
         size={type === 'Radiant' ? (compact ? 14 : 16) : compact ? 12 : 14}
         animated={!compact}
       />
-      {typeof amount === 'number' ? `${amount > 0 ? '+' : ''}${amount} ` : ''}
+      <LocalizedText>{typeof amount === 'number' ? `${amount > 0 ? '+' : ''}${amount} ` : ''}</LocalizedText>
       {type}
     </span>
   );

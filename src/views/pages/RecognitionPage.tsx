@@ -8,12 +8,15 @@ import { StatusBadge } from '@/views/components/common/StatusBadge';
 import { SelectField } from '@/views/components/ui/SelectField';
 import { useRecognitionController } from '@/controllers/useRecognitionController';
 import { useSpark } from '@/controllers/SparkContext';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { formatDate } from '@/utils/formatters';
 import { focusFirstInvalid } from '@/utils/accessibility';
 import { quarterEndLabel } from '@/utils/quarter';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function RecognitionPage() {
+  const { localize } = useUserPreferences();
   const controller = useRecognitionController();
   const { snapshot, activeRole } = useSpark();
   const [historyExpanded, setHistoryExpanded] = useState(false);
@@ -28,7 +31,7 @@ export function RecognitionPage() {
       <PageHeader
         eyebrow="Peer recognition"
         title="Make great work visible"
-        description="Recognize an active Employee, Coordinator or GPM. Approved recognitions create one White Spark and a permanent achievement card."
+        description="Recognize an active Employee, Coordinator or GPM. The selected category controls the White Spark amount; approval also creates a permanent achievement card."
       />
       <div className={styles.formLayout}>
         <form
@@ -47,8 +50,8 @@ export function RecognitionPage() {
               <Sparkles size={22} />
             </span>
             <div>
-              <h2>New recognition</h2>
-              <p>All fields are required. The Head of Department reviews the contribution.</p>
+              <h2><LocalizedText>New recognition</LocalizedText></h2>
+              <p><LocalizedText>All fields are required. The Head of Department reviews the contribution.</LocalizedText></p>
             </div>
           </div>
           {controller.message && (
@@ -57,7 +60,7 @@ export function RecognitionPage() {
           <div className={styles.fieldGrid}>
             <label className={`${styles.formField} ${styles.fieldFull}`}>
               <span>
-                Recipient <b aria-hidden="true">*</b>
+                <LocalizedText>Recipient </LocalizedText><b aria-hidden="true">*</b>
               </span>
               <SelectField
                 value={controller.form.recipientId}
@@ -82,7 +85,7 @@ export function RecognitionPage() {
             </label>
             <label className={`${styles.formField} ${styles.fieldFull}`}>
               <span>
-                Category <b aria-hidden="true">*</b>
+                <LocalizedText>Category </LocalizedText><b aria-hidden="true">*</b>
               </span>
               <SelectField
                 value={controller.form.category}
@@ -90,7 +93,10 @@ export function RecognitionPage() {
                 onChange={(value) => controller.setField('category', value)}
                 options={[
                   { value: '', label: 'Select the behaviour to recognize' },
-                  ...controller.categories.map((category) => ({ value: category, label: category })),
+                  ...controller.categories.map((category) => ({
+                    value: category.name,
+                    label: `${category.name} · +${category.amount} White`,
+                  })),
                 ]}
                 ariaLabel="Recognition category"
                 ariaInvalid={Boolean(controller.errors.category)}
@@ -104,21 +110,21 @@ export function RecognitionPage() {
             </label>
             <label className={`${styles.formField} ${styles.fieldFull}`}>
               <span>
-                Reason / description <b aria-hidden="true">*</b>
+                <LocalizedText>Reason / description </LocalizedText><b aria-hidden="true">*</b>
               </span>
               <textarea
                 rows={5}
                 value={controller.form.description}
                 required
                 onChange={(event) => controller.setField('description', event.target.value)}
-                placeholder="Describe the contribution, context and impact…"
+                placeholder={localize('Describe the contribution, context and impact…')}
                 aria-invalid={Boolean(controller.errors.description)}
                 aria-describedby={controller.errors.description ? 'description-error' : 'description-help'}
               />
               <small id="description-help">
-                Example: “Created a deployment checklist that reduced handover errors and saved the project team
+                <LocalizedText>Example: “Created a deployment checklist that reduced handover errors and saved the project team
                 two hours per release.”
-              </small>
+              </LocalizedText></small>
               {controller.errors.description && (
                 <small id="description-error" className={styles.fieldError}>
                   {controller.errors.description}
@@ -128,15 +134,15 @@ export function RecognitionPage() {
           </div>
           <div className={styles.formFooter}>
             <p>
-              <Clock3 size={15} /> Creates a pending approval request
-            </p>
+              <Clock3 size={15} /> <LocalizedText>Creates a pending approval request
+            </LocalizedText></p>
             <button
               className={styles.primaryButton}
               type="submit"
               disabled={controller.submitting || remaining === 0}
             >
               {controller.submitting ? <span className={styles.spinner} /> : <Send size={16} />}
-              {controller.submitting ? 'Sending…' : 'Send recognition'}
+              <LocalizedText>{controller.submitting ? 'Sending…' : 'Send recognition'}</LocalizedText>
             </button>
           </div>
         </form>
@@ -144,9 +150,9 @@ export function RecognitionPage() {
           <section className={`${styles.panel} ${styles.quotaPanel}`}>
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.eyebrow}>{snapshot!.settings.currentQuarter} allocation</p>
+                <p className={styles.eyebrow}>{snapshot!.settings.currentQuarter} <LocalizedText>allocation</LocalizedText></p>
                 <h2>
-                  {remaining} nomination{remaining === 1 ? '' : 's'} available
+                  <LocalizedText>{`${remaining} ${remaining === 1 ? 'nomination' : 'nominations'} available`}</LocalizedText>
                 </h2>
               </div>
               <Users size={21} />
@@ -159,19 +165,19 @@ export function RecognitionPage() {
               ))}
             </div>
             <p>
-              Pending requests reserve a nomination; rejection makes it available again. Unused nominations
+              <LocalizedText>Pending requests reserve a nomination; rejection makes it available again. Unused nominations
               never roll over to the next quarter.
-            </p>
+            </LocalizedText></p>
             <p className={styles.quotaDeadline}>
-              <CalendarClock size={16} /> Use this allocation by{' '}
+              <CalendarClock size={16} /> <LocalizedText>Use this allocation by</LocalizedText>{' '}
               <strong>{quarterEndLabel(snapshot!.settings.currentQuarter)}</strong>.
             </p>
           </section>
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.eyebrow}>Your requests</p>
-                <h2>Recognition status</h2>
+                <p className={styles.eyebrow}><LocalizedText>Your requests</LocalizedText></p>
+                <h2><LocalizedText>Recognition status</LocalizedText></h2>
               </div>
               <RotateCcw size={19} />
             </div>
@@ -187,7 +193,7 @@ export function RecognitionPage() {
                     <div>
                       <strong>{name(item.recipientId)}</strong>
                       <p>
-                        {item.category} · {formatDate(item.createdAt)}
+                        {item.category} · +{item.amount} White · {formatDate(item.createdAt)}
                       </p>
                       {item.rejectionReason && <small>{item.rejectionReason}</small>}
                     </div>
@@ -201,7 +207,7 @@ export function RecognitionPage() {
                     aria-expanded={historyExpanded}
                     onClick={() => setHistoryExpanded((value) => !value)}
                   >
-                    {historyExpanded ? 'Show less' : `See more (${controller.ownRecognitions.length - 2})`}
+                    <LocalizedText>{historyExpanded ? 'Show less' : `See more (${controller.ownRecognitions.length - 2})`}</LocalizedText>
                   </button>
                 )}
               </div>

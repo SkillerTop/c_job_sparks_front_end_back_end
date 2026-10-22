@@ -20,6 +20,27 @@ test('reward fulfillment email contains operational details and sanitizes HTML',
   assert.match(mail.html, /Alex &lt;script&gt;/);
 });
 
+test('reward fulfillment email follows the recipient interface language', () => {
+  const payload = {
+    sourceType: 'ShopPurchase',
+    emailTo: ['office@c-job.test'],
+    recipientName: 'Олена Волкова',
+    productName: 'Сертифікат',
+    fulfillmentKind: 'Certificate',
+    deliveryMethod: 'WorkEmail',
+    assignedTo: { display_name: 'Офіс-менеджер' },
+  };
+  const uk = rewardFulfillmentMail({ ...payload, language: 'uk' }, 'https://sparks.c-job.test');
+  assert.match(uk.subject, /придбано нагороду/);
+  assert.match(uk.text, /Працівник:/);
+  assert.match(uk.html, /Відкрити C-Job Sparks/);
+
+  const ru = rewardFulfillmentMail({ ...payload, language: 'ru' }, 'https://sparks.c-job.test');
+  assert.match(ru.subject, /приобретена награда/);
+  assert.match(ru.text, /Сотрудник:/);
+  assert.match(ru.html, /Открыть C-Job Sparks/);
+});
+
 test('Graph mail client uses client credentials and reuses the access token', async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   const fetcher = (async (input: string | URL | Request, init?: RequestInit) => {

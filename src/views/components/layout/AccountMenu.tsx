@@ -8,7 +8,8 @@ import { useSpark } from '@/controllers/SparkContext';
 import { EMPTY_SHOP_EFFECTS } from '@/models/shop';
 import { ThemeToggle } from './ThemeToggle';
 import { UserAvatar } from '@/views/components/profile/UserAvatar';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function AccountMenu({
   name,
@@ -25,7 +26,7 @@ export function AccountMenu({
   department: string;
   onSignOut: () => void;
 }) {
-  const { t } = useUserPreferences();
+  const { t, localize } = useUserPreferences();
   const { snapshot } = useSpark();
   const effects = snapshot?.shopEffects ?? EMPTY_SHOP_EFFECTS;
   const [open, setOpen] = useState(false);
@@ -72,9 +73,9 @@ export function AccountMenu({
               <strong>{name}</strong>
               <small>{t(`role.${role}` as TranslationKey)} · {department}</small>
               {(effects.signatureBadge || effects.vipStatus) && (
-                <span className={styles.accountEffectBadges} aria-label="Active profile rewards">
-                  {effects.signatureBadge && <em>Signature</em>}
-                  {effects.vipStatus && <em>VIP</em>}
+                <span className={styles.accountEffectBadges} aria-label={localize('Active profile rewards')}>
+                  {effects.signatureBadge && <em><LocalizedText>Signature</LocalizedText></em>}
+                  {effects.vipStatus && <em><LocalizedText>VIP</LocalizedText></em>}
                 </span>
               )}
             </span>

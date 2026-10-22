@@ -11,9 +11,11 @@ import type { Employee } from '@/models';
 import type { AccessApprovalEmployeeInput, AuthAccount, AuthAuditEvent } from '@/models/auth';
 import { formatDateTime } from '@/utils/formatters';
 import { useAppMode } from '@/controllers/useAppMode';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { SelectField } from '@/views/components/ui/SelectField';
 import styles from '@/views/styles/app.module.css';
-import accessStyles from '@/views/styles/access.module.css';
+import accessStyles from '@/views/styles/access.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 type ReviewDecision = 'Approved' | 'Rejected';
 const historyLabels: Record<AuthAuditEvent['action'], string> = {
@@ -25,6 +27,7 @@ const historyLabels: Record<AuthAuditEvent['action'], string> = {
 };
 
 export function RegistrationManager() {
+  const { localize } = useUserPreferences();
   const { isApiMode } = useAppMode();
   const { accounts, auditEvents, reviewRegistration } = useAuth();
   const { snapshot, refresh } = useSpark();
@@ -100,18 +103,18 @@ export function RegistrationManager() {
       <section className={styles.panel} aria-labelledby="registration-queue-title">
         <div className={styles.panelHeader}>
           <div>
-            <p className={styles.eyebrow}>Account access</p>
-            <h2 id="registration-queue-title">Registration approvals</h2>
-            <p>Review the work email, then create or update the employee directory profile before granting access.</p>
+            <p className={styles.eyebrow}><LocalizedText>Account access</LocalizedText></p>
+            <h2 id="registration-queue-title"><LocalizedText>Registration approvals</LocalizedText></h2>
+            <p><LocalizedText>Review the work email, then create or update the employee directory profile before granting access.</LocalizedText></p>
           </div>
           <span className={accessStyles.pendingCounter}>
-            <Clock3 size={16} /> {pending.length} pending
-          </span>
+            <Clock3 size={16} /> {pending.length} <LocalizedText>pending
+          </LocalizedText></span>
         </div>
         {!isApiMode && (
           <div className={accessStyles.demoDisclosure} role="note">
-            This frontend demo does not verify email ownership. Requests and decisions stay in this browser and are not shared with other devices.
-          </div>
+            <LocalizedText>This frontend demo does not verify email ownership. Requests and decisions stay in this browser and are not shared with other devices.
+          </LocalizedText></div>
         )}
 
         {pending.length === 0 ? (
@@ -130,16 +133,16 @@ export function RegistrationManager() {
                     <span className={styles.avatar}>{employee?.initials ?? '?'}</span>
                     <div>
                       <div className={accessStyles.registrationTitle}>
-                        <h3>{employee?.name ?? ([account.firstName, account.lastName].filter(Boolean).join(' ') || 'New employee')}</h3>
+                        <h3><LocalizedText>{employee?.name ?? ([account.firstName, account.lastName].filter(Boolean).join(' ') || 'New employee')}</LocalizedText></h3>
                         <StatusBadge status={account.status} />
                       </div>
                       <p>{account.email}</p>
                       <dl className={accessStyles.registrationMeta}>
-                        <div><dt>Profile</dt><dd>{employee ? 'Linked directory employee' : 'Create on approval'}</dd></div>
-                        <div><dt>Provider</dt><dd>{account.authProvider === 'entra' ? 'Microsoft' : 'Email and password'}</dd></div>
-                        <div><dt>Role</dt><dd>{employee?.role ?? account.suggestedRole ?? 'Choose during approval'}</dd></div>
-                        <div><dt>Department</dt><dd>{department?.name ?? account.suggestedDepartmentName ?? 'Choose during approval'}</dd></div>
-                        <div><dt>Requested</dt><dd>{formatDateTime(account.requestedAt)}</dd></div>
+                        <div><dt><LocalizedText>Profile</LocalizedText></dt><dd><LocalizedText>{employee ? 'Linked directory employee' : 'Create on approval'}</LocalizedText></dd></div>
+                        <div><dt><LocalizedText>Provider</LocalizedText></dt><dd><LocalizedText>{account.authProvider === 'entra' ? 'Microsoft' : 'Email and password'}</LocalizedText></dd></div>
+                        <div><dt><LocalizedText>Role</LocalizedText></dt><dd><LocalizedText>{employee?.role ?? account.suggestedRole ?? 'Choose during approval'}</LocalizedText></dd></div>
+                        <div><dt><LocalizedText>Department</LocalizedText></dt><dd><LocalizedText>{department?.name ?? account.suggestedDepartmentName ?? 'Choose during approval'}</LocalizedText></dd></div>
+                        <div><dt><LocalizedText>Requested</LocalizedText></dt><dd>{formatDateTime(account.requestedAt)}</dd></div>
                       </dl>
                     </div>
                   </div>
@@ -150,15 +153,15 @@ export function RegistrationManager() {
                         type="button"
                         onClick={() => openReview(account, 'Rejected')}
                       >
-                        <XCircle size={16} /> Reject
-                      </button>
+                        <XCircle size={16} /> <LocalizedText>Reject
+                      </LocalizedText></button>
                       <button
                         className={styles.primaryButton}
                         type="button"
                         onClick={() => openReview(account, 'Approved')}
                       >
-                        <CheckCircle2 size={16} /> Approve
-                      </button>
+                        <CheckCircle2 size={16} /> <LocalizedText>Approve
+                      </LocalizedText></button>
                     </div>
                   </div>
                 </article>
@@ -171,13 +174,13 @@ export function RegistrationManager() {
       <section className={styles.panel} aria-labelledby="access-history-title">
         <div className={styles.panelHeader}>
           <div>
-            <p className={styles.eyebrow}>Recent decisions</p>
-            <h2 id="access-history-title">Access history</h2>
+            <p className={styles.eyebrow}><LocalizedText>Recent decisions</LocalizedText></p>
+            <h2 id="access-history-title"><LocalizedText>Access history</LocalizedText></h2>
           </div>
           <UserCheck size={20} />
         </div>
         {history.length === 0 ? (
-          <p className={styles.mutedCopy}>Submitted, approved, rejected and resubmitted requests will remain visible here.</p>
+          <p className={styles.mutedCopy}><LocalizedText>Submitted, approved, rejected and resubmitted requests will remain visible here.</LocalizedText></p>
         ) : (
           <div className={accessStyles.historyList}>
             {history.slice(0, 10).map((event) => {
@@ -203,7 +206,7 @@ export function RegistrationManager() {
                   <div>
                     <strong>{historyLabels[event.action]}</strong>
                     <p>{event.details}</p>
-                    <small>{employee?.name ?? account?.email ?? 'Account no longer available'} · actor {actor?.name ?? event.actorId}</small>
+                    <small><LocalizedText>{employee?.name ?? account?.email ?? 'Account no longer available'}</LocalizedText> <LocalizedText>· actor </LocalizedText>{actor?.name ?? event.actorId}</small>
                   </div>
                   <div className={accessStyles.historyStatus}>
                     <StatusBadge status={status} />
@@ -219,13 +222,11 @@ export function RegistrationManager() {
       <Modal
         open={Boolean(selected)}
         title={decision === 'Approved' ? 'Approve this registration?' : 'Reject this registration?'}
-        description={
-          selected
+        description={selected
             ? decision === 'Approved'
               ? `Complete the directory profile for ${selected.email}. The employee is created or updated only when you approve.`
               : `Add a clear note for ${selected.email}. They can resubmit with their original password later.`
-            : ''
-        }
+            : ''}
         onClose={() => {
           if (processing) return;
           setSelected(null);
@@ -237,16 +238,16 @@ export function RegistrationManager() {
           <div className={accessStyles.approvalProfile}>
             <div className={accessStyles.reviewSummary}>
               <ShieldCheck size={19} />
-              <p>Approval and directory creation are saved together. If either step fails, no access is granted.</p>
+              <p><LocalizedText>Approval and directory creation are saved together. If either step fails, no access is granted.</LocalizedText></p>
             </div>
             <div className={styles.fieldGrid}>
               <label className={`${styles.formField} ${styles.fieldFull}`}>
-                <span>Work email</span>
+                <span><LocalizedText>Work email</LocalizedText></span>
                 <input value={selected?.email ?? ''} readOnly aria-readonly="true" />
-                <small>The sign-in email is fixed to the verified request.</small>
+                <small><LocalizedText>The sign-in email is fixed to the verified request.</LocalizedText></small>
               </label>
               <label className={`${styles.formField} ${styles.fieldFull}`}>
-                <span>Employee name <b>*</b></span>
+                <span><LocalizedText>Employee name </LocalizedText><b>*</b></span>
                 <input
                   value={employeeProfile?.name ?? ''}
                   disabled={processing}
@@ -255,7 +256,7 @@ export function RegistrationManager() {
                 />
               </label>
               <label className={styles.formField}>
-                <span>Job title <b>*</b></span>
+                <span><LocalizedText>Job title </LocalizedText><b>*</b></span>
                 <input
                   value={employeeProfile?.title ?? ''}
                   disabled={processing}
@@ -263,11 +264,11 @@ export function RegistrationManager() {
                   onChange={(event) => setEmployeeProfile((current) => current ? { ...current, title: event.target.value } : current)}
                 />
                 {selected?.suggestedJobTitle && (
-                  <small>Pre-filled from Microsoft: {selected.suggestedJobTitle}</small>
+                  <small><LocalizedText>Pre-filled from Microsoft: </LocalizedText>{selected.suggestedJobTitle}</small>
                 )}
               </label>
               <label className={styles.formField}>
-                <span>Department <b>*</b></span>
+                <span><LocalizedText>Department </LocalizedText><b>*</b></span>
                 <SelectField
                   value={employeeProfile?.departmentId ?? ''}
                   disabled={processing}
@@ -281,11 +282,11 @@ export function RegistrationManager() {
                   required
                 />
                 {selected?.suggestedDepartmentName && (
-                  <small>Microsoft department: {selected.suggestedDepartmentName}</small>
+                  <small><LocalizedText>Microsoft department: </LocalizedText>{selected.suggestedDepartmentName}</small>
                 )}
               </label>
               <label className={styles.formField}>
-                <span>Business role <b>*</b></span>
+                <span><LocalizedText>Business role </LocalizedText><b>*</b></span>
                 <SelectField
                   value={employeeProfile?.role ?? 'Employee'}
                   disabled={processing}
@@ -295,11 +296,11 @@ export function RegistrationManager() {
                   ariaLabel="Employee business role"
                 />
                 {selected?.suggestedRole && (
-                  <small>Pre-filled from Microsoft app role: {selected.suggestedRole}</small>
+                  <small><LocalizedText>Pre-filled from Microsoft app role: </LocalizedText>{selected.suggestedRole}</small>
                 )}
               </label>
               <label className={styles.formField}>
-                <span>Reports to</span>
+                <span><LocalizedText>Reports to</LocalizedText></span>
                 <SelectField
                   value={employeeProfile?.managerId ?? ''}
                   disabled={processing}
@@ -313,10 +314,10 @@ export function RegistrationManager() {
                 />
                 {(selected?.suggestedManagerName || selected?.suggestedManagerEmail) && (
                   <small>
-                    Microsoft manager: {selected.suggestedManagerName ?? selected.suggestedManagerEmail}
-                    {selected.suggestedManagerName && selected.suggestedManagerEmail
-                      ? ` (${selected.suggestedManagerEmail})` : ''}
-                    {!selected.suggestedManagerId ? ' — not found in Directory' : ''}
+                    <LocalizedText>Microsoft manager: </LocalizedText>{selected.suggestedManagerName ?? selected.suggestedManagerEmail}
+                    <LocalizedText>{selected.suggestedManagerName && selected.suggestedManagerEmail
+                      ? ` (${selected.suggestedManagerEmail})` : ''}</LocalizedText>
+                    <LocalizedText>{!selected.suggestedManagerId ? ' — not found in Directory' : ''}</LocalizedText>
                   </small>
                 )}
               </label>
@@ -324,7 +325,7 @@ export function RegistrationManager() {
           </div>
         ) : (
           <label className={styles.formField}>
-            <span>Reason for rejection</span>
+            <span><LocalizedText>Reason for rejection</LocalizedText></span>
             <textarea
               value={reason}
               disabled={processing}
@@ -333,12 +334,12 @@ export function RegistrationManager() {
               aria-describedby="rejection-reason-help"
               aria-invalid={reason.length > 0 && reason.trim().length < 5}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Explain what the employee should correct…"
+              placeholder={localize('Explain what the employee should correct…')}
               required
             />
             <small id="rejection-reason-help" aria-live="polite">
-              {reason.trim().length}/240 · minimum 5 characters required to enable rejection
-            </small>
+              {reason.trim().length}<LocalizedText>/240 · minimum 5 characters required to enable rejection
+            </LocalizedText></small>
           </label>
         )}
         <div className={styles.modalActions}>
@@ -351,8 +352,8 @@ export function RegistrationManager() {
               setReviewError('');
             }}
           >
-            Cancel
-          </button>
+            <LocalizedText>Cancel
+          </LocalizedText></button>
           <button
             className={decision === 'Approved' ? styles.primaryButton : styles.rejectButton}
             type="button"
@@ -361,7 +362,7 @@ export function RegistrationManager() {
             onClick={() => void submitReview()}
           >
             {processing ? <span className={styles.spinner} /> : decision === 'Approved' ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-            {processing ? 'Saving…' : decision === 'Approved' ? 'Approve access' : 'Reject request'}
+            <LocalizedText>{processing ? 'Saving…' : decision === 'Approved' ? 'Approve access' : 'Reject request'}</LocalizedText>
           </button>
         </div>
       </Modal>

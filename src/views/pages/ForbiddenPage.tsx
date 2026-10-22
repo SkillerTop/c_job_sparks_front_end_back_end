@@ -2,7 +2,8 @@ import { ArrowLeft, ShieldX } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { PageTransition } from '@/views/components/common/PageTransition';
 import { useSpark } from '@/controllers/SparkContext';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function ForbiddenPage() {
   const { activeRole } = useSpark();
@@ -14,15 +15,15 @@ export function ForbiddenPage() {
         <span>
           <ShieldX size={36} />
         </span>
-        <p className={styles.eyebrow}>Permission-aware route</p>
-        <h1>This workspace is not available</h1>
+        <p className={styles.eyebrow}><LocalizedText>Permission-aware route</LocalizedText></p>
+        <h1><LocalizedText>This workspace is not available</LocalizedText></h1>
         <p>
-          Your account role <strong>{activeRole}</strong> cannot open{' '}
-          {from ? <code>{from}</code> : 'this page'}. Contact an administrator if your employee-directory role needs to be updated.
-        </p>
+          <LocalizedText>Your account role </LocalizedText><strong>{activeRole}</strong> <LocalizedText>cannot open</LocalizedText>{' '}
+          <LocalizedText>{from ? <code>{from}</code> : 'this page'}</LocalizedText><LocalizedText>. Contact an administrator if your employee-directory role needs to be updated.
+        </LocalizedText></p>
         <Link className={styles.primaryButton} to="/">
-          <ArrowLeft size={16} /> Back to dashboard
-        </Link>
+          <ArrowLeft size={16} /> <LocalizedText>Back to dashboard
+        </LocalizedText></Link>
       </div>
     </PageTransition>
   );

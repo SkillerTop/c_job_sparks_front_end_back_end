@@ -7,13 +7,16 @@ import { PageHeader } from '@/views/components/common/PageHeader';
 import { PageTransition } from '@/views/components/common/PageTransition';
 import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { useSpark } from '@/controllers/SparkContext';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import type { SparkType } from '@/models';
 import { calculateBalances, formatMoney } from '@/utils/sparkRules';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 type DisenchantType = Exclude<SparkType, 'Radiant'>;
 
 export function DisenchantPage() {
+  const { localize } = useUserPreferences();
   const { snapshot, currentUserId, disenchant } = useSpark();
   const [type, setType] = useState<DisenchantType>('White');
   const [amount, setAmount] = useState(1);
@@ -68,8 +71,8 @@ export function DisenchantPage() {
       <div className={styles.operationLayout}>
         <section className={`${styles.panel} ${styles.operationPanel}`}>
           <div className={styles.formField}>
-            <span>Spark type</span>
-            <div className={styles.sparkTypeOptions} role="group" aria-label="Spark type">
+            <span><LocalizedText>Spark type</LocalizedText></span>
+            <div className={styles.sparkTypeOptions} role="group" aria-label={localize('Spark type')}>
               {(['White', 'Yellow', 'Blue'] as DisenchantType[]).map((spark) => (
                 <button
                   type="button"
@@ -85,14 +88,14 @@ export function DisenchantPage() {
                   <SparkBadge type={spark} />
                 </button>
               ))}
-              <button type="button" disabled title="Radiant Sparks are permanent">
+              <button type="button" disabled title={localize('Radiant Sparks are permanent')}>
                 <SparkBadge type="Radiant" />
-                <small>Permanent</small>
+                <small><LocalizedText>Permanent</LocalizedText></small>
               </button>
             </div>
           </div>
           <label className={styles.formField}>
-            <span>Amount</span>
+            <span><LocalizedText>Amount</LocalizedText></span>
             <input
               type="number"
               min={balances[type] > 0 ? 1 : 0}
@@ -107,14 +110,14 @@ export function DisenchantPage() {
               }}
             />
             <small>
-              {balances[type]} {type} Sparks available
-            </small>
+              {balances[type]} {type} <LocalizedText>Sparks available
+            </LocalizedText></small>
           </label>
           <div className={styles.payoutCard}>
             <div className={styles.payoutCopy}>
-              <p>Estimated money value</p>
+              <p><LocalizedText>Estimated money value</LocalizedText></p>
               <strong>{formatMoney(moneyValue, settings.currency)}</strong>
-              <span>Calculated according to the current C-Job policy</span>
+              <span><LocalizedText>Calculated according to the current C-Job policy</LocalizedText></span>
             </div>
             <span className={`${styles.largeIcon} ${styles[`tone${type}`]}`}>
               <Coins size={24} />
@@ -123,9 +126,9 @@ export function DisenchantPage() {
           <div className={styles.infoNote}>
             <Info size={17} />
             <p>
-              <strong>Current C-Job policy.</strong> Admin can update future operations conditions without changing
+              <strong><LocalizedText>Current C-Job policy.</LocalizedText></strong> <LocalizedText>Admin can update future operations conditions without changing
               previous requests.
-            </p>
+            </LocalizedText></p>
           </div>
           <button
             className={styles.primaryButtonWide}
@@ -133,37 +136,37 @@ export function DisenchantPage() {
             disabled={balances[type] === 0 || amount < 1 || amount > balances[type]}
             onClick={() => setConfirmOpen(true)}
           >
-            <Flame size={17} /> Review disenchant
-          </button>
+            <Flame size={17} /> <LocalizedText>Review disenchant
+          </LocalizedText></button>
         </section>
         <aside className={styles.sideStack}>
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.eyebrow}>Monthly workflow</p>
-                <h2>What happens next</h2>
+                <p className={styles.eyebrow}><LocalizedText>Monthly workflow</LocalizedText></p>
+                <h2><LocalizedText>What happens next</LocalizedText></h2>
               </div>
             </div>
             <ol className={styles.stepList}>
               <li>
                 <span>01</span>
                 <div>
-                  <strong>Sparks debit immediately</strong>
-                  <p>A permanent negative Ledger transaction is created.</p>
+                  <strong><LocalizedText>Sparks debit immediately</LocalizedText></strong>
+                  <p><LocalizedText>A permanent negative Ledger transaction is created.</LocalizedText></p>
                 </div>
               </li>
               <li>
                 <span>02</span>
                 <div>
-                  <strong>Request enters accounting</strong>
-                  <p>Your Head sees the amount, rate and period.</p>
+                  <strong><LocalizedText>Request enters accounting</LocalizedText></strong>
+                  <p><LocalizedText>Your Head sees the amount, rate and period.</LocalizedText></p>
                 </div>
               </li>
               <li>
                 <span>03</span>
                 <div>
-                  <strong>Payroll handles payment</strong>
-                  <p>The application itself never moves money.</p>
+                  <strong><LocalizedText>Payroll handles payment</LocalizedText></strong>
+                  <p><LocalizedText>The application itself never moves money.</LocalizedText></p>
                 </div>
               </li>
             </ol>
@@ -219,8 +222,8 @@ export function DisenchantPage() {
             disabled={processing}
             onClick={() => setConfirmOpen(false)}
           >
-            Cancel
-          </button>
+            <LocalizedText>Cancel
+          </LocalizedText></button>
           <button
             className={styles.primaryButton}
             type="button"
@@ -228,7 +231,7 @@ export function DisenchantPage() {
             onClick={() => void confirm()}
           >
             {processing ? <span className={styles.spinner} /> : <Flame size={16} />}
-            {processing ? 'Creating…' : 'Confirm request'}
+            <LocalizedText>{processing ? 'Creating…' : 'Confirm request'}</LocalizedText>
           </button>
         </div>
       </Modal>

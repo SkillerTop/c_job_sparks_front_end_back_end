@@ -1,8 +1,10 @@
 import { ArrowUpDown } from 'lucide-react';
-import { SHOP_CATEGORIES, SHOP_SORTS, SHOP_TEXT } from '@/constants/shop';
+import { SHOP_CATEGORIES, SHOP_SORTS } from '@/constants/shop';
 import type { ShopCategoryFilter, ShopSort } from '@/models/shop';
 import { SelectField } from '@/views/components/ui/SelectField';
-import styles from '@/views/styles/shop.module.css';
+import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
+import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function CategoryFilter({
   category,
@@ -15,9 +17,10 @@ export function CategoryFilter({
   onCategoryChange: (category: ShopCategoryFilter) => void;
   onSortChange: (sort: ShopSort) => void;
 }) {
+  const shopText = useLocalizedShopText();
   return (
-    <section className={styles.shopControls} aria-label={SHOP_TEXT.aria.filters}>
-      <div className={styles.categoryScroller} role="group" aria-label={SHOP_TEXT.aria.categories}>
+    <section className={styles.shopControls} aria-label={shopText.aria.filters}>
+      <div className={styles.categoryScroller} role="group" aria-label={shopText.aria.categories}>
         {SHOP_CATEGORIES.map((item) => (
           <button
             key={item.value}
@@ -26,7 +29,7 @@ export function CategoryFilter({
             className={category === item.value ? styles.categoryActive : styles.categoryButton}
             onClick={() => onCategoryChange(item.value)}
           >
-            {item.label}
+            <LocalizedText>{item.label}</LocalizedText>
           </button>
         ))}
       </div>
@@ -34,7 +37,7 @@ export function CategoryFilter({
         value={sort}
         onChange={onSortChange}
         options={SHOP_SORTS}
-        ariaLabel={SHOP_TEXT.aria.sort}
+        ariaLabel={shopText.aria.sort}
         icon={<ArrowUpDown size={15} />}
         variant="filter"
         className={styles.sortSelect}

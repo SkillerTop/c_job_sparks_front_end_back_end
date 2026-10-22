@@ -99,7 +99,7 @@ export function useRecognitionController() {
     categories:
       snapshot?.categories
         .filter((category) => category.active && category.usageType === 'PeerRecognition')
-        .map((category) => category.name) ?? [],
+        .map((category) => ({ name: category.name, amount: category.amount })) ?? [],
     submit,
   };
 }

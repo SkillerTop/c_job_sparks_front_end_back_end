@@ -6,6 +6,7 @@ import type {
   ShopProduct,
   ShopSort,
 } from '@/models/shop';
+import { getActiveLocale } from '@/utils/locale';
 
 export type ProductAction =
   | 'buy'
@@ -19,7 +20,7 @@ export const SPENDABLE_SPARK_TYPES: SpendableSparkType[] = ['White', 'Yellow', '
 
 export const emptySpendableBalances = (): SpendableSparkBalances => ({ White: 0, Yellow: 0, Blue: 0 });
 
-export const formatSparkAmount = (value: number) => value.toLocaleString('en-US');
+export const formatSparkAmount = (value: number) => value.toLocaleString(getActiveLocale());
 
 export const formatSparkPrice = (amount: number, sparkType: SpendableSparkType) =>
   `${formatSparkAmount(amount)} ${sparkType} ${amount === 1 ? 'Spark' : 'Sparks'}`;
@@ -72,14 +73,23 @@ export const isProductNew = (product: ShopProduct, now = Date.now()) =>
   now - Date.parse(product.createdAt) <= 1000 * 60 * 60 * 24 * 45;
 
 export const durationLabel = (hours: number | null) => {
-  if (!hours) return 'No time limit';
+  const locale = getActiveLocale();
+  const language = locale.startsWith('uk') ? 'uk' : locale.startsWith('ru') ? 'ru' : 'en';
+  if (!hours) return language === 'uk' ? 'Без обмеження часу' : language === 'ru' ? 'Без ограничения времени' : 'No time limit';
+  const unit = (value: number, en: [string, string], uk: [string, string, string], ru: [string, string, string]) => {
+    if (language === 'en') return `${value} ${value === 1 ? en[0] : en[1]}`;
+    const category = new Intl.PluralRules(locale).select(value);
+    const index = category === 'one' ? 0 : category === 'few' ? 1 : 2;
+    const forms = language === 'uk' ? uk : ru;
+    return `${value.toLocaleString(locale)} ${forms[index]}`;
+  };
   if (hours % 168 === 0) {
     const weeks = hours / 168;
-    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+    return unit(weeks, ['week', 'weeks'], ['тиждень', 'тижні', 'тижнів'], ['неделя', 'недели', 'недель']);
   }
   if (hours % 24 === 0) {
     const days = hours / 24;
-    return `${days} ${days === 1 ? 'day' : 'days'}`;
+    return unit(days, ['day', 'days'], ['день', 'дні', 'днів'], ['день', 'дня', 'дней']);
   }
-  return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+  return unit(hours, ['hour', 'hours'], ['година', 'години', 'годин'], ['час', 'часа', 'часов']);
 };

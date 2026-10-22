@@ -11,15 +11,17 @@ import { ShopHeader } from '@/views/components/shop/ShopHeader';
 import { ShopSkeleton } from '@/views/components/shop/ShopSkeleton';
 import { Feedback } from '@/views/components/common/Feedback';
 import { PageTransition } from '@/views/components/common/PageTransition';
-import { SHOP_CATEGORIES, SHOP_SORTS, SHOP_TEXT } from '@/constants/shop';
+import { SHOP_CATEGORIES, SHOP_SORTS } from '@/constants/shop';
 import { isInsufficientSparksError, useShop } from '@/controllers/ShopContext';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import type { PurchaseFulfillmentChoice, ShopCategoryFilter, ShopProduct, ShopSort } from '@/models/shop';
 import { emptySpendableBalances, filterAndSortProducts, type ProductAction } from '@/utils/shop';
-import styles from '@/views/styles/shop.module.css';
+import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
+
 
 export function ShopPage() {
+  const shopText = useLocalizedShopText();
   const { activeRole } = useSpark();
   const { t } = useUserPreferences();
   const { snapshot, balances, loading, error, purchasingId, refresh, purchase } = useShop();
@@ -77,7 +79,7 @@ export function ShopPage() {
         void refresh();
         return;
       }
-      setPurchaseError(caught instanceof Error ? caught.message : SHOP_TEXT.errors.finishPurchase);
+      setPurchaseError(caught instanceof Error ? caught.message : shopText.errors.finishPurchase);
     }
   };
 
@@ -90,7 +92,7 @@ export function ShopPage() {
           <div className={styles.shopFeedback}>
             <Feedback tone="error">{error}</Feedback>
             <button type="button" className={styles.shopSecondaryButton} onClick={() => void refresh()}>
-              <RefreshCcw size={15} /> {SHOP_TEXT.shop.retry}
+              <RefreshCcw size={15} /> {shopText.shop.retry}
             </button>
           </div>
         )}

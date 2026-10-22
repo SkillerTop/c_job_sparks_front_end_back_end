@@ -8,6 +8,7 @@ import {
 } from '@/services/profileService';
 import { useAuth } from '@/controllers/AuthContext';
 import { useDocumentLocalization } from '@/hooks/useDocumentLocalization';
+import { localizeContent } from '@/services/contentLocalization';
 
 interface UserPreferencesContextValue {
   preferences: ProfilePreferences | null;
@@ -15,6 +16,7 @@ interface UserPreferencesContextValue {
   locale: string;
   refreshPreferences: () => Promise<ProfilePreferences | null>;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
+  localize: (value: string) => string;
 }
 
 const UserPreferencesContext = createContext<UserPreferencesContextValue | null>(null);
@@ -68,6 +70,7 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
       locale: LANGUAGE_LOCALES[language],
       refreshPreferences,
       t: (key, params) => translate(language, key, params),
+      localize: (text) => localizeContent(language, text),
     }),
     [preferences, language, refreshPreferences],
   );

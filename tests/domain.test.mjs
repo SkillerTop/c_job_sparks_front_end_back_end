@@ -179,7 +179,7 @@ test('Administrator category amounts affect future awards without rewriting earl
   const peerDefinition = (await snapshot()).categories.find(
     (item) => item.sparkType === 'White' && item.usageType === 'PeerRecognition',
   );
-  await assert.rejects(updateCategory(peerDefinition.id, { amount: 2 }), /exactly 1 White/);
+  await updateCategory(peerDefinition.id, { amount: 2 });
 
   const whiteCategory = RECOGNITION_CATEGORIES[0];
   const firstWhiteRecipient = await addEmployee();
@@ -221,7 +221,7 @@ test('Administrator category amounts affect future awards without rewriting earl
     afterApproval.transactions.find(
       (transaction) => transaction.relatedRequestId === peerRecognition.recognition.id,
     ).amount,
-    1,
+    2,
   );
 });
 test('Lifetime earnings count recognition credits without double-counting conversions', async () => {

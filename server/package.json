@@ -11,7 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node --env-file-if-exists=.env dist/src/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsc -p tsconfig.json && node --test --test-isolation=none dist/test/app-contract.test.js dist/test/domain.test.js dist/test/mail.test.js dist/test/media.test.js dist/test/migrations.test.js dist/test/schema-contract.test.js",
+    "test": "tsc -p tsconfig.json && node --test --test-isolation=none dist/test/app-contract.test.js dist/test/domain.test.js dist/test/mail.test.js dist/test/media.test.js dist/test/migrations.test.js dist/test/notification-localization.test.js dist/test/schema-contract.test.js",
     "test:integration": "tsc -p tsconfig.json && node --env-file-if-exists=.env --test --test-isolation=none dist/test/postgres-integration.test.js",
     "test:all": "pnpm test && pnpm test:integration",
     "migrate": "node --env-file-if-exists=.env --import tsx src/db/migrate-cli.ts up",

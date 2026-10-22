@@ -8,11 +8,14 @@ import { PageTransition } from '@/views/components/common/PageTransition';
 import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { useApprovalController, type QueueItem } from '@/controllers/useApprovalController';
 import { useSpark } from '@/controllers/SparkContext';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { formatDate } from '@/utils/formatters';
 import { isQualityGateActive } from '@/utils/sparkRules';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function ApprovalsPage() {
+  const { localize } = useUserPreferences();
   const { snapshot } = useSpark();
   const controller = useApprovalController();
   const [filter, setFilter] = useState<'All' | 'Recognition' | 'Yellow Award'>('All');
@@ -41,10 +44,10 @@ export function ApprovalsPage() {
         eyebrow="Head of Department"
         title="Approval Center"
         description="Peer Recognition and Yellow requests are checked again against current Quality Gates, limits and duplicate rules at the moment of decision."
-        action={<span className={styles.countBadge}>{controller.queue.length} pending</span>}
+        action={<span className={styles.countBadge}>{controller.queue.length} <LocalizedText>pending</LocalizedText></span>}
       />
       {controller.message && <Feedback tone={controller.message.tone}>{controller.message.text}</Feedback>}
-      <div className={styles.segmented} role="group" aria-label="Filter approval queue">
+      <div className={styles.segmented} role="group" aria-label={localize('Filter approval queue')}>
         {(['All', 'Recognition', 'Yellow Award'] as const).map((item) => (
           <button
             className={filter === item ? styles.segmentActive : ''}
@@ -53,7 +56,7 @@ export function ApprovalsPage() {
             key={item}
             onClick={() => setFilter(item)}
           >
-            {item}
+            <LocalizedText>{item}</LocalizedText>
           </button>
         ))}
       </div>
@@ -84,20 +87,20 @@ export function ApprovalsPage() {
                 {gated && item.kind === 'Recognition' && (
                   <div className={styles.gateWarning}>
                     <ShieldAlert size={16} />
-                    <span>White credit blocked by active Quality Gate</span>
+                    <span><LocalizedText>White credit blocked by active Quality Gate</LocalizedText></span>
                   </div>
                 )}
                 <dl className={styles.approvalFacts}>
                   <div>
-                    <dt>Category</dt>
+                    <dt><LocalizedText>Category</LocalizedText></dt>
                     <dd>{item.category}</dd>
                   </div>
                   <div>
-                    <dt>Awarded by</dt>
+                    <dt><LocalizedText>Awarded by</LocalizedText></dt>
                     <dd>{sender.name}</dd>
                   </div>
                   <div>
-                    <dt>Date</dt>
+                    <dt><LocalizedText>Date</LocalizedText></dt>
                     <dd>{formatDate(item.createdAt)}</dd>
                   </div>
                 </dl>
@@ -109,8 +112,8 @@ export function ApprovalsPage() {
                     type="button"
                     onClick={() => setRejecting(item)}
                   >
-                    <X size={16} /> Reject
-                  </button>
+                    <X size={16} /> <LocalizedText>Reject
+                  </LocalizedText></button>
                   <button
                     className={styles.approveButton}
                     disabled={Boolean(controller.processingId) || (gated && item.kind === 'Recognition')}
@@ -122,8 +125,8 @@ export function ApprovalsPage() {
                     ) : (
                       <Check size={16} />
                     )}{' '}
-                    Approve
-                  </button>
+                    <LocalizedText>Approve
+                  </LocalizedText></button>
                 </footer>
               </article>
             );
@@ -139,7 +142,7 @@ export function ApprovalsPage() {
         {controller.message?.tone === 'error' && <Feedback tone="error">{controller.message.text}</Feedback>}
         <label className={styles.formField}>
           <span>
-            Rejection reason <b>*</b>
+            <LocalizedText>Rejection reason </LocalizedText><b>*</b>
           </span>
           <textarea
             data-autofocus
@@ -147,7 +150,7 @@ export function ApprovalsPage() {
             rows={4}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="Explain what needs to change…"
+            placeholder={localize('Explain what needs to change…')}
           />
         </label>
         <div className={styles.modalActions}>
@@ -157,16 +160,16 @@ export function ApprovalsPage() {
             disabled={Boolean(controller.processingId)}
             onClick={closeReject}
           >
-            Cancel
-          </button>
+            <LocalizedText>Cancel
+          </LocalizedText></button>
           <button
             className={styles.rejectButton}
             type="button"
             disabled={!reason.trim() || Boolean(controller.processingId)}
             onClick={() => void reject()}
           >
-            <X size={16} /> Reject request
-          </button>
+            <X size={16} /> <LocalizedText>Reject request
+          </LocalizedText></button>
         </div>
       </Modal>
     </PageTransition>

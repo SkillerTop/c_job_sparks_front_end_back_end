@@ -9,15 +9,18 @@ import { StatusBadge } from '@/views/components/common/StatusBadge';
 import { EmptyState } from '@/views/components/common/EmptyState';
 import { SelectField } from '@/views/components/ui/SelectField';
 import { useSpark } from '@/controllers/SparkContext';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import type { AwardInput, SparkType } from '@/models';
 import { selectAwardTargets, selectGpmControlledCoordinators } from '@/models/selectors';
 import { focusFirstInvalid } from '@/utils/accessibility';
 import { formatDate } from '@/utils/formatters';
 import { gpmWhiteAwardQuota, isQualityGateActive } from '@/utils/sparkRules';
 import { quarterForDate, todayIso } from '@/utils/quarter';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function AwardPage() {
+  const { localize } = useUserPreferences();
   const { snapshot, activeRole, currentUserId, createAward } = useSpark();
   const isRadiantAward = activeRole === 'Top Management';
   const allowedTypes: SparkType[] =
@@ -157,13 +160,11 @@ export function AwardPage() {
       <PageHeader
         eyebrow={`${activeRole} workspace`}
         title={activeRole === 'Top Management' ? 'Award a Radiant Spark' : 'Award a Spark'}
-        description={
-          activeRole === 'Coordinator'
+        description={activeRole === 'Coordinator'
             ? 'Yellow awards are available only for colleagues in a shared active project with recorded hours, then submitted to the recipient’s Head.'
             : activeRole === 'GPM'
               ? 'White and Yellow awards are submitted to the recipient’s Head. White allocation is based on the Coordinators and registrars under your control.'
-            : 'Direct awards create an immediate, permanent transaction and achievement record.'
-        }
+            : 'Direct awards create an immediate, permanent transaction and achievement record.'}
       />
       {message && <Feedback tone={message.tone}>{message.text}</Feedback>}
       <div className={styles.formLayout}>
@@ -173,18 +174,18 @@ export function AwardPage() {
               {form.sparkType === 'Radiant' ? <SparkIcon type="Radiant" size={34} /> : <Award size={22} />}
             </span>
             <div>
-              <h2>Award details</h2>
-              <p>
+              <h2><LocalizedText>Award details</LocalizedText></h2>
+              <p><LocalizedText>
                 {isRadiantAward
                   ? 'Top Management defines the reason; every Radiant award credits one permanent Spark.'
                   : 'Amounts are controlled by the selected category.'}
-              </p>
+              </LocalizedText></p>
             </div>
           </div>
           <div className={styles.fieldGrid}>
             <label className={styles.formField}>
               <span>
-                Employee <b>*</b>
+                <LocalizedText>Employee </LocalizedText><b>*</b>
               </span>
               <SelectField
                 value={form.employeeId}
@@ -208,7 +209,7 @@ export function AwardPage() {
               )}
             </label>
             <label className={styles.formField}>
-              <span>Spark type</span>
+              <span><LocalizedText>Spark type</LocalizedText></span>
               <SelectField
                 value={form.sparkType}
                 onChange={(value) => {
@@ -227,12 +228,12 @@ export function AwardPage() {
             {isRadiantAward ? (
               <label className={`${styles.formField} ${styles.fieldFull}`}>
                 <span>
-                  Reason <b>*</b>
+                  <LocalizedText>Reason </LocalizedText><b>*</b>
                 </span>
                 <input
                   value={form.category}
                   onChange={(event) => update('category', event.target.value)}
-                  placeholder="Name the company-wide impact being recognized…"
+                  placeholder={localize('Name the company-wide impact being recognized…')}
                   maxLength={100}
                   aria-invalid={Boolean(errors.category)}
                   aria-describedby={errors.category ? 'award-category-error' : undefined}
@@ -247,7 +248,7 @@ export function AwardPage() {
             ) : (
               <label className={styles.formField}>
                 <span>
-                  Category <b>*</b>
+                  <LocalizedText>Category </LocalizedText><b>*</b>
                 </span>
                 <SelectField
                   value={form.category}
@@ -280,18 +281,18 @@ export function AwardPage() {
               </label>
             )}
             <div className={styles.formField}>
-              <span>Reward</span>
+              <span><LocalizedText>Reward</LocalizedText></span>
               <div className={styles.rewardPreview}>
                 {amount > 0 ? (
                   <SparkBadge type={form.sparkType} amount={amount} />
                 ) : (
-                  <span>Choose a category</span>
+                  <span><LocalizedText>Choose a category</LocalizedText></span>
                 )}
               </div>
             </div>
             {isRadiantAward && (
               <div className={styles.formField}>
-                <span>Award date</span>
+                <span><LocalizedText>Award date</LocalizedText></span>
                 <div className={styles.rewardPreview}>
                   <time dateTime={awardDate}>{formatDate(awardDate)}</time>
                 </div>
@@ -300,7 +301,7 @@ export function AwardPage() {
             {isRadiantAward && (
               <>
                 <label className={styles.formField}>
-                  <span>Physical award <b>*</b></span>
+                  <span><LocalizedText>Physical award </LocalizedText><b>*</b></span>
                   <SelectField
                     value={form.radiantRewardKind ?? 'RadiantAcrylic'}
                     onChange={(value) => update('radiantRewardKind', value)}
@@ -312,7 +313,7 @@ export function AwardPage() {
                   />
                 </label>
                 <label className={styles.formField}>
-                  <span>Responsible for fulfillment <b>*</b></span>
+                  <span><LocalizedText>Responsible for fulfillment </LocalizedText><b>*</b></span>
                   <SelectField
                     value={form.fulfillmentContactId ?? ''}
                     onChange={(value) => update('fulfillmentContactId', value)}
@@ -331,12 +332,12 @@ export function AwardPage() {
                   {errors.fulfillmentContactId && <small id="award-contact-error" className={styles.fieldError}>{errors.fulfillmentContactId}</small>}
                 </label>
                 <label className={`${styles.formField} ${styles.fieldFull}`}>
-                  <span>Valuable prize selected by management <b>*</b></span>
+                  <span><LocalizedText>Valuable prize selected by management </LocalizedText><b>*</b></span>
                   <textarea
                     rows={3}
                     value={form.valuablePrizeDescription ?? ''}
                     onChange={(event) => update('valuablePrizeDescription', event.target.value)}
-                    placeholder="Describe the current year's valuable prize and any ordering notes…"
+                    placeholder={localize("Describe the current year's valuable prize and any ordering notes…")}
                     maxLength={1000}
                     aria-invalid={Boolean(errors.valuablePrizeDescription)}
                     required
@@ -347,13 +348,13 @@ export function AwardPage() {
             )}
             <label className={`${styles.formField} ${styles.fieldFull}`}>
               <span>
-                Description <b>*</b>
+                <LocalizedText>Description </LocalizedText><b>*</b>
               </span>
               <textarea
                 rows={5}
                 value={form.description}
                 onChange={(event) => update('description', event.target.value)}
-                placeholder="Describe the specific contribution and its impact…"
+                placeholder={localize('Describe the specific contribution and its impact…')}
                 aria-invalid={Boolean(errors.description)}
                 aria-describedby={errors.description ? 'award-description-error' : undefined}
                 required
@@ -368,17 +369,17 @@ export function AwardPage() {
           <div className={styles.formFooter}>
             <p>
               <CheckCircle2 size={15} />{' '}
-              {isRadiantAward
+              <LocalizedText>{isRadiantAward
                 ? 'Role and permanence rules apply automatically'
-                : 'Role and category rules apply automatically'}
+                : 'Role and category rules apply automatically'}</LocalizedText>
             </p>
             <button className={styles.primaryButton} type="submit" disabled={submitting}>
               {submitting ? <span className={styles.spinner} /> : <Send size={16} />}
-              {submitting
+              <LocalizedText>{submitting
                 ? 'Creating…'
                 : activeRole === 'Coordinator' || activeRole === 'GPM'
                   ? 'Submit request'
-                  : 'Award Spark'}
+                  : 'Award Spark'}</LocalizedText>
             </button>
           </div>
         </form>
@@ -389,8 +390,8 @@ export function AwardPage() {
           >
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.eyebrow}>Live preview</p>
-                <h2>{selectedEmployee?.name ?? 'Select an employee'}</h2>
+                <p className={styles.eyebrow}><LocalizedText>Live preview</LocalizedText></p>
+                <h2><LocalizedText>{selectedEmployee?.name ?? 'Select an employee'}</LocalizedText></h2>
               </div>
               <span className={styles.sparkOrb}>
                 <SparkIcon type={form.sparkType} size={form.sparkType === 'Radiant' ? 42 : 22} />
@@ -398,28 +399,28 @@ export function AwardPage() {
             </div>
             <div className={styles.awardPreview}>
               <SparkBadge type={form.sparkType} amount={amount || 1} />
-              <strong>
+              <strong><LocalizedText>
                 {form.category ||
                   (isRadiantAward ? 'Radiant award reason' : `${form.sparkType} recognition`)}
-              </strong>
-              <p>
+              </LocalizedText></strong>
+              <p><LocalizedText>
                 {form.description ||
                   'The achievement description will appear here and remain in the employee history.'}
-              </p>
+              </LocalizedText></p>
             </div>
           </section>
           {form.sparkType === 'Yellow' && (
             <section className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
-                  <p className={styles.eyebrow}>Quarterly safeguard</p>
-                  <h2>Direct Yellow limit</h2>
+                  <p className={styles.eyebrow}><LocalizedText>Quarterly safeguard</LocalizedText></p>
+                  <h2><LocalizedText>Direct Yellow limit</LocalizedText></h2>
                 </div>
                 <AlertTriangle size={19} />
               </div>
               <div className={styles.limitLine}>
                 <div>
-                  <span>Awarded or reserved</span>
+                  <span><LocalizedText>Awarded or reserved</LocalizedText></span>
                   <strong>
                     {directYellow + reservedYellow} / {snapshot!.settings.yellowQuarterlyLimit}
                   </strong>
@@ -436,23 +437,23 @@ export function AwardPage() {
                 </div>
               </div>
               <p className={styles.mutedCopy}>
-                Awards that would cross the limit are blocked entirely; amounts are never reduced
+                <LocalizedText>Awards that would cross the limit are blocked entirely; amounts are never reduced
                 automatically.
-              </p>
+              </LocalizedText></p>
             </section>
           )}
           {activeRole === 'GPM' && form.sparkType === 'White' && (
             <section className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
-                  <p className={styles.eyebrow}>Quarterly allocation</p>
-                  <h2>GPM White awards</h2>
+                  <p className={styles.eyebrow}><LocalizedText>Quarterly allocation</LocalizedText></p>
+                  <h2><LocalizedText>GPM White awards</LocalizedText></h2>
                 </div>
                 <AlertTriangle size={19} />
               </div>
               <div className={styles.limitLine}>
                 <div>
-                  <span>Awarded or reserved</span>
+                  <span><LocalizedText>Awarded or reserved</LocalizedText></span>
                   <strong>
                     {usedWhiteQuota} / {whiteQuota}
                   </strong>
@@ -466,9 +467,7 @@ export function AwardPage() {
                 </div>
               </div>
               <p className={styles.mutedCopy}>
-                {controlledCoordinatorCount} active Coordinator or registrar
-                {controlledCoordinatorCount === 1 ? '' : 's'} under your control. One White award is
-                available for every group of up to {snapshot!.settings.coordinatorTeamMultiplier}.
+                <LocalizedText>{`${controlledCoordinatorCount} active ${controlledCoordinatorCount === 1 ? 'Coordinator or registrar' : 'Coordinators or registrars'} under your control. One White award is available for every group of up to ${snapshot!.settings.coordinatorTeamMultiplier}.`}</LocalizedText>
               </p>
             </section>
           )}
@@ -477,21 +476,21 @@ export function AwardPage() {
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
           <div>
-            <p className={styles.eyebrow}>Your submissions</p>
-            <h2>Award history</h2>
+            <p className={styles.eyebrow}><LocalizedText>Your submissions</LocalizedText></p>
+            <h2><LocalizedText>Award history</LocalizedText></h2>
           </div>
-          <span className={styles.subtlePill}>{ownRequests.length} requests</span>
+          <span className={styles.subtlePill}>{ownRequests.length} <LocalizedText>requests</LocalizedText></span>
         </div>
         {ownRequests.length ? (
-          <div className={styles.tableScroller} tabIndex={0} aria-label="Scrollable award request history">
+          <div className={styles.tableScroller} tabIndex={0} aria-label={localize('Scrollable award request history')}>
             <table className={styles.dataTable}>
-              <caption className={styles.srOnly}>Awards submitted by the current actor</caption>
+              <caption className={styles.srOnly}><LocalizedText>Awards submitted by the current actor</LocalizedText></caption>
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Employee & contribution</th>
-                  <th>Reward</th>
-                  <th>Status</th>
+                  <th><LocalizedText>Date</LocalizedText></th>
+                  <th><LocalizedText>Employee & contribution</LocalizedText></th>
+                  <th><LocalizedText>Reward</LocalizedText></th>
+                  <th><LocalizedText>Status</LocalizedText></th>
                 </tr>
               </thead>
               <tbody>
@@ -504,7 +503,7 @@ export function AwardPage() {
                       </strong>
                       <span>{request.category}</span>
                       {request.rejectionReason && (
-                        <p className={styles.requestReason}>Reason: {request.rejectionReason}</p>
+                        <p className={styles.requestReason}><LocalizedText>Reason: </LocalizedText>{request.rejectionReason}</p>
                       )}
                     </td>
                     <td>

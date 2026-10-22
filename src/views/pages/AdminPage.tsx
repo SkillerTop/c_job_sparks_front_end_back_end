@@ -32,13 +32,16 @@ import type { ImportPreview } from '@/models';
 import { formatDateTime } from '@/utils/formatters';
 import { quarterForDate } from '@/utils/quarter';
 import { useAppMode } from '@/controllers/useAppMode';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import styles from '@/views/styles/app.module.css';
-import adminStyles from '@/views/styles/admin.module.css';
+import adminStyles from '@/views/styles/admin.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 type Tab = 'Access' | 'Shop' | 'Accounting' | 'Import' | 'Directory' | 'Rules' | 'Audit';
 const ADMIN_TABS: Tab[] = ['Access', 'Shop', 'Accounting', 'Import', 'Directory', 'Rules', 'Audit'];
 
 export function AdminPage() {
+  const { localize } = useUserPreferences();
   const { isApiMode } = useAppMode();
   const { snapshot, currentUserId, mutating, previewImport, confirmImport, resetDemo } = useSpark();
   const location = useLocation();
@@ -135,12 +138,12 @@ export function AdminPage() {
             disabled={mutating || validating}
             onClick={() => setResetOpen(true)}
           >
-            <RefreshCcw size={15} /> Reset demo
-          </button>
+            <RefreshCcw size={15} /> <LocalizedText>Reset demo
+          </LocalizedText></button>
         ) : undefined}
       />
       {message && <Feedback tone={message.tone}>{message.text}</Feedback>}
-      <div className={styles.adminTabs} role="group" aria-label="Admin sections">
+      <div className={styles.adminTabs} role="group" aria-label={localize('Admin sections')}>
         {ADMIN_TABS.map((item) => (
           <button
             type="button"
@@ -169,7 +172,7 @@ export function AdminPage() {
             ) : (
               <History size={16} />
             )}
-            {item}
+            <LocalizedText>{item}</LocalizedText>
           </button>
         ))}
       </div>
@@ -185,14 +188,14 @@ export function AdminPage() {
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.eyebrow}>CSV data import</p>
-                <h2>Prepare a validated batch</h2>
+                <p className={styles.eyebrow}><LocalizedText>CSV data import</LocalizedText></p>
+                <h2><LocalizedText>Prepare a validated batch</LocalizedText></h2>
               </div>
               <FileSpreadsheet size={21} />
             </div>
             <div className={styles.fieldGrid}>
               <label className={styles.formField}>
-                <span>Data source</span>
+                <span><LocalizedText>Data source</LocalizedText></span>
                 <SelectField
                   value={kind}
                   disabled={validating || processing}
@@ -205,7 +208,7 @@ export function AdminPage() {
                 />
               </label>
               <label className={styles.formField}>
-                <span>Quarter</span>
+                <span><LocalizedText>Quarter</LocalizedText></span>
                 <SelectField
                   value={quarter}
                   disabled={validating || processing}
@@ -227,22 +230,22 @@ export function AdminPage() {
                 disabled={validating || processing}
               />
               {validating ? <span className={styles.spinnerLarge} /> : <Upload size={24} />}
-              <strong>{validating ? 'Validating file…' : `Choose ${kindLabel} CSV`}</strong>
+              <strong><LocalizedText>{validating ? 'Validating file…' : `Choose ${kindLabel} CSV`}</LocalizedText></strong>
               <span>
-                {kind === 'KPI'
+                <LocalizedText>{kind === 'KPI'
                   ? 'Expected columns: Name/Resource | KPI/Efficiency'
-                  : 'Expected columns: Name/Resource | Average Quarter Mark/Personal cards'}
+                  : 'Expected columns: Name/Resource | Average Quarter Mark/Personal cards'}</LocalizedText>
               </span>
             </label>
             <div className={styles.infoNote}>
               <Database size={17} />
               <p>
-                {isApiMode
+                <LocalizedText>{isApiMode
                   ? 'The CSV is uploaded to the backend for preview and validation. Comma, semicolon and pipe delimiters are supported. '
-                  : 'The CSV is parsed locally. Comma, semicolon and pipe delimiters are supported. No file is uploaded to a server. '}
+                  : 'The CSV is parsed locally. Comma, semicolon and pipe delimiters are supported. No file is uploaded to a server. '}</LocalizedText>
                 <a href={`${import.meta.env.BASE_URL}samples/${kind === 'Evaluation' ? 'personal-cards' : 'kpi'}.csv`} download>
-                  Download a sample
-                </a>
+                  <LocalizedText>Download a sample
+                </LocalizedText></a>
                 .
               </p>
             </div>
@@ -250,8 +253,8 @@ export function AdminPage() {
           <aside className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.eyebrow}>Import contract</p>
-                <h2>Validation sequence</h2>
+                <p className={styles.eyebrow}><LocalizedText>Import contract</LocalizedText></p>
+                <h2><LocalizedText>Validation sequence</LocalizedText></h2>
               </div>
               <ShieldCheck size={20} />
             </div>
@@ -259,29 +262,29 @@ export function AdminPage() {
               <li>
                 <span>01</span>
                 <div>
-                  <strong>Match employees</strong>
-                  <p>Unknown names stop final confirmation.</p>
+                  <strong><LocalizedText>Match employees</LocalizedText></strong>
+                  <p><LocalizedText>Unknown names stop final confirmation.</LocalizedText></p>
                 </div>
               </li>
               <li>
                 <span>02</span>
                 <div>
-                  <strong>Calculate White Sparks</strong>
-                  <p>Threshold rules remain in the service layer.</p>
+                  <strong><LocalizedText>Calculate White Sparks</LocalizedText></strong>
+                  <p><LocalizedText>Threshold rules remain in the service layer.</LocalizedText></p>
                 </div>
               </li>
               <li>
                 <span>03</span>
                 <div>
-                  <strong>Apply Quality Gates</strong>
-                  <p>Active gates produce zero White credit.</p>
+                  <strong><LocalizedText>Apply Quality Gates</LocalizedText></strong>
+                  <p><LocalizedText>Active gates produce zero White credit.</LocalizedText></p>
                 </div>
               </li>
               <li>
                 <span>04</span>
                 <div>
-                  <strong>Protect unique keys</strong>
-                  <p>Employee + source + quarter cannot duplicate.</p>
+                  <strong><LocalizedText>Protect unique keys</LocalizedText></strong>
+                  <p><LocalizedText>Employee + source + quarter cannot duplicate.</LocalizedText></p>
                 </div>
               </li>
             </ol>
@@ -293,54 +296,54 @@ export function AdminPage() {
         <section className={`${styles.panel} ${styles.importPreview}`} aria-labelledby="preview-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Preview ready</p>
+              <p className={styles.eyebrow}><LocalizedText>Preview ready</LocalizedText></p>
               <h2 id="preview-title">
-                {preview.kind === 'Evaluation' ? 'Personal cards reward' : preview.kind} · {preview.quarter}
+                <LocalizedText>{preview.kind === 'Evaluation' ? 'Personal cards reward' : preview.kind}</LocalizedText> · {preview.quarter}
               </h2>
               <p>{preview.fileName}</p>
             </div>
             {preview.duplicate ? (
               <span className={styles.warningPill}>
-                <AlertTriangle size={14} /> Existing period
-              </span>
+                <AlertTriangle size={14} /> <LocalizedText>Existing period
+              </LocalizedText></span>
             ) : (
               <span className={styles.successPill}>
-                <CheckCircle2 size={14} /> New period
-              </span>
+                <CheckCircle2 size={14} /> <LocalizedText>New period
+              </LocalizedText></span>
             )}
           </div>
           <div className={styles.previewMetrics}>
             <div>
-              <span>Employees found</span>
+              <span><LocalizedText>Employees found</LocalizedText></span>
               <strong>{preview.employeesFound}</strong>
             </div>
             <div>
-              <span>Not found</span>
+              <span><LocalizedText>Not found</LocalizedText></span>
               <strong>{preview.employeesNotFound}</strong>
             </div>
             <div>
-              <span>Invalid values</span>
+              <span><LocalizedText>Invalid values</LocalizedText></span>
               <strong>{preview.invalidValues}</strong>
             </div>
             <div>
-              <span>Quality Gates</span>
+              <span><LocalizedText>Quality Gates</LocalizedText></span>
               <strong>{preview.qualityGateActive}</strong>
             </div>
             <div>
-              <span>Expected White</span>
+              <span><LocalizedText>Expected White</LocalizedText></span>
               <strong>{preview.expectedWhiteSparks}</strong>
             </div>
           </div>
-          <div className={styles.tableScroller} tabIndex={0} aria-label="Scrollable CSV validation results">
+          <div className={styles.tableScroller} tabIndex={0} aria-label={localize('Scrollable CSV validation results')}>
             <table className={styles.dataTable}>
-              <caption className={styles.srOnly}>All parsed import rows and validation results</caption>
+              <caption className={styles.srOnly}><LocalizedText>All parsed import rows and validation results</LocalizedText></caption>
               <thead>
                 <tr>
-                  <th>Line</th>
-                  <th>Employee</th>
-                  <th>Value</th>
-                  <th>Reward</th>
-                  <th>Status</th>
+                  <th><LocalizedText>Line</LocalizedText></th>
+                  <th><LocalizedText>Employee</LocalizedText></th>
+                  <th><LocalizedText>Value</LocalizedText></th>
+                  <th><LocalizedText>Reward</LocalizedText></th>
+                  <th><LocalizedText>Status</LocalizedText></th>
                 </tr>
               </thead>
               <tbody>
@@ -349,7 +352,7 @@ export function AdminPage() {
                     <td>{row.lineNumber}</td>
                     <td>{row.employee}</td>
                     <td>{row.value}</td>
-                    <td>{row.reward} White</td>
+                    <td>{row.reward} <LocalizedText>White</LocalizedText></td>
                     <td>
                       <StatusBadge status={row.status} />
                       {row.error && <p className={styles.mutedCopy}>{row.error}</p>}
@@ -360,13 +363,13 @@ export function AdminPage() {
             </table>
           </div>
           <div className={styles.formFooter}>
-            <p>
+            <p><LocalizedText>
               {preview.employeesNotFound + preview.invalidValues > 0
                 ? 'Fix the highlighted rows and upload a new preview.'
                 : preview.duplicate
                   ? 'Replace recalculates the batch without creating duplicate credits.'
                   : 'No blocking validation issues found.'}
-            </p>
+            </LocalizedText></p>
             <button
               className={styles.primaryButton}
               disabled={processing || preview.employeesNotFound > 0 || preview.invalidValues > 0}
@@ -374,7 +377,7 @@ export function AdminPage() {
               onClick={() => (preview.duplicate ? setReplaceOpen(true) : void runImport(false))}
             >
               {processing ? <span className={styles.spinner} /> : <Upload size={16} />}
-              {preview.duplicate ? 'Review replacement' : 'Confirm import'}
+              <LocalizedText>{preview.duplicate ? 'Review replacement' : 'Confirm import'}</LocalizedText>
             </button>
           </div>
         </section>
@@ -389,26 +392,26 @@ export function AdminPage() {
             <aside className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
-                  <p className={styles.eyebrow}>Role separation</p>
-                  <h2>Administrator invariant</h2>
+                  <p className={styles.eyebrow}><LocalizedText>Role separation</LocalizedText></p>
+                  <h2><LocalizedText>Administrator invariant</LocalizedText></h2>
                 </div>
                 <ShieldCheck size={20} />
               </div>
               <p className={styles.largeNote}>
-                Admin controls reference data and imports, but receives no award rights unless a separate
+                <LocalizedText>Admin controls reference data and imports, but receives no award rights unless a separate
                 business role is assigned.
-              </p>
+              </LocalizedText></p>
               <dl className={styles.miniDefinition}>
                 <div>
-                  <dt>{isApiMode ? 'Signed-in administrator' : 'Signed-in demo actor'}</dt>
+                  <dt><LocalizedText>{isApiMode ? 'Signed-in administrator' : 'Signed-in demo actor'}</LocalizedText></dt>
                   <dd>{snapshot!.employees.find((item) => item.id === currentUserId)?.name}</dd>
                 </div>
                 <div>
-                  <dt>Active capability</dt>
-                  <dd>Configuration only</dd>
+                  <dt><LocalizedText>Active capability</LocalizedText></dt>
+                  <dd><LocalizedText>Configuration only</LocalizedText></dd>
                 </div>
                 <div>
-                  <dt>Current quarter</dt>
+                  <dt><LocalizedText>Current quarter</LocalizedText></dt>
                   <dd>{snapshot!.settings.currentQuarter}</dd>
                 </div>
               </dl>
@@ -422,8 +425,8 @@ export function AdminPage() {
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Audit trail</p>
-              <h2>Recent system events</h2>
+              <p className={styles.eyebrow}><LocalizedText>Audit trail</LocalizedText></p>
+              <h2><LocalizedText>Recent system events</LocalizedText></h2>
             </div>
             <History size={20} />
           </div>
@@ -437,7 +440,7 @@ export function AdminPage() {
                   <strong>{event.action.replaceAll('_', ' ')}</strong>
                   <p>{event.details}</p>
                   <small>
-                    {formatDateTime(event.dateTime)} · actor {event.actorId}
+                    {formatDateTime(event.dateTime)} <LocalizedText>· actor </LocalizedText>{event.actorId}
                   </small>
                 </div>
               </article>
@@ -455,20 +458,20 @@ export function AdminPage() {
         >
           <div className={styles.warningBox}>
             <AlertTriangle size={19} />
-            <p>Created recognitions, awards, conversions, imports and edited settings in this session will be lost. Registration approvals and shop records are not reset.</p>
+            <p><LocalizedText>Created recognitions, awards, conversions, imports and edited settings in this session will be lost. Registration approvals and shop records are not reset.</LocalizedText></p>
           </div>
           <div className={styles.modalActions}>
             <button className={styles.secondaryButton} type="button" disabled={mutating} onClick={() => setResetOpen(false)}>
-              Keep current data
-            </button>
+              <LocalizedText>Keep current data
+            </LocalizedText></button>
             <button
               className={styles.rejectButton}
               type="button"
               disabled={mutating}
               onClick={() => void runReset()}
             >
-              <RefreshCcw size={16} /> Reset demo
-            </button>
+              <RefreshCcw size={16} /> <LocalizedText>Reset demo
+            </LocalizedText></button>
           </div>
         </Modal>
       )}
@@ -482,9 +485,9 @@ export function AdminPage() {
         <div className={styles.warningBox}>
           <AlertTriangle size={19} />
           <p>
-            Existing rewards are offset by new correction transactions; historical rows are never edited. The
+            <LocalizedText>Existing rewards are offset by new correction transactions; historical rows are never edited. The
             whole batch is blocked if a correction would produce a negative balance.
-          </p>
+          </LocalizedText></p>
         </div>
         <div className={styles.modalActions}>
           <button
@@ -493,16 +496,16 @@ export function AdminPage() {
             disabled={processing}
             onClick={() => setReplaceOpen(false)}
           >
-            Cancel
-          </button>
+            <LocalizedText>Cancel
+          </LocalizedText></button>
           <button
             className={styles.primaryButton}
             type="button"
             disabled={processing}
             onClick={() => void runImport(true)}
           >
-            {processing ? <span className={styles.spinner} /> : <RefreshCcw size={16} />} Replace import
-          </button>
+            {processing ? <span className={styles.spinner} /> : <RefreshCcw size={16} />} <LocalizedText>Replace import
+          </LocalizedText></button>
         </div>
       </Modal>
     </PageTransition>

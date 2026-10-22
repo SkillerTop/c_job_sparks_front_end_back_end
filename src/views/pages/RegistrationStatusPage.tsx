@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 import { AuthLayout } from '@/views/components/auth/AuthLayout';
 import { StatusBadge } from '@/views/components/common/StatusBadge';
 import { useAuth } from '@/controllers/AuthContext';
-import authStyles from '@/views/styles/auth.module.css';
+import authStyles from '@/views/styles/auth.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function RegistrationStatusPage() {
   const { registrationAccount, clearRegistrationView } = useAuth();
@@ -17,12 +18,12 @@ export function RegistrationStatusPage() {
           <span className={authStyles.statusIcon}>
             <ShieldAlert size={26} />
           </span>
-          <p className={authStyles.eyebrow}>Access status</p>
-          <h1>No registration in progress</h1>
-          <p>Sign in with an approved account or request access with your work email.</p>
+          <p className={authStyles.eyebrow}><LocalizedText>Access status</LocalizedText></p>
+          <h1><LocalizedText>No registration in progress</LocalizedText></h1>
+          <p><LocalizedText>Sign in with an approved account or request access with your work email.</LocalizedText></p>
           <div className={authStyles.statusActions}>
-            <Link className={authStyles.primaryLink} to="/login">Sign in</Link>
-            <Link className={authStyles.secondaryLink} to="/register">Request access</Link>
+            <Link className={authStyles.primaryLink} to="/login"><LocalizedText>Sign in</LocalizedText></Link>
+            <Link className={authStyles.secondaryLink} to="/register"><LocalizedText>Request access</LocalizedText></Link>
           </div>
         </section>
       </AuthLayout>
@@ -42,47 +43,47 @@ export function RegistrationStatusPage() {
         <span className={`${authStyles.statusIcon} ${approved ? authStyles.statusIconSuccess : rejected ? authStyles.statusIconDanger : ''}`}>
           {approved ? <CheckCircle2 size={27} /> : rejected ? <ShieldAlert size={27} /> : <Clock3 size={27} />}
         </span>
-        <p className={authStyles.eyebrow}>Registration status</p>
-        <h1>{approved ? 'Access approved' : rejected ? 'Request needs attention' : 'Approval pending'}</h1>
+        <p className={authStyles.eyebrow}><LocalizedText>Registration status</LocalizedText></p>
+        <h1><LocalizedText>{approved ? 'Access approved' : rejected ? 'Request needs attention' : 'Approval pending'}</LocalizedText></h1>
         <div className={authStyles.statusEmail} role="status" aria-live="polite" aria-atomic="true">
           <span>{registrationAccount.email}</span>
           <StatusBadge status={registrationAccount.status} />
         </div>
         <p>
-          {approved
+          <LocalizedText>{approved
             ? 'Your account is ready. Sign in with the password you created.'
             : rejected
               ? 'The administrator did not approve this request. You can submit it again using the same password.'
-              : 'An administrator needs to complete your employee profile and approve the account before you can enter the workspace.'}
+              : 'An administrator needs to complete your employee profile and approve the account before you can enter the workspace.'}</LocalizedText>
         </p>
         {rejected && registrationAccount.rejectionReason && (
           <div className={authStyles.rejectionReason} role="note">
-            <strong>Administrator note</strong>
+            <strong><LocalizedText>Administrator note</LocalizedText></strong>
             <p>{registrationAccount.rejectionReason}</p>
           </div>
         )}
         {!approved && !rejected && (
-          <p className={authStyles.localHint}>Keep this page open to see approval updates from another tab in this browser.</p>
+          <p className={authStyles.localHint}><LocalizedText>Keep this page open to see approval updates from another tab in this browser.</LocalizedText></p>
         )}
         <div className={authStyles.statusActions}>
           {approved ? (
             <Link className={authStyles.primaryLink} to="/login" state={{ email: registrationAccount.email }}>
-              <LogIn size={17} /> Sign in
-            </Link>
+              <LogIn size={17} /> <LocalizedText>Sign in
+            </LocalizedText></Link>
           ) : rejected ? (
             <Link className={authStyles.primaryLink} to="/register" state={{ email: registrationAccount.email }}>
-              <RotateCcw size={17} /> Submit again
-            </Link>
+              <RotateCcw size={17} /> <LocalizedText>Submit again
+            </LocalizedText></Link>
           ) : (
-            <Link className={authStyles.secondaryLink} to="/login">Back to sign in</Link>
+            <Link className={authStyles.secondaryLink} to="/login"><LocalizedText>Back to sign in</LocalizedText></Link>
           )}
           <Link
             className={authStyles.textLink}
             to="/login"
             onClick={() => clearRegistrationView()}
           >
-            Use another account
-          </Link>
+            <LocalizedText>Use another account
+          </LocalizedText></Link>
         </div>
       </motion.section>
     </AuthLayout>

@@ -81,13 +81,51 @@ const recipientsFrom = (value: unknown) => Array.isArray(value)
     .map((email) => email.toLowerCase()))]
   : [];
 
-const fulfillmentLabel = (value: string | null) => ({
-  Physical: 'Physical shop reward',
-  Certificate: 'Certificate',
-  ITEquipment: 'IT equipment or peripheral',
-  RadiantAcrylic: 'Radiant acrylic award',
-  RadiantVesselModel: 'Radiant 3D vessel model',
-}[value ?? ''] ?? value ?? 'Reward');
+type MailLanguage = 'en' | 'uk' | 'ru';
+
+const mailCopy = {
+  en: {
+    subjectRadiant: (name: string) => `C-Job Sparks: Radiant reward for ${name}`,
+    subjectPurchase: (reward: string, name: string) => `C-Job Sparks: ${reward} purchased by ${name}`,
+    employee: 'Employee', reward: 'Reward', fulfillmentType: 'Fulfillment type', responsible: 'Responsible person',
+    delivery: 'Delivery', pickupOffice: 'Pickup office', valuablePrize: 'Valuable prize',
+    requiresFulfillment: 'A C-Job Sparks reward requires fulfillment.',
+    requested: 'Reward fulfillment requested',
+    requiresProcessing: 'A purchased or awarded reward requires processing.',
+    open: 'Open C-Job Sparks',
+    kinds: { Physical: 'Physical shop reward', Certificate: 'Certificate', ITEquipment: 'IT equipment or peripheral',
+      RadiantAcrylic: 'Radiant acrylic award', RadiantVesselModel: 'Radiant 3D vessel model', Reward: 'Reward' },
+  },
+  uk: {
+    subjectRadiant: (name: string) => `C-Job Sparks: нагорода Radiant для ${name}`,
+    subjectPurchase: (reward: string, name: string) => `C-Job Sparks: придбано нагороду «${reward}» для ${name}`,
+    employee: 'Працівник', reward: 'Нагорода', fulfillmentType: 'Тип видачі', responsible: 'Відповідальний',
+    delivery: 'Спосіб отримання', pickupOffice: 'Офіс отримання', valuablePrize: 'Цінний приз',
+    requiresFulfillment: 'Нагороду C-Job Sparks потрібно підготувати до видачі.',
+    requested: 'Запит на підготовку нагороди',
+    requiresProcessing: 'Придбану або нараховану нагороду потрібно опрацювати.',
+    open: 'Відкрити C-Job Sparks',
+    kinds: { Physical: 'Фізична нагорода з магазину', Certificate: 'Сертифікат', ITEquipment: 'ІТ-обладнання або периферія',
+      RadiantAcrylic: 'Акрилова нагорода Radiant', RadiantVesselModel: '3D-модель судна Radiant', Reward: 'Нагорода' },
+  },
+  ru: {
+    subjectRadiant: (name: string) => `C-Job Sparks: награда Radiant для ${name}`,
+    subjectPurchase: (reward: string, name: string) => `C-Job Sparks: приобретена награда «${reward}» для ${name}`,
+    employee: 'Сотрудник', reward: 'Награда', fulfillmentType: 'Тип выдачи', responsible: 'Ответственный',
+    delivery: 'Способ получения', pickupOffice: 'Офис получения', valuablePrize: 'Ценный приз',
+    requiresFulfillment: 'Награду C-Job Sparks необходимо подготовить к выдаче.',
+    requested: 'Запрос на подготовку награды',
+    requiresProcessing: 'Приобретённую или начисленную награду необходимо обработать.',
+    open: 'Открыть C-Job Sparks',
+    kinds: { Physical: 'Физическая награда из магазина', Certificate: 'Сертификат', ITEquipment: 'ИТ-оборудование или периферия',
+      RadiantAcrylic: 'Акриловая награда Radiant', RadiantVesselModel: '3D-модель судна Radiant', Reward: 'Награда' },
+  },
+} as const;
+
+const fulfillmentLabel = (value: string | null, language: MailLanguage) => {
+  const kinds = mailCopy[language].kinds as Record<string, string>;
+  return kinds[value ?? ''] ?? value ?? kinds.Reward ?? 'Reward';
+};
 
 export const rewardFulfillmentMail = (
   payload: Record<string, unknown>,
@@ -104,26 +142,29 @@ export const rewardFulfillmentMail = (
   const deliveryMethod = asString(payload.deliveryMethod);
   const officeName = asString(payload.officeName);
   const valuablePrize = asString(payload.valuablePrizeDescription);
+  const languageValue = asString(payload.language);
+  const language: MailLanguage = languageValue === 'uk' || languageValue === 'ru' ? languageValue : 'en';
+  const copy = mailCopy[language];
   const isRadiant = asString(payload.sourceType) === 'RadiantAward';
-  const rewardName = productName ?? fulfillmentLabel(rewardKind);
+  const rewardName = productName ?? fulfillmentLabel(rewardKind, language);
   const subject = isRadiant
-    ? `C-Job Sparks: Radiant reward for ${recipientName}`
-    : `C-Job Sparks: ${rewardName} purchased by ${recipientName}`;
+    ? copy.subjectRadiant(recipientName)
+    : copy.subjectPurchase(rewardName, recipientName);
   const facts = [
-    ['Employee', recipientEmail ? `${recipientName} <${recipientEmail}>` : recipientName],
-    ['Reward', rewardName],
-    ['Fulfillment type', fulfillmentLabel(rewardKind)],
-    ['Responsible person', assignedName],
-    ['Delivery', deliveryMethod],
-    ['Pickup office', officeName],
-    ['Valuable prize', valuablePrize],
+    [copy.employee, recipientEmail ? `${recipientName} <${recipientEmail}>` : recipientName],
+    [copy.reward, rewardName],
+    [copy.fulfillmentType, fulfillmentLabel(rewardKind, language)],
+    [copy.responsible, assignedName],
+    [copy.delivery, deliveryMethod],
+    [copy.pickupOffice, officeName],
+    [copy.valuablePrize, valuablePrize],
   ].filter((item): item is [string, string] => Boolean(item[1]));
   const text = [
-    'A C-Job Sparks reward requires fulfillment.',
+    copy.requiresFulfillment,
     '',
     ...facts.map(([label, value]) => `${label}: ${value}`),
     '',
-    `Open C-Job Sparks: ${frontendOrigin}`,
+    `${copy.open}: ${frontendOrigin}`,
   ].join('\n');
   const rowsHtml = facts.map(([label, value]) => `<tr>
     <td style="padding:8px 12px;color:#64748b;border-bottom:1px solid #dbe4ee">${escapeHtml(label)}</td>
@@ -133,12 +174,12 @@ export const rewardFulfillmentMail = (
     <div style="max-width:680px;margin:0 auto;padding:28px 16px">
       <div style="background:#102a43;color:#fff;padding:22px 24px;border-radius:14px 14px 0 0">
         <div style="font-size:12px;letter-spacing:1.5px;color:#c9a04a;font-weight:700">C-JOB SPARKS</div>
-        <h1 style="font-size:24px;margin:8px 0 0">Reward fulfillment requested</h1>
+        <h1 style="font-size:24px;margin:8px 0 0">${escapeHtml(copy.requested)}</h1>
       </div>
       <div style="background:#fff;padding:24px;border-radius:0 0 14px 14px">
-        <p style="margin:0 0 18px;line-height:1.5">A purchased or awarded reward requires processing.</p>
+        <p style="margin:0 0 18px;line-height:1.5">${escapeHtml(copy.requiresProcessing)}</p>
         <table role="presentation" style="width:100%;border-collapse:collapse">${rowsHtml}</table>
-        <p style="margin:24px 0 0"><a href="${escapeHtml(frontendOrigin)}" style="display:inline-block;background:#c9963f;color:#102a43;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Open C-Job Sparks</a></p>
+        <p style="margin:24px 0 0"><a href="${escapeHtml(frontendOrigin)}" style="display:inline-block;background:#c9963f;color:#102a43;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">${escapeHtml(copy.open)}</a></p>
       </div>
     </div>
   </body></html>`;

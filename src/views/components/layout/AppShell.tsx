@@ -157,7 +157,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const navigation = (
     <>
-      <NavLink className={styles.brand} to="/" aria-label="C-Job Sparks home" onClick={() => setOpen(false)}>
+      <NavLink className={styles.brand} to="/" aria-label={`C-Job Sparks · ${t('nav.home')}`} onClick={() => setOpen(false)}>
         <BrandLockup />
         <span className={styles.brandProduct}>{t('shell.brandPurpose')}</span>
       </NavLink>

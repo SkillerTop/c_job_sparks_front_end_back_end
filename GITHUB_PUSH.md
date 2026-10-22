@@ -1,6 +1,17 @@
 # Push this project to GitHub
 
 This folder is prepared from the latest complete local project and targets the branch `front-end+back-end`.
+The clean archive intentionally does not contain `.git`. Copy its contents into an existing clone of the repository,
+or clone the target branch first and then copy the prepared files into that checkout without replacing its `.git` folder.
+
+```bash
+git clone --branch 'front-end+back-end' \
+  https://github.com/SkillerTop/c_job_sparks_front_end_back_end.git \
+  c-job-sparks-push
+cd c-job-sparks-push
+```
+
+After copying the prepared project contents into `c-job-sparks-push`, continue with the checks below.
 
 Before committing, verify that no secrets are present:
 

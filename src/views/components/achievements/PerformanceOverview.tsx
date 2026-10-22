@@ -7,6 +7,7 @@ import { useSpark } from '@/controllers/SparkContext';
 import { quarterOrder } from '@/utils/quarter';
 import styles from '@/views/styles/app.module.css';
 import performanceStyles from '@/views/styles/performance.module.css';
+import { LocalizedText } from '@/views/components/common/LocalizedText';
 
 export function PerformanceOverview() {
   const { snapshot, currentUserId } = useSpark();
@@ -25,19 +26,19 @@ export function PerformanceOverview() {
     <section className={performanceStyles.performanceOverview} id="performance" aria-labelledby="performance-title">
       <div className={styles.sectionHeading}>
         <div>
-          <p className={styles.eyebrow}>Automatic recognition</p>
-          <h2 id="performance-title">Performance &amp; automatic rewards</h2>
+          <p className={styles.eyebrow}><LocalizedText>Automatic recognition</LocalizedText></p>
+          <h2 id="performance-title"><LocalizedText>Performance &amp; automatic rewards</LocalizedText></h2>
         </div>
       </div>
       <div className={performanceStyles.performanceExplanation}>
         <p>
-          Scores come from quarterly KPI and Personal Cards results imported and validated by an administrator.
+          <LocalizedText>Scores come from quarterly KPI and Personal Cards results imported and validated by an administrator.
           White Sparks are awarded from the published score bands after validation; an active Quality Gate blocks
           the credit.
-        </p>
+        </LocalizedText></p>
         <Link className={styles.textLink} to="/rules#performance-rules-title">
-          How rewards are calculated
-        </Link>
+          <LocalizedText>How rewards are calculated
+        </LocalizedText></Link>
       </div>
       {!current ? (
         <EmptyState
@@ -52,10 +53,10 @@ export function PerformanceOverview() {
                 <Gauge size={19} />
               </span>
               <div>
-                <p>Latest KPI</p>
+                <p><LocalizedText>Latest KPI</LocalizedText></p>
                 <strong>{current.kpiImported || current.kpi > 0 ? current.kpi.toFixed(2) : '—'}</strong>
                 <small>
-                  +{current.kpiReward} White · {current.quarter}
+                  +{current.kpiReward} <LocalizedText>White · </LocalizedText>{current.quarter}
                 </small>
               </div>
             </article>
@@ -64,12 +65,12 @@ export function PerformanceOverview() {
                 <Target size={19} />
               </span>
               <div>
-                <p>Personal cards reward</p>
+                <p><LocalizedText>Personal cards reward</LocalizedText></p>
                 <strong>
                   {current.evaluationImported || current.evaluation > 0 ? current.evaluation.toFixed(2) : '—'}
                 </strong>
                 <small>
-                  +{current.evaluationReward} White · {current.quarter}
+                  +{current.evaluationReward} <LocalizedText>White · </LocalizedText>{current.quarter}
                 </small>
               </div>
             </article>
@@ -77,10 +78,10 @@ export function PerformanceOverview() {
           <div className={styles.panel} aria-labelledby="trend-title">
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.eyebrow}>Validated results</p>
-                <h3 id="trend-title">Quarterly performance</h3>
+                <p className={styles.eyebrow}><LocalizedText>Validated results</LocalizedText></p>
+                <h3 id="trend-title"><LocalizedText>Quarterly performance</LocalizedText></h3>
               </div>
-              <span className={styles.subtlePill}>KPI: left · Personal Cards: right</span>
+              <span className={styles.subtlePill}><LocalizedText>KPI: left · Personal Cards: right</LocalizedText></span>
             </div>
             <div className={performanceStyles.chartWrap} aria-hidden="true">
               <ResponsiveContainer
@@ -160,21 +161,21 @@ export function PerformanceOverview() {
             </div>
             <div className={styles.srOnly}>
               <table>
-                <caption>Quarterly performance values</caption>
+                <caption><LocalizedText>Quarterly performance values</LocalizedText></caption>
                 <thead>
                   <tr>
-                    <th>Quarter</th>
-                    <th>KPI</th>
-                    <th>Personal cards</th>
-                    <th>White rewards</th>
+                    <th><LocalizedText>Quarter</LocalizedText></th>
+                    <th><LocalizedText>KPI</LocalizedText></th>
+                    <th><LocalizedText>Personal cards</LocalizedText></th>
+                    <th><LocalizedText>White rewards</LocalizedText></th>
                   </tr>
                 </thead>
                 <tbody>
                   {performance.map((item) => (
                     <tr key={item.id}>
                       <th>{item.quarter}</th>
-                      <td>{item.kpi || 'Not imported'}</td>
-                      <td>{item.evaluation || 'Not imported'}</td>
+                      <td><LocalizedText>{item.kpi || 'Not imported'}</LocalizedText></td>
+                      <td><LocalizedText>{item.evaluation || 'Not imported'}</LocalizedText></td>
                       <td>{item.kpiReward + item.evaluationReward}</td>
                     </tr>
                   ))}

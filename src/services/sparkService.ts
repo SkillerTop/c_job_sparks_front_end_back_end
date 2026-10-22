@@ -366,6 +366,7 @@ const demoSparkService = {
       recipientId: input.recipientId,
       category: input.category,
       categoryId: recognitionCategory.id,
+      amount: recognitionCategory.amount,
       description: input.description.trim(),
       createdAt: new Date().toISOString(),
       status: 'Pending' as const,
@@ -396,7 +397,7 @@ const demoSparkService = {
       addTransaction({
         employeeId: recognition.recipientId,
         sparkType: 'White',
-        amount: 1,
+        amount: recognition.amount,
         transactionType: 'Credit',
         source: 'Peer Recognition',
         category: recognition.category,
@@ -1181,9 +1182,9 @@ const demoSparkService = {
           throw new Error('Category amounts must be whole numbers from 1 to 100.');
         if (
           category.usageType === 'PeerRecognition' &&
-          (category.sparkType !== 'White' || category.amount !== 1 || category.period !== 'Unrestricted')
+          (category.sparkType !== 'White' || category.period !== 'Unrestricted')
         )
-          throw new Error('Peer Recognition categories must award exactly 1 White Spark and use the unrestricted period.');
+          throw new Error('Peer Recognition categories must award White Sparks and use the unrestricted period.');
         if (category.sparkType === 'Blue' && !['Quarterly', 'Yearly', 'One-time'].includes(category.period))
           throw new Error('Choose a Blue category period.');
         if (category.sparkType === 'Yellow') category.period = 'Quarterly';

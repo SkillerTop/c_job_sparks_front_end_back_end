@@ -22,6 +22,7 @@ import { ApiError, badRequest, conflict, notFound } from './errors.js';
 import { withIdempotency } from './idempotency.js';
 import { employeeBalances, postLedgerOperation } from './ledger.js';
 import { loadImage, storeImage } from './media.js';
+import { localizeNotification, type NotificationLanguage } from './notification-localization.js';
 import { principalOf, requestMetadata } from './request.js';
 import { commitPerformanceImport, previewPerformanceCsv } from './performance.js';
 import { performanceThresholdsFromConfiguration } from './performance-rules.js';
@@ -550,7 +551,7 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       const principal = principalOf(request);
       const query = pagination(request);
       const values = await rows<any>(app.db, `SELECT recognition.*,recognition.requested_at::text AS requested_at,
-        version.name AS category,category.id AS category_id,
+        version.name AS category,version.amount,category.id AS category_id,
         nominator.display_name AS nominator_name,recipient.display_name AS recipient_name
         FROM app.recognitions recognition
         JOIN app.spark_category_versions version ON version.id=recognition.category_version_id
@@ -979,12 +980,20 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
     protectedApp.get('/api/v1/me/notifications', async (request) => {
       const principal = principalOf(request);
       const query = pagination(request);
+      const preferences = await maybeOne<{ language: NotificationLanguage }>(app.db,
+        `SELECT CASE WHEN language IN ('uk','ru') THEN language ELSE 'en' END AS language
+           FROM app.user_preferences WHERE user_id=$1`, [principal.userId]);
+      const language = preferences?.language ?? 'en';
       const values = await rows<any>(app.db, `SELECT id,notification_type AS type,title,body AS text,object_type,object_id,
         link_path,created_at::text AS created_at,read_at FROM app.notifications WHERE recipient_user_id=$1
         AND ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid))
         ORDER BY created_at DESC,id DESC LIMIT $4`, [principal.userId, query.cursor?.value ?? null,
         query.cursor?.id ?? null, query.limit + 1]);
-      return cursorPage(values, query.limit, 'created_at');
+      return cursorPage(values.map((item) => ({
+        ...item,
+        title: localizeNotification(language, item.title),
+        text: localizeNotification(language, item.text),
+      })), query.limit, 'created_at');
     });
     protectedApp.post('/api/v1/me/notifications/read-all', async (request) => {
       const principal = principalOf(request);
@@ -1607,7 +1616,7 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
 
       const departmentInput = z.object({
         id: z.string().uuid().or(z.literal('')).optional(), name: z.string().min(1).max(200),
-        headId: idSchema.optional(), active: z.boolean(),
+        headId: idSchema.or(z.literal('')).optional(), active: z.boolean(),
       });
       const saveDepartment = async (request: FastifyRequest) => {
         const principal = principalOf(request);
@@ -1616,10 +1625,10 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
         const id = routeId ?? (input.id || randomUUID());
         await withTransaction(app.db, async (db) => {
           if (routeId)
-            await db.query(`UPDATE app.departments SET name=$2,head_employee_id=$3,is_active=$4 WHERE id=$1`, [id, input.name.trim(), input.headId ?? null, input.active]);
+            await db.query(`UPDATE app.departments SET name=$2,head_employee_id=$3,is_active=$4 WHERE id=$1`, [id, input.name.trim(), input.headId || null, input.active]);
           else
             await db.query(`INSERT INTO app.departments (id,code,name,head_employee_id,is_active) VALUES ($1,$2,$3,$4,$5)`,
-              [id, `DEPT-${id.slice(0,8)}`, input.name.trim(), input.headId ?? null, input.active]);
+              [id, `DEPT-${id.slice(0,8)}`, input.name.trim(), input.headId || null, input.active]);
           await writeAudit(db, { actorUserId: principal.userId, action: routeId ? 'DEPARTMENT_UPDATED' : 'DEPARTMENT_CREATED',
             objectType: 'Department', objectId: id, after: input, requestId: request.id, ip: request.ip,
             userAgent: request.headers['user-agent'] });
@@ -1640,9 +1649,9 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
         const principal = principalOf(request);
         const input = jsonBody(categoryInput, request);
         if (input.usageType === 'PeerRecognition' &&
-          (input.sparkType !== 'White' || input.amount !== 1 || input.period !== 'Unrestricted'))
+          (input.sparkType !== 'White' || input.period !== 'Unrestricted'))
           throw badRequest('PEER_CATEGORY_INVARIANT',
-            'Peer Recognition categories must award exactly 1 White Spark and use the unrestricted period.');
+            'Peer Recognition categories must award White Sparks and use the unrestricted period.');
         const routeId = (request.params as { id?: string }).id;
         const id = routeId ?? (input.id || randomUUID());
         await withTransaction(app.db, async (db) => {

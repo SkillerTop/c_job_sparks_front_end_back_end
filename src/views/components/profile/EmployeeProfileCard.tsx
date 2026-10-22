@@ -3,7 +3,8 @@ import type { Department, Employee, Role } from '@/models';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { useSpark } from '@/controllers/SparkContext';
 import { EMPTY_SHOP_EFFECTS } from '@/models/shop';
-import styles from '@/views/styles/profile.module.css';
+import styles from '@/views/styles/profile.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function EmployeeProfileCard({
   employee,
@@ -18,7 +19,7 @@ export function EmployeeProfileCard({
   role: Role;
   avatarDataUrl?: string;
 }) {
-  const { t } = useUserPreferences();
+  const { t, localize } = useUserPreferences();
   const { snapshot } = useSpark();
   const effects = snapshot?.shopEffects ?? EMPTY_SHOP_EFFECTS;
   const details = [
@@ -44,9 +45,9 @@ export function EmployeeProfileCard({
           <h2 id="employee-profile-title">{employee.name}</h2>
           <p>{employee.title}</p>
           {(effects.signatureBadge || effects.vipStatus) && (
-            <div className={styles.activeProfileEffects} aria-label="Active profile rewards">
-              {effects.signatureBadge && <span>Signature badge</span>}
-              {effects.vipStatus && <span>VIP</span>}
+            <div className={styles.activeProfileEffects} aria-label={localize('Active profile rewards')}>
+              {effects.signatureBadge && <span><LocalizedText>Signature badge</LocalizedText></span>}
+              {effects.vipStatus && <span><LocalizedText>VIP</LocalizedText></span>}
             </div>
           )}
         </div>

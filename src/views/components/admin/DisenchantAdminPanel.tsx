@@ -1,6 +1,7 @@
 import { CheckCircle2, Coins, Download } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSpark } from '@/controllers/SparkContext';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { EmptyState } from '@/views/components/common/EmptyState';
 import { Feedback } from '@/views/components/common/Feedback';
 import { StatusBadge } from '@/views/components/common/StatusBadge';
@@ -8,6 +9,7 @@ import { SelectField } from '@/views/components/ui/SelectField';
 import { formatDateTime } from '@/utils/formatters';
 import { formatMoney } from '@/utils/sparkRules';
 import styles from '@/views/styles/app.module.css';
+import { LocalizedText } from '@/views/components/common/LocalizedText';
 
 type StatusFilter = 'All' | 'Created' | 'Exported' | 'Paid' | 'Cancelled';
 
@@ -29,6 +31,7 @@ const downloadCsv = (fileName: string, csv: string) => {
 };
 
 export function DisenchantAdminPanel() {
+  const { localize } = useUserPreferences();
   const { snapshot, mutating, exportDisenchantRequests, markDisenchantPaid } = useSpark();
   const [status, setStatus] = useState<StatusFilter>('All');
   const [departmentId, setDepartmentId] = useState('All');
@@ -80,9 +83,9 @@ export function DisenchantAdminPanel() {
     <section className={styles.panel} aria-labelledby="disenchant-accounting-title">
       <div className={styles.panelHeader}>
         <div>
-          <p className={styles.eyebrow}>Accounting workflow</p>
-          <h2 id="disenchant-accounting-title">Disenchant requests</h2>
-          <p className={styles.mutedCopy}>Filter requests, export a CSV batch and confirm completed payments.</p>
+          <p className={styles.eyebrow}><LocalizedText>Accounting workflow</LocalizedText></p>
+          <h2 id="disenchant-accounting-title"><LocalizedText>Disenchant requests</LocalizedText></h2>
+          <p className={styles.mutedCopy}><LocalizedText>Filter requests, export a CSV batch and confirm completed payments.</LocalizedText></p>
         </div>
         <Coins size={21} aria-hidden="true" />
       </div>
@@ -119,24 +122,24 @@ export function DisenchantAdminPanel() {
           onClick={() => void runExport()}
         >
           {processingId === 'export' ? <span className={styles.spinner} /> : <Download size={16} />}
-          Export created ({exportable.length})
+          <LocalizedText>Export created (</LocalizedText>{exportable.length})
         </button>
       </div>
       {filtered.length === 0 ? (
         <EmptyState title="No matching requests" description="Change the accounting filters to see other requests." />
       ) : (
-        <div className={styles.tableScroller} tabIndex={0} aria-label="Scrollable Disenchant accounting requests">
+        <div className={styles.tableScroller} tabIndex={0} aria-label={localize('Scrollable Disenchant accounting requests')}>
           <table className={styles.dataTable}>
             <thead>
               <tr>
-                <th>Employee</th>
-                <th>Department</th>
-                <th>Sparks</th>
-                <th>Money value</th>
-                <th>Period</th>
-                <th>Created</th>
-                <th>Status</th>
-                <th><span className={styles.srOnly}>Actions</span></th>
+                <th><LocalizedText>Employee</LocalizedText></th>
+                <th><LocalizedText>Department</LocalizedText></th>
+                <th><LocalizedText>Sparks</LocalizedText></th>
+                <th><LocalizedText>Money value</LocalizedText></th>
+                <th><LocalizedText>Period</LocalizedText></th>
+                <th><LocalizedText>Created</LocalizedText></th>
+                <th><LocalizedText>Status</LocalizedText></th>
+                <th><span className={styles.srOnly}><LocalizedText>Actions</LocalizedText></span></th>
               </tr>
             </thead>
             <tbody>
@@ -158,8 +161,8 @@ export function DisenchantAdminPanel() {
                         onClick={() => void runPaid(request.id)}
                       >
                         {processingId === request.id ? <span className={styles.spinner} /> : <CheckCircle2 size={15} />}
-                        Mark Paid
-                      </button>
+                        <LocalizedText>Mark Paid
+                      </LocalizedText></button>
                     )}
                   </td>
                 </tr>

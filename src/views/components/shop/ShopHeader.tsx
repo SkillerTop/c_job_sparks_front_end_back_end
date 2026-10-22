@@ -1,10 +1,12 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import { SHOP_TEXT } from '@/constants/shop';
+
 import type { SpendableSparkBalances } from '@/models/shop';
 import { SparkWallet } from './SparkWallet';
-import styles from '@/views/styles/shop.module.css';
+import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
+
 
 export function ShopHeader({ balances, loading }: { balances: SpendableSparkBalances | null; loading: boolean }) {
+  const shopText = useLocalizedShopText();
   const reduced = useReducedMotion();
   return (
     <header className={styles.shopHero}>
@@ -19,9 +21,9 @@ export function ShopHeader({ balances, loading }: { balances: SpendableSparkBala
         ))}
       </div>
       <div className={styles.heroCopy}>
-        <p className={styles.shopEyebrow}>{SHOP_TEXT.shop.eyebrow}</p>
-        <h1>{SHOP_TEXT.shop.title}</h1>
-        <p>{SHOP_TEXT.shop.description}</p>
+        <p className={styles.shopEyebrow}>{shopText.shop.eyebrow}</p>
+        <h1>{shopText.shop.title}</h1>
+        <p>{shopText.shop.description}</p>
       </div>
       <SparkWallet balances={balances} loading={loading} />
     </header>

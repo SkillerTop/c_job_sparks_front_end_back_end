@@ -1,11 +1,14 @@
-import { Save, SlidersHorizontal } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Pencil, Plus, Save, SlidersHorizontal } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { Feedback } from '@/views/components/common/Feedback';
 import { SparkBadge } from '@/views/components/common/SparkBadge';
-import type { SparkCategory } from '@/models';
+import type { ReferenceDraft, SparkCategory } from '@/models';
+import { createReferenceDraft } from '@/utils/referenceDraft';
+import { ReferenceEditor } from './ReferenceEditor';
 import styles from '@/views/styles/app.module.css';
+import { LocalizedText } from '@/views/components/common/LocalizedText';
 
 const editableSparkTypes: SparkCategory['sparkType'][] = ['White', 'Yellow', 'Blue'];
 const sparkTypeOrder = Object.fromEntries(editableSparkTypes.map((type, index) => [type, index]));
@@ -17,23 +20,59 @@ const bySparkTypeAndName = (left: SparkCategory, right: SparkCategory) =>
 
 export function CategoryAwardSettings() {
   const { snapshot, saveReference, mutating } = useSpark();
-  const { t } = useUserPreferences();
+  const { t, localize } = useUserPreferences();
   const categorySource = snapshot!.categories;
-  const peerCategories = categorySource
+  const peerCategories = useMemo(() => categorySource
     .filter((category) => category.usageType === 'PeerRecognition')
-    .sort(bySparkTypeAndName);
-  const categories = categorySource
+    .sort(bySparkTypeAndName), [categorySource]);
+  const categories = useMemo(() => categorySource
     .filter((category) => category.usageType === 'Award' && editableSparkTypes.includes(category.sparkType))
-    .sort(bySparkTypeAndName);
+    .sort(bySparkTypeAndName), [categorySource]);
+  const managedCategories = useMemo(() => [...peerCategories, ...categories], [peerCategories, categories]);
   const [amounts, setAmounts] = useState<Record<string, number>>(() =>
-    Object.fromEntries(categories.map((category) => [category.id, category.amount])),
+    Object.fromEntries(managedCategories.map((category) => [category.id, category.amount])),
   );
+  const [draft, setDraft] = useState<ReferenceDraft | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
-    setAmounts(Object.fromEntries(categories.map((category) => [category.id, category.amount])));
-  }, [categorySource]);
+    setAmounts(Object.fromEntries(managedCategories.map((category) => [category.id, category.amount])));
+  }, [managedCategories]);
+
+  const newCategory = (usageType: SparkCategory['usageType']): ReferenceDraft => {
+    const created = createReferenceDraft('categories', snapshot!) as Extract<ReferenceDraft, { kind: 'categories' }>;
+    return {
+      ...created,
+      data: {
+        ...created.data,
+        usageType,
+        sparkType: usageType === 'PeerRecognition' ? 'White' : created.data.sparkType,
+        period: usageType === 'PeerRecognition' ? 'Unrestricted' : created.data.period,
+      },
+    };
+  };
+
+  const saveCategory = async (next: ReferenceDraft) => {
+    await saveReference(next);
+    setMessage({ tone: 'success', text: `${next.data.name} saved. Future rewards use the new category version.` });
+  };
+
+  const editCategory = (category: SparkCategory) =>
+    setDraft({ kind: 'categories', data: structuredClone(category) });
+
+  const categoryText = (category: SparkCategory) => (
+    <button
+      type="button"
+      className={styles.categoryTextButton}
+      title={`${localize(category.name)}\n${localize(category.description)}`}
+      aria-label={localize(`Edit ${category.name}`)}
+      onClick={() => editCategory(category)}
+    >
+      <strong><LocalizedText>{category.name}</LocalizedText></strong>
+      <span><LocalizedText>{category.description}</LocalizedText></span>
+    </button>
+  );
 
   const saveAmount = async (category: SparkCategory) => {
     const amount = amounts[category.id];
@@ -70,43 +109,98 @@ export function CategoryAwardSettings() {
         <SlidersHorizontal size={20} aria-hidden="true" />
       </div>
       {message && <Feedback tone={message.tone}>{message.text}</Feedback>}
-      <h3>Peer Recognition categories</h3>
-      <p className={styles.mutedCopy}>These categories are separated from Award a Spark and always grant exactly 1 White Spark.</p>
-      <div className={styles.tableScroller} tabIndex={0} aria-label="Peer Recognition categories">
+      <div className={styles.panelHeader}>
+        <div>
+          <h3><LocalizedText>Peer Recognition categories</LocalizedText></h3>
+          <p className={styles.mutedCopy}><LocalizedText>Manage the text, availability and White Spark amount used for Peer Recognition.</LocalizedText></p>
+        </div>
+        <button type="button" className={styles.secondaryButton} onClick={() => setDraft(newCategory('PeerRecognition'))}>
+          <Plus size={15} /> <LocalizedText>Add Peer category</LocalizedText>
+        </button>
+      </div>
+      <div className={styles.tableScroller} tabIndex={0} aria-label={localize('Peer Recognition categories')}>
         <table className={styles.dataTable}>
           <thead>
             <tr>
               <th>{t('adminCategory.category')}</th>
-              <th>Usage</th>
-              <th>Fixed reward</th>
+              <th><LocalizedText>Usage</LocalizedText></th>
+              <th>{t('adminCategory.current')}</th>
+              <th>{t('adminCategory.newReward')}</th>
               <th>{t('adminCategory.status')}</th>
+              <th><span className={styles.srOnly}>{t('adminCategory.actions')}</span></th>
             </tr>
           </thead>
           <tbody>
-            {peerCategories.map((category) => (
-              <tr key={category.id}>
-                <td><strong>{category.name}</strong><span>{category.description}</span></td>
-                <td>Peer Recognition</td>
-                <td><SparkBadge type="White" amount={1} /></td>
-                <td>
-                  <span className={`${styles.statusBadge} ${category.active ? styles.statusApproved : styles.statusCancelled}`}>
-                    {category.active ? t('adminCategory.active') : t('adminCategory.inactive')}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {peerCategories.map((category) => {
+              const amount = amounts[category.id];
+              const invalid = !Number.isInteger(amount) || amount < 1 || amount > 100;
+              const unchanged = amount === category.amount;
+              return (
+                <tr key={category.id}>
+                  <td className={styles.categoryTextCell}>{categoryText(category)}</td>
+                  <td><LocalizedText>Peer Recognition</LocalizedText></td>
+                  <td><SparkBadge type="White" amount={category.amount} /></td>
+                  <td>
+                    <label className={styles.categoryAmountField}>
+                      <span className={styles.srOnly}>{t('adminCategory.amountFor', { name: category.name })}</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        step={1}
+                        value={amount}
+                        aria-invalid={invalid || undefined}
+                        disabled={mutating}
+                        onChange={(event) => {
+                          setAmounts((current) => ({ ...current, [category.id]: Number(event.target.value) }));
+                          setMessage(null);
+                        }}
+                      />
+                    </label>
+                  </td>
+                  <td>
+                    <span className={`${styles.statusBadge} ${category.active ? styles.statusApproved : styles.statusCancelled}`}>
+                      {category.active ? t('adminCategory.active') : t('adminCategory.inactive')}
+                    </span>
+                  </td>
+                  <td>
+                    <div className={styles.inlineActions}>
+                      <button type="button" className={styles.iconButton} aria-label={localize(`Edit ${category.name}`)} onClick={() => editCategory(category)}>
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        disabled={mutating || savingId === category.id || invalid || unchanged}
+                        onClick={() => void saveAmount(category)}
+                      >
+                        {savingId === category.id ? <span className={styles.spinner} /> : <Save size={15} />}
+                        {savingId === category.id ? t('adminCategory.saving') : t('adminCategory.save')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-      <h3>Award a Spark categories</h3>
-      <p className={styles.mutedCopy}>Only these versioned amounts are editable and used by Award a Spark.</p>
+      <div className={styles.panelHeader}>
+        <div>
+          <h3><LocalizedText>Award a Spark categories</LocalizedText></h3>
+          <p className={styles.mutedCopy}><LocalizedText>Manage category text, availability, repeat period and future reward amount.</LocalizedText></p>
+        </div>
+        <button type="button" className={styles.secondaryButton} onClick={() => setDraft(newCategory('Award'))}>
+          <Plus size={15} /> <LocalizedText>Add Award category</LocalizedText>
+        </button>
+      </div>
       <div className={styles.tableScroller} tabIndex={0} aria-label={t('adminCategory.title')}>
         <table className={styles.dataTable}>
           <caption className={styles.srOnly}>{t('adminCategory.description')}</caption>
           <thead>
             <tr>
               <th>{t('adminCategory.category')}</th>
-              <th>Usage</th>
+              <th><LocalizedText>Usage</LocalizedText></th>
               <th>{t('adminCategory.current')}</th>
               <th>{t('adminCategory.newReward')}</th>
               <th>{t('adminCategory.status')}</th>
@@ -120,11 +214,8 @@ export function CategoryAwardSettings() {
               const unchanged = amount === category.amount;
               return (
                 <tr key={category.id}>
-                  <td>
-                    <strong>{category.name}</strong>
-                    <span>{category.description}</span>
-                  </td>
-                  <td>Award a Spark</td>
+                  <td className={styles.categoryTextCell}>{categoryText(category)}</td>
+                  <td><LocalizedText>Award a Spark</LocalizedText></td>
                   <td><SparkBadge type={category.sparkType} amount={category.amount} /></td>
                   <td>
                     <label className={styles.categoryAmountField}>
@@ -155,15 +246,20 @@ export function CategoryAwardSettings() {
                     </span>
                   </td>
                   <td>
-                    <button
-                      type="button"
-                      className={styles.secondaryButton}
-                      disabled={mutating || savingId === category.id || invalid || unchanged}
-                      onClick={() => void saveAmount(category)}
-                    >
-                      {savingId === category.id ? <span className={styles.spinner} /> : <Save size={15} />}
-                      {savingId === category.id ? t('adminCategory.saving') : t('adminCategory.save')}
-                    </button>
+                    <div className={styles.inlineActions}>
+                      <button type="button" className={styles.iconButton} aria-label={localize(`Edit ${category.name}`)} onClick={() => editCategory(category)}>
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        disabled={mutating || savingId === category.id || invalid || unchanged}
+                        onClick={() => void saveAmount(category)}
+                      >
+                        {savingId === category.id ? <span className={styles.spinner} /> : <Save size={15} />}
+                        {savingId === category.id ? t('adminCategory.saving') : t('adminCategory.save')}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -172,6 +268,14 @@ export function CategoryAwardSettings() {
         </table>
       </div>
       <p className={styles.infoNote}>{t('adminCategory.policy')}</p>
+      {draft && (
+        <ReferenceEditor
+          initialDraft={draft}
+          snapshot={snapshot!}
+          onSave={saveCategory}
+          onClose={() => setDraft(null)}
+        />
+      )}
     </section>
   );
 }

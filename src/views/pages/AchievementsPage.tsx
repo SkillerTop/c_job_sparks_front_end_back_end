@@ -13,7 +13,8 @@ import type { SparkType } from '@/models';
 import { formatDate } from '@/utils/formatters';
 import { calculateLifetimeEarnings } from '@/utils/sparkRules';
 import { PerformanceOverview } from '@/views/components/achievements/PerformanceOverview';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function AchievementsPage() {
   const { snapshot, currentUserId, activeRole } = useSpark();
@@ -52,8 +53,8 @@ export function AchievementsPage() {
       <section aria-labelledby="lifetime-title">
         <div className={styles.sectionHeading}>
           <div>
-            <p className={styles.eyebrow}>Since your account was created</p>
-            <h2 id="lifetime-title">Lifetime earnings</h2>
+            <p className={styles.eyebrow}><LocalizedText>Since your account was created</LocalizedText></p>
+            <h2 id="lifetime-title"><LocalizedText>Lifetime earnings</LocalizedText></h2>
           </div>
         </div>
         <div className={styles.balanceGridCompact}>
@@ -68,9 +69,9 @@ export function AchievementsPage() {
           ))}
         </div>
         <p className={styles.mutedCopy}>
-          Lifetime earnings count completed recognition credits. Conversion credits are excluded to avoid
+          <LocalizedText>Lifetime earnings count completed recognition credits. Conversion credits are excluded to avoid
           counting the same value twice, and import corrections are netted automatically.
-        </p>
+        </LocalizedText></p>
       </section>
       {items.length === 0 ? (
         <EmptyState
@@ -91,7 +92,7 @@ export function AchievementsPage() {
                   <CalendarDays size={14} />
                   {formatDate(item.date)}
                 </time>
-                <strong>Awarded by {personName(item.awardedBy)}</strong>
+                <strong><LocalizedText>Awarded by </LocalizedText>{personName(item.awardedBy)}</strong>
               </footer>
             </article>
           ))}
@@ -99,7 +100,7 @@ export function AchievementsPage() {
       )}
       <div className={styles.achievementActions}>
         <Link className={styles.darkButton} to="/sparks">
-          <History size={16} /> View Spark Ledger <ArrowRight size={15} />
+          <History size={16} /> <LocalizedText>View Spark Ledger </LocalizedText><ArrowRight size={15} />
         </Link>
         {items.length > 3 && (
           <button
@@ -108,7 +109,7 @@ export function AchievementsPage() {
             aria-expanded={expanded}
             onClick={() => setExpanded((value) => !value)}
           >
-            {expanded ? 'Show less' : `Show more achievements (${items.length - 3})`}
+            <LocalizedText>{expanded ? 'Show less' : `Show more achievements (${items.length - 3})`}</LocalizedText>
           </button>
         )}
       </div>

@@ -223,7 +223,7 @@ export const buildWorkspace = async (
            ORDER BY employee.id, spark_type.value`, [principal.departmentId])
       : Promise.resolve([]),
     () => include('recognitions') ? rows<any>(db, `
-      SELECT r.*, cv.name AS category, c.id AS category_id
+      SELECT r.*, cv.name AS category, cv.amount, c.id AS category_id
         FROM app.recognitions r JOIN app.spark_category_versions cv ON cv.id=r.category_version_id
         JOIN app.spark_categories c ON c.id=cv.category_id
        WHERE r.nominator_employee_id=$1 OR r.recipient_employee_id=$1
@@ -368,6 +368,7 @@ export const buildWorkspace = async (
       recipientId: row.recipient_employee_id,
       category: row.category,
       categoryId: row.category_id,
+      amount: Number(row.amount),
       description: row.description,
       createdAt: date(row.requested_at),
       status: row.status,

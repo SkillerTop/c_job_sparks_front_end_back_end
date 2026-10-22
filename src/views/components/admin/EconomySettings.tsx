@@ -5,7 +5,8 @@ import { Feedback } from '@/views/components/common/Feedback';
 import { SelectField } from '@/views/components/ui/SelectField';
 import type { PerformanceThresholdSettings, SparkSettings } from '@/models';
 import { performanceThresholdValidationIssue } from '@/utils/sparkRules';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 const numericFields: Array<{
   key: keyof Pick<
@@ -74,8 +75,8 @@ export function EconomySettings() {
     <form className={styles.panel} onSubmit={(event) => void save(event)}>
       <div className={styles.panelHeader}>
         <div>
-          <p className={styles.eyebrow}>Configurable Spark policy</p>
-          <h2>Spark economy</h2>
+          <p className={styles.eyebrow}><LocalizedText>Configurable Spark policy</LocalizedText></p>
+          <h2><LocalizedText>Spark economy</LocalizedText></h2>
         </div>
         <Settings2 size={20} />
       </div>
@@ -98,7 +99,7 @@ export function EconomySettings() {
           </label>
         ))}
         <label className={styles.formField}>
-          <span>Disenchant rate (%)</span>
+          <span><LocalizedText>Disenchant rate (%)</LocalizedText></span>
           <input
             type="number"
             required
@@ -112,7 +113,7 @@ export function EconomySettings() {
           />
         </label>
         <label className={styles.formField}>
-          <span>Accounting currency</span>
+          <span><LocalizedText>Accounting currency</LocalizedText></span>
           <SelectField
             value={settings.currency}
             onChange={(currency) => setSettings((current) => ({ ...current, currency }))}
@@ -123,7 +124,7 @@ export function EconomySettings() {
         {(['White', 'Yellow', 'Blue'] as const).map((type) => (
           <label key={type} className={styles.formField}>
             <span>
-              {type} base value ({settings.currency})
+              {type} <LocalizedText>base value (</LocalizedText>{settings.currency})
             </span>
             <input
               type="number"
@@ -142,11 +143,11 @@ export function EconomySettings() {
         ))}
         <section className={`${styles.settingsSection} ${styles.fieldFull}`} aria-labelledby="performance-thresholds-title">
           <div>
-            <p className={styles.eyebrow}>Automatic White Sparks</p>
-            <h3 id="performance-thresholds-title">Performance reward thresholds</h3>
+            <p className={styles.eyebrow}><LocalizedText>Automatic White Sparks</LocalizedText></p>
+            <h3 id="performance-thresholds-title"><LocalizedText>Performance reward thresholds</LocalizedText></h3>
             <p className={styles.mutedCopy}>
-              Each row defines the minimum score and White reward for that tier. Scores below the first tier receive 0 White.
-            </p>
+              <LocalizedText>Each row defines the minimum score and White reward for that tier. Scores below the first tier receive 0 White.
+            </LocalizedText></p>
           </div>
           <div className={styles.thresholdGroups}>
             {([
@@ -156,13 +157,13 @@ export function EconomySettings() {
               <fieldset className={styles.thresholdGroup} key={source}>
                 <legend>{label}</legend>
                 <div className={styles.thresholdHeader} aria-hidden="true">
-                  <span>Tier</span><span>Minimum score</span><span>White reward</span>
+                  <span><LocalizedText>Tier</LocalizedText></span><span><LocalizedText>Minimum score</LocalizedText></span><span><LocalizedText>White reward</LocalizedText></span>
                 </div>
                 {settings.performanceThresholds[source].map((tier, index) => (
                   <div className={styles.thresholdRow} key={`${source}-${index}`}>
-                    <strong>Tier {index + 1}</strong>
+                    <strong><LocalizedText>Tier </LocalizedText>{index + 1}</strong>
                     <label>
-                      <span className={styles.srOnly}>{label} tier {index + 1} minimum score</span>
+                      <span className={styles.srOnly}>{label} <LocalizedText>tier </LocalizedText>{index + 1} <LocalizedText>minimum score</LocalizedText></span>
                       <input
                         type="number"
                         required
@@ -174,7 +175,7 @@ export function EconomySettings() {
                       />
                     </label>
                     <label>
-                      <span className={styles.srOnly}>{label} tier {index + 1} White reward</span>
+                      <span className={styles.srOnly}>{label} <LocalizedText>tier </LocalizedText>{index + 1} <LocalizedText>White reward</LocalizedText></span>
                       <input
                         type="number"
                         required
@@ -193,12 +194,12 @@ export function EconomySettings() {
         </section>
       </div>
       <p className={styles.mutedCopy}>
-        Conversion fees are added on top of the displayed ratio. Base values and currency are
+        <LocalizedText>Conversion fees are added on top of the displayed ratio. Base values and currency are
         internal accounting policy values, not live currency exchange rates.
-      </p>
+      </LocalizedText></p>
       <button type="submit" className={styles.primaryButtonWide} disabled={saving}>
         {saving ? <span className={styles.spinner} /> : <Save size={16} />}
-        {saving ? 'Saving…' : 'Save rules'}
+        <LocalizedText>{saving ? 'Saving…' : 'Save rules'}</LocalizedText>
       </button>
     </form>
   );

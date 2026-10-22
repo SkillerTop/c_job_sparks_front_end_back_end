@@ -1,8 +1,9 @@
-import { SHOP_TEXT } from '@/constants/shop';
+
 import type { SpendableSparkBalances } from '@/models/shop';
 import { formatSparkAmount, SPENDABLE_SPARK_TYPES } from '@/utils/shop';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
-import styles from '@/views/styles/shop.module.css';
+import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
+
 
 export function SparkWallet({
   balances,
@@ -13,17 +14,18 @@ export function SparkWallet({
   compact?: boolean;
   loading?: boolean;
 }) {
+  const shopText = useLocalizedShopText();
   const readable = balances
     ? SPENDABLE_SPARK_TYPES.map((type) => `${formatSparkAmount(balances[type])} ${type} Sparks`).join(', ')
-    : SHOP_TEXT.status.balanceUnavailable;
+    : shopText.status.balanceUnavailable;
   return (
     <div
       className={`${styles.sparkWallet} ${compact ? styles.sparkWalletCompact : ''}`}
       role="status"
       aria-live="polite"
-      aria-label={loading ? SHOP_TEXT.status.balanceLoading : readable}
+      aria-label={loading ? shopText.status.balanceLoading : readable}
     >
-      {!compact && <small>{SHOP_TEXT.shop.balanceLabel}</small>}
+      {!compact && <small>{shopText.shop.balanceLabel}</small>}
       <span className={styles.sparkWalletValues} aria-hidden="true">
         {SPENDABLE_SPARK_TYPES.map((type) => (
           <span key={type} className={`${styles.sparkWalletToken} ${styles[`sparkWallet${type}`]}`}>
@@ -33,7 +35,7 @@ export function SparkWallet({
           </span>
         ))}
       </span>
-      {!compact && <em>{SHOP_TEXT.shop.balanceSource}</em>}
+      {!compact && <em>{shopText.shop.balanceSource}</em>}
     </div>
   );
 }

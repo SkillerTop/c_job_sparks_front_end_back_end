@@ -1781,6 +1781,47 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.categoryTextCell {
+  min-width: 18rem;
+}
+.categoryTextButton {
+  display: block;
+  width: 100%;
+  max-width: 24rem;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.categoryTextButton strong,
+.categoryTextButton span {
+  display: block;
+}
+.categoryTextButton span {
+  max-width: 18rem;
+  margin-top: 0.15rem;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.categoryTextButton:hover span,
+.categoryTextButton:focus-visible span {
+  max-width: 24rem;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.categoryTextButton:focus-visible {
+  border-radius: 0.25rem;
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
 .detailGrid,
 .miniDefinition {
   display: grid;
@@ -1970,6 +2011,12 @@
 .categoryAmountField input[aria-invalid='true'] {
   border-color: var(--danger-line);
   box-shadow: 0 0 0 3px var(--danger-soft);
+}
+.inlineActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
 }
 .fieldError {
   color: var(--danger) !important;
@@ -2998,6 +3045,15 @@
   color: var(--muted);
   font-size: 0.75rem;
   text-align: right;
+}
+.rulesCategorySummary {
+  display: grid;
+  gap: 0.12rem;
+  justify-items: end;
+}
+.rulesCategorySummary small {
+  color: var(--muted);
+  font-size: 0.7rem;
 }
 .rulesCategoryChevron {
   flex: none;

@@ -13,8 +13,10 @@ import { PageHeader } from '@/views/components/common/PageHeader';
 import { PageTransition } from '@/views/components/common/PageTransition';
 import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { useSpark } from '@/controllers/SparkContext';
-import type { PerformanceRewardTier, SparkCategory, SparkType } from '@/models';
-import styles from '@/views/styles/app.module.css';
+import type { PerformanceRewardTier, SparkType } from '@/models';
+import { buildRuleCategoryGroups } from '@/utils/ruleCategoryGroups';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 const tierDescriptions: Record<SparkType, string> = {
   White: 'Everyday peer recognition plus KPI and Personal Cards income.',
@@ -36,14 +38,7 @@ const performanceThresholdDescription = (tiers: PerformanceRewardTier[]) => {
 export function RulesPage() {
   const { snapshot } = useSpark();
   const settings = snapshot!.settings;
-  const categories = (type: SparkType) => {
-    const uniqueByName = new Map<string, SparkCategory>();
-    for (const category of snapshot!.categories.filter((item) => item.active && item.sparkType === type)) {
-      const existing = uniqueByName.get(category.name);
-      if (!existing || category.usageType === 'PeerRecognition') uniqueByName.set(category.name, category);
-    }
-    return [...uniqueByName.values()];
-  };
+  const categoryGroups = buildRuleCategoryGroups(snapshot!.categories);
 
   return (
     <PageTransition>
@@ -58,21 +53,21 @@ export function RulesPage() {
           <BookOpen size={23} />
         </span>
         <div>
-          <h2 id="rules-purpose-title">Recognition should be visible, fair and traceable</h2>
+          <h2 id="rules-purpose-title"><LocalizedText>Recognition should be visible, fair and traceable</LocalizedText></h2>
           <p>
-            C-Job Sparks turns specific work contributions into a permanent achievement and, when a reward
+            <LocalizedText>C-Job Sparks turns specific work contributions into a permanent achievement and, when a reward
             applies, a Ledger transaction. Balances may change through conversion or disenchanting, but the
             original recognition story is never deleted. It recognizes contribution and behavior; it does not
             replace salary, bonuses or career progression.
-          </p>
+          </LocalizedText></p>
         </div>
       </section>
 
       <section aria-labelledby="tier-rules-title">
         <div className={styles.sectionHeading}>
           <div>
-            <p className={styles.eyebrow}>Four recognition tiers</p>
-            <h2 id="tier-rules-title">What each Spark means</h2>
+            <p className={styles.eyebrow}><LocalizedText>Four recognition tiers</LocalizedText></p>
+            <h2 id="tier-rules-title"><LocalizedText>What each Spark means</LocalizedText></h2>
           </div>
         </div>
         <div className={styles.rulesTierGrid}>
@@ -90,72 +85,72 @@ export function RulesPage() {
         <section className={styles.panel} aria-labelledby="peer-rules-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Peer recognition</p>
-              <h2 id="peer-rules-title">Quarterly nominations</h2>
+              <p className={styles.eyebrow}><LocalizedText>Peer recognition</LocalizedText></p>
+              <h2 id="peer-rules-title"><LocalizedText>Quarterly nominations</LocalizedText></h2>
             </div>
             <CalendarClock size={20} />
           </div>
           <ul className={styles.rulesList}>
             <li>
-              Employees, Coordinators and GPMs start with {settings.peerBaseLimit} peer nomination per
+              <LocalizedText>Employees, Coordinators and GPMs start with </LocalizedText>{settings.peerBaseLimit} <LocalizedText>peer nomination per
               quarter. Heads and Top Management use their award workspaces instead.
-            </li>
+            </LocalizedText></li>
             <li>
-              A Coordinator receives one extra nomination for every {settings.coordinatorTeamMultiplier}{' '}
-              active colleagues in their project team(s).
-            </li>
-            <li>Recipients are active Employees, Coordinators or GPMs; self-recognition is blocked.</li>
-            <li>Pending requests reserve a nomination. Rejection releases it.</li>
-            <li>Unused peer recognition expires on the last day of each quarter.</li>
-            <li>The recipient’s Head approves or rejects the request. A rejection always includes a reason.</li>
+              <LocalizedText>A Coordinator receives one extra nomination for every </LocalizedText>{settings.coordinatorTeamMultiplier}{' '}
+              <LocalizedText>active colleagues in their project team(s).
+            </LocalizedText></li>
+            <li><LocalizedText>Recipients are active Employees, Coordinators or GPMs; self-recognition is blocked.</LocalizedText></li>
+            <li><LocalizedText>Pending requests reserve a nomination. Rejection releases it.</LocalizedText></li>
+            <li><LocalizedText>Unused peer recognition expires on the last day of each quarter.</LocalizedText></li>
+            <li><LocalizedText>The recipient’s Head approves or rejects the request. A rejection always includes a reason.</LocalizedText></li>
             <li>
-              The sender must fill in all required details during Peer recognition, including the work, the
+              <LocalizedText>The sender must fill in all required details during Peer recognition, including the work, the
               contribution and why it deserves recognition.
-            </li>
+            </LocalizedText></li>
           </ul>
         </section>
 
         <section className={styles.panel} aria-labelledby="role-rules-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Clear responsibility</p>
-              <h2 id="role-rules-title">Role permissions</h2>
+              <p className={styles.eyebrow}><LocalizedText>Clear responsibility</LocalizedText></p>
+              <h2 id="role-rules-title"><LocalizedText>Role permissions</LocalizedText></h2>
             </div>
             <Users size={20} />
           </div>
           <dl className={styles.roleRuleList}>
             <div>
-              <dt>Employee</dt>
-              <dd>Peer recognition, own Sparks, achievements, conversion and disenchant requests.</dd>
+              <dt><LocalizedText>Employee</LocalizedText></dt>
+              <dd><LocalizedText>Peer recognition, own Sparks, achievements, conversion and disenchant requests.</LocalizedText></dd>
             </div>
             <div>
-              <dt>Coordinator</dt>
+              <dt><LocalizedText>Coordinator</LocalizedText></dt>
               <dd>
-                Department team view plus Yellow award requests only for colleagues in a shared active project
+                <LocalizedText>Department team view plus Yellow award requests only for colleagues in a shared active project
                 who have recorded project hours.
-              </dd>
+              </LocalizedText></dd>
             </div>
             <div>
-              <dt>GPM</dt>
+              <dt><LocalizedText>GPM</LocalizedText></dt>
               <dd>
-                Company-wide team view and White/Yellow award requests. GPM White allocation is based on active
+                <LocalizedText>Company-wide team view and White/Yellow award requests. GPM White allocation is based on active
                 Coordinators and registrars under their control. GPMs can also review company achievements.
-              </dd>
+              </LocalizedText></dd>
             </div>
             <div>
-              <dt>Head</dt>
+              <dt><LocalizedText>Head</LocalizedText></dt>
               <dd>
-                Department approvals, direct White/Yellow/Blue awards, Quality Gates and the monthly
+                <LocalizedText>Department approvals, direct White/Yellow/Blue awards, Quality Gates and the monthly
                 Accounting list.
-              </dd>
+              </LocalizedText></dd>
             </div>
             <div>
-              <dt>Top Management</dt>
-              <dd>Company-wide Radiant awards, company achievements and read-only Reward Shop access.</dd>
+              <dt><LocalizedText>Top Management</LocalizedText></dt>
+              <dd><LocalizedText>Company-wide Radiant awards, company achievements and read-only Reward Shop access.</LocalizedText></dd>
             </div>
             <div>
-              <dt>Administrator</dt>
-              <dd>Admin settings and company achievement oversight; administrative access gives no award rights.</dd>
+              <dt><LocalizedText>Administrator</LocalizedText></dt>
+              <dd><LocalizedText>Admin settings and company achievement oversight; administrative access gives no award rights.</LocalizedText></dd>
             </div>
           </dl>
         </section>
@@ -163,36 +158,36 @@ export function RulesPage() {
         <section className={styles.panel} aria-labelledby="approval-rules-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>From nomination to history</p>
-              <h2 id="approval-rules-title">Who approves each reward</h2>
+              <p className={styles.eyebrow}><LocalizedText>From nomination to history</LocalizedText></p>
+              <h2 id="approval-rules-title"><LocalizedText>Who approves each reward</LocalizedText></h2>
             </div>
             <Workflow size={20} />
           </div>
           <dl className={styles.roleRuleList}>
             <div>
-              <dt>Peer recognition</dt>
+              <dt><LocalizedText>Peer recognition</LocalizedText></dt>
               <dd>
-                The recipient’s Head approves or rejects it. Approval credits 1 White; rejection returns the
+                <LocalizedText>The recipient’s Head approves or rejects it. Approval credits the White amount configured for the category; rejection returns the
                 nomination.
-              </dd>
+              </LocalizedText></dd>
             </div>
             <div>
-              <dt>Coordinator Yellow and GPM White/Yellow awards</dt>
+              <dt><LocalizedText>Coordinator Yellow and GPM White/Yellow awards</LocalizedText></dt>
               <dd>
-                They remain Pending until the recipient’s Head approves them. Rejections always include a
+                <LocalizedText>They remain Pending until the recipient’s Head approves them. Rejections always include a
                 reason.
-              </dd>
+              </LocalizedText></dd>
             </div>
             <div>
-              <dt>Head awards</dt>
+              <dt><LocalizedText>Head awards</LocalizedText></dt>
               <dd>
-                White, Yellow and Blue are awarded directly after all limits, duplicate rules and Quality
+                <LocalizedText>White, Yellow and Blue are awarded directly after all limits, duplicate rules and Quality
                 Gates pass.
-              </dd>
+              </LocalizedText></dd>
             </div>
             <div>
-              <dt>Top Management awards</dt>
-              <dd>Radiant is awarded directly and never requires an additional approval.</dd>
+              <dt><LocalizedText>Top Management awards</LocalizedText></dt>
+              <dd><LocalizedText>Radiant is awarded directly and never requires an additional approval.</LocalizedText></dd>
             </div>
           </dl>
         </section>
@@ -200,27 +195,27 @@ export function RulesPage() {
         <section className={styles.panel} aria-labelledby="performance-rules-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Automatic White Sparks</p>
-              <h2 id="performance-rules-title">KPI and personal cards rewards</h2>
+              <p className={styles.eyebrow}><LocalizedText>Automatic White Sparks</LocalizedText></p>
+              <h2 id="performance-rules-title"><LocalizedText>KPI and personal cards rewards</LocalizedText></h2>
             </div>
             <Gauge size={20} />
           </div>
           <dl className={styles.roleRuleList}>
             <div>
-              <dt>KPI thresholds</dt>
-              <dd>{performanceThresholdDescription(settings.performanceThresholds.kpi)} White.</dd>
+              <dt><LocalizedText>KPI thresholds</LocalizedText></dt>
+              <dd>{performanceThresholdDescription(settings.performanceThresholds.kpi)} <LocalizedText>White.</LocalizedText></dd>
             </div>
             <div>
-              <dt>Personal cards thresholds</dt>
-              <dd>{performanceThresholdDescription(settings.performanceThresholds.personalCards)} White.</dd>
+              <dt><LocalizedText>Personal cards thresholds</LocalizedText></dt>
+              <dd>{performanceThresholdDescription(settings.performanceThresholds.personalCards)} <LocalizedText>White.</LocalizedText></dd>
             </div>
             <div>
-              <dt>Quarterly import</dt>
-              <dd>Admin previews and validates one result per employee, source and quarter before confirming it.</dd>
+              <dt><LocalizedText>Quarterly import</LocalizedText></dt>
+              <dd><LocalizedText>Admin previews and validates one result per employee, source and quarter before confirming it.</LocalizedText></dd>
             </div>
             <div>
-              <dt>Corrections and Quality Gates</dt>
-              <dd>A replacement creates correction entries instead of duplicates. An active Quality Gate blocks the White credit.</dd>
+              <dt><LocalizedText>Corrections and Quality Gates</LocalizedText></dt>
+              <dd><LocalizedText>A replacement creates correction entries instead of duplicates. An active Quality Gate blocks the White credit.</LocalizedText></dd>
             </div>
           </dl>
         </section>
@@ -228,38 +223,37 @@ export function RulesPage() {
         <section className={styles.panel} aria-labelledby="award-rules-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Awards</p>
-              <h2 id="award-rules-title">Categories and safeguards</h2>
+              <p className={styles.eyebrow}><LocalizedText>Awards</LocalizedText></p>
+              <h2 id="award-rules-title"><LocalizedText>Categories and safeguards</LocalizedText></h2>
             </div>
             <ShieldCheck size={20} />
           </div>
           <div className={styles.rulesCategoryList}>
-            {(['White', 'Yellow', 'Blue'] as SparkType[]).map((type) => (
-              <details className={styles.rulesDisclosure} key={type} open>
+            {categoryGroups.map((group) => (
+              <details className={styles.rulesDisclosure} key={group.key} open>
                 <summary className={styles.rulesCategoryHeader}>
-                  <SparkBadge type={type} />
+                  <SparkBadge type={group.sparkType} />
                   <span className={styles.rulesCategoryMeta}>
-                    <strong id={`award-${type.toLowerCase()}`}>
-                      {type === 'Blue'
-                        ? 'Blue award grounds'
-                        : `${categories(type).length} active categories`}
-                    </strong>
+                    <span className={styles.rulesCategorySummary}>
+                      <strong id={group.key}><LocalizedText>{group.label}</LocalizedText></strong>
+                      <small><LocalizedText>{`${group.categories.length} active categories`}</LocalizedText></small>
+                    </span>
                     <ChevronDown className={styles.rulesCategoryChevron} size={18} aria-hidden="true" />
                   </span>
                 </summary>
-                <ul aria-labelledby={`award-${type.toLowerCase()}`}>
-                  {categories(type).map((category) => (
+                <ul aria-labelledby={group.key}>
+                  {group.categories.map((category) => (
                     <li key={category.id}>
                       <div>
-                        <strong>{category.name}</strong>
-                        <p>{category.description}</p>
+                        <strong><LocalizedText>{category.name}</LocalizedText></strong>
+                        <p><LocalizedText>{category.description}</LocalizedText></p>
                       </div>
                       <span>
-                        {type === 'Yellow'
+                        <LocalizedText>{group.sparkType === 'Yellow'
                           ? `${category.amount} Yellow · one category per employee per quarter`
-                          : type === 'Blue'
+                          : group.sparkType === 'Blue'
                             ? `${category.amount} Blue · ${category.period}`
-                            : '1 White'}
+                            : `${category.amount} White`}</LocalizedText>
                       </span>
                     </li>
                   ))}
@@ -268,117 +262,117 @@ export function RulesPage() {
             ))}
           </div>
           <p className={styles.rulesNote}>
-            Direct Yellow awards and pending Yellow requests together cannot exceed{' '}
-            <strong>{settings.yellowQuarterlyLimit} per employee per quarter</strong>. The same Yellow category
+            <LocalizedText>Direct Yellow awards and pending Yellow requests together cannot exceed</LocalizedText>{' '}
+            <strong>{settings.yellowQuarterlyLimit} <LocalizedText>per employee per quarter</LocalizedText></strong><LocalizedText>. The same Yellow category
             cannot be used twice in that quarter. White credits, converted Yellow, Blue and Radiant do not use
             this limit.
-          </p>
+          </LocalizedText></p>
           <ul className={`${styles.rulesList} ${styles.rulesListSpaced}`}>
-            <li>There is no issuer limit on the number of awards or recipients.</li>
+            <li><LocalizedText>There is no issuer limit on the number of awards or recipients.</LocalizedText></li>
             <li>
-              An award that would exceed the 7 Yellow limit is blocked in full and is never reduced
+              <LocalizedText>An award that would exceed the 7 Yellow limit is blocked in full and is never reduced
               automatically.
-            </li>
+            </LocalizedText></li>
             <li>
-              The first acting coordinator or lead category is unavailable after coordination experience is
+              <LocalizedText>The first acting coordinator or lead category is unavailable after coordination experience is
               recorded.
-            </li>
-            <li>Yellow requests require a specific achievement description before they can be submitted.</li>
+            </LocalizedText></li>
+            <li><LocalizedText>Yellow requests require a specific achievement description before they can be submitted.</LocalizedText></li>
             <li>
-              A GPM may request White awards: 1 for 1–3 active Coordinators or registrars under their control, 2
+              <LocalizedText>A GPM may request White awards: 1 for 1–3 active Coordinators or registrars under their control, 2
               for 4–6, and one additional White for each next group of 3.
-            </li>
+            </LocalizedText></li>
             <li>
-              Blue is awarded only by a Head. The same category cannot repeat for one employee during its
+              <LocalizedText>Blue is awarded only by a Head. The same category cannot repeat for one employee during its
               configured quarterly, yearly or one-time period.
-            </li>
-            <li>Employee of the Year has an annual department quota of floor(active employees ÷ 10).</li>
+            </LocalizedText></li>
+            <li><LocalizedText>Employee of the Year has an annual department quota of floor(active employees ÷ 10).</LocalizedText></li>
           </ul>
           <div className={styles.rulesNote}>
-            <strong>Radiant has no fixed categories.</strong> Top Management chooses an employee, enters a required
+            <strong><LocalizedText>Radiant has no fixed categories.</LocalizedText></strong> <LocalizedText>Top Management chooses an employee, enters a required
             reason and description, and awards exactly 1 Radiant directly. It is permanent and needs no approval.
-          </div>
+          </LocalizedText></div>
         </section>
 
         <section className={styles.panel} aria-labelledby="economy-rules-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Spark economy</p>
-              <h2 id="economy-rules-title">Convert and disenchant</h2>
+              <p className={styles.eyebrow}><LocalizedText>Spark economy</LocalizedText></p>
+              <h2 id="economy-rules-title"><LocalizedText>Convert and disenchant</LocalizedText></h2>
             </div>
             <Coins size={20} />
           </div>
           <div className={styles.ruleList}>
             <div>
-              <span>White → Yellow</span>
-              <strong>{settings.whiteToYellow} White = 1 Yellow</strong>
+              <span><LocalizedText>White → Yellow</LocalizedText></span>
+              <strong>{settings.whiteToYellow} <LocalizedText>White = 1 Yellow</LocalizedText></strong>
             </div>
             <div>
-              <span>Yellow → Blue</span>
-              <strong>{settings.yellowToBlue} Yellow = 1 Blue</strong>
+              <span><LocalizedText>Yellow → Blue</LocalizedText></span>
+              <strong>{settings.yellowToBlue} <LocalizedText>Yellow = 1 Blue</LocalizedText></strong>
             </div>
             <div>
-              <span>Additional conversion fee</span>
-              <strong>{settings.conversionFee} source Spark per bundle</strong>
+              <span><LocalizedText>Additional conversion fee</LocalizedText></span>
+              <strong>{settings.conversionFee} <LocalizedText>source Spark per bundle</LocalizedText></strong>
             </div>
           </div>
           <ul className={styles.rulesList}>
             <li>
-              A complete White → Yellow bundle debits {settings.whiteToYellow + settings.conversionFee} White:
-              {' '}{settings.whiteToYellow} for the conversion and {settings.conversionFee} as the fee.
-            </li>
+              <LocalizedText>A complete White → Yellow bundle debits </LocalizedText>{settings.whiteToYellow + settings.conversionFee} <LocalizedText>White:
+              </LocalizedText>{' '}{settings.whiteToYellow} <LocalizedText>for the conversion and </LocalizedText>{settings.conversionFee} <LocalizedText>as the fee.
+            </LocalizedText></li>
             <li>
-              A complete Yellow → Blue bundle debits {settings.yellowToBlue + settings.conversionFee} Yellow:
-              {' '}{settings.yellowToBlue} for the conversion and {settings.conversionFee} as the fee.
-            </li>
-            <li>Radiant is permanent: it cannot be converted, spent or disenchanted.</li>
-            <li>Blue cannot be converted. Only White and Yellow can be converted to the next tier.</li>
-            <li>Submitting a disenchant request debits the selected Sparks immediately and creates a request.</li>
+              <LocalizedText>A complete Yellow → Blue bundle debits </LocalizedText>{settings.yellowToBlue + settings.conversionFee} <LocalizedText>Yellow:
+              </LocalizedText>{' '}{settings.yellowToBlue} <LocalizedText>for the conversion and </LocalizedText>{settings.conversionFee} <LocalizedText>as the fee.
+            </LocalizedText></li>
+            <li><LocalizedText>Radiant is permanent: it cannot be converted, spent or disenchanted.</LocalizedText></li>
+            <li><LocalizedText>Blue cannot be converted. Only White and Yellow can be converted to the next tier.</LocalizedText></li>
+            <li><LocalizedText>Submitting a disenchant request debits the selected Sparks immediately and creates a request.</LocalizedText></li>
             <li>
-              The Head compiles the monthly request list and sends it to Accounting; the system never pays
+              <LocalizedText>The Head compiles the monthly request list and sends it to Accounting; the system never pays
               automatically.
-            </li>
+            </LocalizedText></li>
           </ul>
         </section>
 
         <section className={styles.panel} aria-labelledby="quality-rules-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Quality and history</p>
-              <h2 id="quality-rules-title">What never happens silently</h2>
+              <p className={styles.eyebrow}><LocalizedText>Quality and history</LocalizedText></p>
+              <h2 id="quality-rules-title"><LocalizedText>What never happens silently</LocalizedText></h2>
             </div>
             <CheckCircle2 size={20} />
           </div>
           <ul className={styles.rulesList}>
             <li>
-              An active Quality Gate blocks all positive White sources during its stated dates: KPI, Personal
+              <LocalizedText>An active Quality Gate blocks all positive White sources during its stated dates: KPI, Personal
               Cards, Peer Recognition, direct/manual awards and adjustments.
-            </li>
-            <li>Yellow, Blue and Radiant awards are not blocked by a Quality Gate.</li>
-            <li>Every balance-changing operation creates a read-only Ledger entry.</li>
-            <li>Achievements remain visible after Sparks are converted or disenchanted.</li>
-            <li>Import replacements add correction entries; existing history is not overwritten.</li>
+            </LocalizedText></li>
+            <li><LocalizedText>Yellow, Blue and Radiant awards are not blocked by a Quality Gate.</LocalizedText></li>
+            <li><LocalizedText>Every balance-changing operation creates a read-only Ledger entry.</LocalizedText></li>
+            <li><LocalizedText>Achievements remain visible after Sparks are converted or disenchanted.</LocalizedText></li>
+            <li><LocalizedText>Import replacements add correction entries; existing history is not overwritten.</LocalizedText></li>
           </ul>
         </section>
 
         <section className={styles.panel} aria-labelledby="team-rules-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Team scope</p>
-              <h2 id="team-rules-title">Who appears in each team</h2>
+              <p className={styles.eyebrow}><LocalizedText>Team scope</LocalizedText></p>
+              <h2 id="team-rules-title"><LocalizedText>Who appears in each team</LocalizedText></h2>
             </div>
             <Users size={20} />
           </div>
           <ul className={styles.rulesList}>
-            <li>A Coordinator sees active colleagues from their own department.</li>
+            <li><LocalizedText>A Coordinator sees active colleagues from their own department.</LocalizedText></li>
             <li>
-              A Coordinator can award only colleagues in a shared active project team who have recorded hours on
+              <LocalizedText>A Coordinator can award only colleagues in a shared active project team who have recorded hours on
               that project.
-            </li>
-            <li>A GPM sees active colleagues across the whole company.</li>
-            <li>A Head works with their own department and can see the balances needed for management.</li>
-            <li>Coordinator and GPM team cards keep colleague balances private.</li>
-            <li>Every colleague card links directly to Peer recognition with that person already selected.</li>
+            </LocalizedText></li>
+            <li><LocalizedText>A GPM sees active colleagues across the whole company.</LocalizedText></li>
+            <li><LocalizedText>A Head works with their own department and can see the balances needed for management.</LocalizedText></li>
+            <li><LocalizedText>Coordinator and GPM team cards keep colleague balances private.</LocalizedText></li>
+            <li><LocalizedText>Every colleague card links directly to Peer recognition with that person already selected.</LocalizedText></li>
           </ul>
         </section>
       </div>

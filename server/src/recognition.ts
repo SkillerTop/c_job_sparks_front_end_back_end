@@ -164,6 +164,7 @@ export const createRecognition = async (
     recipientId: recipient.id,
     category: category.name,
     categoryId: category.category_id,
+    amount: Number(category.amount),
     description,
     createdAt: new Date().toISOString(),
     status: 'Pending',

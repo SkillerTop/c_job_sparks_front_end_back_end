@@ -18,7 +18,8 @@ import { AsyncBoundary } from '@/views/components/common/AsyncBoundary';
 import { RouteGuard } from './RouteGuard';
 import { GuestOnly, RequireAuth } from './AuthGuard';
 import { RouteMetadata } from './RouteMetadata';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 const DashboardPage = lazy(() => import('@/views/pages/DashboardPage').then((module) => ({ default: module.DashboardPage })));
 const ProfilePage = lazy(() => import('@/views/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })));
@@ -48,8 +49,8 @@ const RegistrationStatusPage = lazy(() =>
 function RouteLoading() {
   return (
     <div className={styles.emptyState} role="status" aria-live="polite">
-      Loading workspace section…
-    </div>
+      <LocalizedText>Loading workspace section…
+    </LocalizedText></div>
   );
 }
 
@@ -60,19 +61,19 @@ function WorkspaceLayout() {
     return (
       <div className={styles.fullState} role="alert">
         <AlertTriangle size={34} />
-        <h1>Workspace unavailable</h1>
-        <p>{error}</p>
+        <h1><LocalizedText>Workspace unavailable</LocalizedText></h1>
+        <p><LocalizedText>{error}</LocalizedText></p>
         <button className={styles.primaryButton} onClick={() => void refresh()} type="button">
-          <RefreshCcw size={16} /> Try again
-        </button>
+          <RefreshCcw size={16} /> <LocalizedText>Try again
+        </LocalizedText></button>
       </div>
     );
   if (loading || !snapshot)
     return (
       <div className={styles.loadingScreen} role="status" aria-live="polite">
         <span className={styles.loadingMark}><Sparkles size={24} /></span>
-        <strong>Loading workspace</strong>
-        <p>Balances, permissions and company data are being refreshed.</p>
+        <strong><LocalizedText>Loading workspace</LocalizedText></strong>
+        <p><LocalizedText>Balances, permissions and company data are being refreshed.</LocalizedText></p>
         <div className={styles.loadingLine}><span /></div>
       </div>
     );
@@ -104,8 +105,8 @@ export function AppRouter() {
     return (
       <div className={styles.loadingScreen} role="status" aria-live="polite">
         <span className={styles.loadingMark}><Sparkles size={24} /></span>
-        <strong>Preparing access</strong>
-        <p>Account status and permissions are loading.</p>
+        <strong><LocalizedText>Preparing access</LocalizedText></strong>
+        <p><LocalizedText>Account status and permissions are loading.</LocalizedText></p>
         <div className={styles.loadingLine}><span /></div>
       </div>
     );
@@ -113,11 +114,11 @@ export function AppRouter() {
     return (
       <div className={styles.fullState} role="alert">
         <AlertTriangle size={34} />
-        <h1>Sign-in unavailable</h1>
-        <p>{error}</p>
+        <h1><LocalizedText>Sign-in unavailable</LocalizedText></h1>
+        <p><LocalizedText>{error}</LocalizedText></p>
         <button className={styles.primaryButton} onClick={() => void refreshAuth()} type="button">
-          <RefreshCcw size={16} /> Try again
-        </button>
+          <RefreshCcw size={16} /> <LocalizedText>Try again
+        </LocalizedText></button>
       </div>
     );
 

@@ -65,20 +65,21 @@ const setMeta = (selector: string, attribute: 'name' | 'property', key: string, 
 
 export function RouteMetadata() {
   const { pathname } = useLocation();
-  const { language } = useUserPreferences();
+  const { language, localize } = useUserPreferences();
 
   useEffect(() => {
     const base = en[pathname] ?? { title: 'Page not found', description: 'The requested C-Job Sparks page was not found.' };
-    const title = routeTitles[language][pathname] ?? base.title;
+    const title = routeTitles[language][pathname] ?? localize(base.title);
+    const description = localize(base.description);
     const fullTitle = `${title} · C-Job Sparks`;
     const canonicalUrl = `${SITE_ORIGIN}${pathname === '/' ? '/' : pathname}`;
     document.title = fullTitle;
-    setMeta('meta[name="description"]', 'name', 'description', base.description);
+    setMeta('meta[name="description"]', 'name', 'description', description);
     setMeta('meta[property="og:title"]', 'property', 'og:title', fullTitle);
-    setMeta('meta[property="og:description"]', 'property', 'og:description', base.description);
+    setMeta('meta[property="og:description"]', 'property', 'og:description', description);
     setMeta('meta[property="og:url"]', 'property', 'og:url', canonicalUrl);
     setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', fullTitle);
-    setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', base.description);
+    setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description);
     setMeta(
       'meta[name="robots"]',
       'name',
@@ -87,7 +88,7 @@ export function RouteMetadata() {
     );
     const canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (canonical) canonical.href = canonicalUrl;
-  }, [language, pathname]);
+  }, [language, localize, pathname]);
 
   return null;
 }

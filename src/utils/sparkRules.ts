@@ -9,6 +9,7 @@ import type {
   PerformanceRewardTier,
   PerformanceThresholdSettings,
 } from '@/models';
+import { getActiveLocale } from '@/utils/locale';
 import { DEFAULT_PERFORMANCE_THRESHOLDS } from '@/constants/app';
 import { todayIso } from './quarter';
 
@@ -153,4 +154,4 @@ export const gpmWhiteAwardQuota = (controlledCoordinatorCount: number, multiplie
   controlledCoordinatorCount > 0 ? Math.ceil(controlledCoordinatorCount / multiplier) : 0;
 
 export const formatMoney = (value: number, currency: string) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
+  new Intl.NumberFormat(getActiveLocale(), { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
