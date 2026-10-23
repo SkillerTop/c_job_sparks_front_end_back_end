@@ -13,6 +13,7 @@ import { formatDate } from '@/utils/formatters';
 import { focusFirstInvalid } from '@/utils/accessibility';
 import { quarterEndLabel } from '@/utils/quarter';
 import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+import { CategoryDetailsCard } from '@/views/components/common/CategoryDetailsCard';
 
 
 export function RecognitionPage() {
@@ -21,6 +22,7 @@ export function RecognitionPage() {
   const { snapshot, activeRole } = useSpark();
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const remaining = Math.max(0, controller.quota - controller.usedCount);
+  const selectedCategory = controller.categories.find((category) => category.name === controller.form.category);
   const canExpandHistory = ['Coordinator', 'GPM', 'Head', 'Top Management'].includes(activeRole);
   const visibleRecognitions = historyExpanded
     ? controller.ownRecognitions
@@ -96,6 +98,7 @@ export function RecognitionPage() {
                   ...controller.categories.map((category) => ({
                     value: category.name,
                     label: `${category.name} · +${category.amount} White`,
+                    description: category.description,
                   })),
                 ]}
                 ariaLabel="Recognition category"
@@ -173,6 +176,7 @@ export function RecognitionPage() {
               <strong>{quarterEndLabel(snapshot!.settings.currentQuarter)}</strong>.
             </p>
           </section>
+          {selectedCategory ? <CategoryDetailsCard category={selectedCategory} /> : null}
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>

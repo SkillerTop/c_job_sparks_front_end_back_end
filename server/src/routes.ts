@@ -1682,6 +1682,42 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       };
       adminApp.post('/api/v1/admin/spark-categories', saveCategory);
       adminApp.patch('/api/v1/admin/spark-categories/:id', saveCategory);
+      adminApp.delete('/api/v1/admin/spark-categories/:id', async (request, reply) => {
+        const principal = principalOf(request);
+        const { id } = z.object({ id: idSchema }).parse(request.params);
+        await withTransaction(app.db, async (db) => {
+          const category = await maybeOne<any>(db, `SELECT category.id,category.code,category.spark_type,
+              category.usage_type,category.is_active,version.name,version.description,version.amount,
+              version.repeat_period,version.version
+            FROM app.spark_categories category
+            LEFT JOIN LATERAL (
+              SELECT * FROM app.spark_category_versions
+              WHERE category_id=category.id
+              ORDER BY version DESC LIMIT 1
+            ) version ON true
+            WHERE category.id=$1 FOR UPDATE OF category`, [id]);
+          if (!category) throw notFound('Spark category');
+          if (!['PeerRecognition', 'Award'].includes(category.usage_type))
+            throw badRequest('CATEGORY_DELETE_NOT_ALLOWED',
+              'Only Peer Recognition and Award a Spark categories can be deleted.');
+          if (!category.is_active) return;
+          await db.query(`UPDATE app.spark_categories SET is_active=false WHERE id=$1`, [id]);
+          await db.query(`UPDATE app.spark_category_versions SET status='Retired',effective_to=clock_timestamp()
+            WHERE category_id=$1 AND status='Active' AND effective_to IS NULL`, [id]);
+          await writeAudit(db, {
+            actorUserId: principal.userId,
+            action: 'CATEGORY_DELETED',
+            objectType: 'SparkCategory',
+            objectId: id,
+            before: category,
+            after: { active: false, historyPreserved: true },
+            requestId: request.id,
+            ip: request.ip,
+            userAgent: request.headers['user-agent'],
+          });
+        });
+        return reply.status(204).send();
+      });
 
       adminApp.post('/api/v1/admin/rule-sets', async (request) => {
         const principal = principalOf(request);

@@ -224,6 +224,30 @@ test('Administrator category amounts affect future awards without rewriting earl
     2,
   );
 });
+test('Administrator can remove Peer Recognition and Award categories without rewriting history', async () => {
+  const before = await snapshot();
+  const peer = before.categories.find((item) => item.active && item.usageType === 'PeerRecognition');
+  const awardCategory = before.categories.find((item) => item.active && item.usageType === 'Award');
+  const historicalRecognitions = before.recognitions.filter((item) => item.categoryId === peer.id);
+  const historicalAwards = before.awardRequests.filter((item) => item.categoryId === awardCategory.id);
+
+  await sparkService.deleteCategory(ADMIN, peer.id);
+  const afterPeerDelete = await sparkService.deleteCategory(ADMIN, awardCategory.id);
+
+  assert.equal(afterPeerDelete.categories.find((item) => item.id === peer.id).active, false);
+  assert.equal(afterPeerDelete.categories.find((item) => item.id === awardCategory.id).active, false);
+  assert.deepEqual(
+    afterPeerDelete.recognitions.filter((item) => item.categoryId === peer.id),
+    historicalRecognitions,
+  );
+  assert.deepEqual(
+    afterPeerDelete.awardRequests.filter((item) => item.categoryId === awardCategory.id),
+    historicalAwards,
+  );
+  assert.equal(afterPeerDelete.auditEvents.filter((item) => item.action === 'CATEGORY_DELETED').length, 2);
+  await assert.rejects(sparkService.deleteCategory(ADMIN, 'missing-category'), /no longer exists/i);
+  await assert.rejects(sparkService.deleteCategory('emp-alex', peer.id), /cannot perform this action/i);
+});
 test('Lifetime earnings count recognition credits without double-counting conversions', async () => {
   const before = calculateLifetimeEarnings((await snapshot()).transactions, 'emp-alex');
   await sparkService.convert('emp-alex', 'White', 10);

@@ -246,6 +246,32 @@ if (!sourceDatabaseUrl) {
       const createdDepartmentId = department.json<{ id: string }>().id;
       assert.equal(await count(`SELECT count(*) FROM app.departments
         WHERE id=$1 AND name=$2 AND head_employee_id IS NULL`, [createdDepartmentId, departmentName]), 1);
+
+      const removableCategoryName = `Temporary category ${randomUUID()}`;
+      const removableCategory = await authenticated('Administrator', 'POST', '/api/v1/admin/spark-categories', {
+        id: '',
+        name: removableCategoryName,
+        description: 'A temporary category used to verify safe administrative deletion.',
+        sparkType: 'White',
+        usageType: 'PeerRecognition',
+        amount: 3,
+        period: 'Unrestricted',
+        active: true,
+      });
+      assert.equal(removableCategory.statusCode, 200, removableCategory.body);
+      const removableCategoryId = removableCategory.json<{ id: string }>().id;
+      const forbiddenDelete = await authenticated('Employee', 'DELETE',
+        `/api/v1/admin/spark-categories/${encodeURIComponent(removableCategoryId)}`);
+      assert.equal(forbiddenDelete.statusCode, 403, forbiddenDelete.body);
+      const deletedCategory = await authenticated('Administrator', 'DELETE',
+        `/api/v1/admin/spark-categories/${encodeURIComponent(removableCategoryId)}`);
+      assert.equal(deletedCategory.statusCode, 204, deletedCategory.body);
+      assert.equal(await count(`SELECT count(*) FROM app.spark_categories
+        WHERE id=$1 AND is_active=false`, [removableCategoryId]), 1);
+      assert.equal(await count(`SELECT count(*) FROM app.spark_category_versions
+        WHERE category_id=$1 AND status='Active'`, [removableCategoryId]), 0);
+      assert.equal(await count(`SELECT count(*) FROM app.audit_events
+        WHERE entity_id=$1 AND action='CATEGORY_DELETED'`, [removableCategoryId]), 1);
     });
 
     test('Recognition persists audit, outbox and approval notification', async () => {

@@ -17,6 +17,7 @@ import { formatDate } from '@/utils/formatters';
 import { gpmWhiteAwardQuota, isQualityGateActive } from '@/utils/sparkRules';
 import { quarterForDate, todayIso } from '@/utils/quarter';
 import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+import { CategoryDetailsCard } from '@/views/components/common/CategoryDetailsCard';
 
 
 export function AwardPage() {
@@ -263,7 +264,10 @@ export function AwardPage() {
                           snapshot!.settings.yellowQuarterlyLimit;
                       return {
                         value: category.name,
-                        label: unavailable ? `${category.name} · quarterly limit` : category.name,
+                        label: unavailable
+                          ? `${category.name} · quarterly limit`
+                          : `${category.name} · +${category.amount} ${category.sparkType}`,
+                        description: category.description,
                         disabled: unavailable,
                       };
                     }),
@@ -409,6 +413,7 @@ export function AwardPage() {
               </LocalizedText></p>
             </div>
           </section>
+          {definition ? <CategoryDetailsCard category={definition} /> : null}
           {form.sparkType === 'Yellow' && (
             <section className={styles.panel}>
               <div className={styles.panelHeader}>

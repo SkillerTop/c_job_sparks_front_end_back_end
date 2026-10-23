@@ -1229,6 +1229,27 @@ const demoSparkService = {
     });
   },
 
+  async deleteCategory(actorId: string, categoryId: string) {
+    await wait();
+    requireActor(actorId, ['Administrator']);
+    const category = database.categories.find((item) => item.id === categoryId);
+    if (!category) throw new Error('This category no longer exists. Refresh the page.');
+    if (!['PeerRecognition', 'Award'].includes(category.usageType))
+      throw new Error('Only Peer Recognition and Award a Spark categories can be deleted here.');
+    return atomic(() => {
+      database.categories = database.categories.map((item) =>
+        item.id === categoryId ? { ...item, active: false } : item,
+      );
+      addAudit(
+        'CATEGORY_DELETED',
+        actorId,
+        categoryId,
+        `Deleted ${category.name} from future use. Historical records are unchanged.`,
+      );
+      return clone();
+    });
+  },
+
   reset() {
     database = createDatabase();
     importPreviews.clear();

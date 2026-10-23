@@ -1,4 +1,4 @@
-import { Pencil, Plus, Save, SlidersHorizontal } from 'lucide-react';
+import { Pencil, Plus, Save, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
@@ -19,14 +19,14 @@ const bySparkTypeAndName = (left: SparkCategory, right: SparkCategory) =>
     : sparkTypeOrder[left.sparkType] - sparkTypeOrder[right.sparkType];
 
 export function CategoryAwardSettings() {
-  const { snapshot, saveReference, mutating } = useSpark();
+  const { snapshot, saveReference, deleteCategory, mutating } = useSpark();
   const { t, localize } = useUserPreferences();
   const categorySource = snapshot!.categories;
   const peerCategories = useMemo(() => categorySource
-    .filter((category) => category.usageType === 'PeerRecognition')
+    .filter((category) => category.active && category.usageType === 'PeerRecognition')
     .sort(bySparkTypeAndName), [categorySource]);
   const categories = useMemo(() => categorySource
-    .filter((category) => category.usageType === 'Award' && editableSparkTypes.includes(category.sparkType))
+    .filter((category) => category.active && category.usageType === 'Award' && editableSparkTypes.includes(category.sparkType))
     .sort(bySparkTypeAndName), [categorySource]);
   const managedCategories = useMemo(() => [...peerCategories, ...categories], [peerCategories, categories]);
   const [amounts, setAmounts] = useState<Record<string, number>>(() =>
@@ -92,6 +92,23 @@ export function CategoryAwardSettings() {
       setMessage({
         tone: 'error',
         text: caught instanceof Error ? caught.message : t('adminCategory.error'),
+      });
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const removeCategory = async (category: SparkCategory) => {
+    if (!window.confirm(t('adminCategory.deleteConfirm', { name: category.name }))) return;
+    setSavingId(category.id);
+    setMessage(null);
+    try {
+      await deleteCategory(category.id);
+      setMessage({ tone: 'success', text: t('adminCategory.deleted', { name: category.name }) });
+    } catch (caught) {
+      setMessage({
+        tone: 'error',
+        text: caught instanceof Error ? caught.message : t('adminCategory.deleteError'),
       });
     } finally {
       setSavingId(null);
@@ -167,6 +184,15 @@ export function CategoryAwardSettings() {
                     <div className={styles.inlineActions}>
                       <button type="button" className={styles.iconButton} aria-label={localize(`Edit ${category.name}`)} onClick={() => editCategory(category)}>
                         <Pencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.dangerGhost}
+                        aria-label={t('adminCategory.deleteLabel', { name: category.name })}
+                        disabled={mutating || savingId === category.id}
+                        onClick={() => void removeCategory(category)}
+                      >
+                        <Trash2 size={15} /> {t('adminCategory.delete')}
                       </button>
                       <button
                         type="button"
@@ -249,6 +275,15 @@ export function CategoryAwardSettings() {
                     <div className={styles.inlineActions}>
                       <button type="button" className={styles.iconButton} aria-label={localize(`Edit ${category.name}`)} onClick={() => editCategory(category)}>
                         <Pencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.dangerGhost}
+                        aria-label={t('adminCategory.deleteLabel', { name: category.name })}
+                        disabled={mutating || savingId === category.id}
+                        onClick={() => void removeCategory(category)}
+                      >
+                        <Trash2 size={15} /> {t('adminCategory.delete')}
                       </button>
                       <button
                         type="button"

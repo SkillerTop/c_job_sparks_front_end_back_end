@@ -48,6 +48,7 @@ interface SparkContextValue {
   confirmImport: (preview: ImportPreview, replace: boolean) => Promise<void>;
   updateSettings: (input: Partial<AppSnapshot['settings']>) => Promise<void>;
   saveReference: (draft: ReferenceDraft) => Promise<void>;
+  deleteCategory: (categoryId: string) => Promise<void>;
   deleteEmployee: (employeeId: string) => Promise<void>;
   syncShopTransactions: (transactions: ShopSparkTransaction[]) => Promise<void>;
   resetDemo: () => Promise<boolean>;
@@ -282,6 +283,10 @@ export function SparkProvider({ children }: { children: ReactNode }) {
       updateSnapshot(next);
       if (draft.kind === 'employees') await refreshAuth();
     });
+  const deleteCategory = (categoryId: string) =>
+    executeAuthorized(async () =>
+      updateSnapshot(await sparkService.deleteCategory(currentUserId, categoryId)),
+    );
   const deleteEmployee = (employeeId: string) =>
     executeAuthorized(async () => {
       const next = await sparkService.deleteEmployee(currentUserId, employeeId);
@@ -329,6 +334,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
       confirmImport,
       updateSettings,
       saveReference,
+      deleteCategory,
       deleteEmployee,
       syncShopTransactions,
       resetDemo,

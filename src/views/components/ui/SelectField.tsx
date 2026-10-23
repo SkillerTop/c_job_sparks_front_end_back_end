@@ -7,6 +7,7 @@ import selectStyles from './SelectField.module.css';
 export interface SelectOption<Value extends string = string> {
   value: Value;
   label: ReactNode;
+  description?: string;
   disabled?: boolean;
 }
 
@@ -98,7 +99,12 @@ export function SelectField<Value extends string>({
                     <Select.ItemIndicator className={selectStyles.indicator}>
                       <Check size={15} aria-hidden="true" />
                     </Select.ItemIndicator>
-                    <Select.ItemText className={selectStyles.itemText}>{localizeLabel(option.label)}</Select.ItemText>
+                    <span className={selectStyles.itemContent}>
+                      <Select.ItemText className={selectStyles.itemText}>{localizeLabel(option.label)}</Select.ItemText>
+                      {option.description ? (
+                        <span className={selectStyles.itemDescription}>{localize(option.description)}</span>
+                      ) : null}
+                    </span>
                   </Select.Item>
                 );
               })}

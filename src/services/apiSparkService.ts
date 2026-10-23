@@ -192,6 +192,13 @@ export const apiSparkService = {
     return workspace();
   },
 
+  async deleteCategory(_actorId: string, categoryId: string) {
+    await apiRequest<void>(`/api/v1/admin/spark-categories/${encodeURIComponent(categoryId)}`, {
+      method: 'DELETE',
+    });
+    return workspace();
+  },
+
   async deleteEmployee(_actorId: string, employeeId: string) {
     await apiRequest<void>(`/api/v1/admin/employees/${encodeURIComponent(employeeId)}`, { method: 'DELETE' });
     return workspace();
