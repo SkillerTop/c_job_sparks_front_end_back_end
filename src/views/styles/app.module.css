@@ -59,7 +59,7 @@
 }
 .brandSystemLabel {
   color: var(--sidebar-muted);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 750;
   letter-spacing: 0.18em;
 }
@@ -349,7 +349,7 @@
 .compactBalancePopover > p {
   margin: 0 0 0.45rem;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -412,7 +412,7 @@
 }
 .accountPopover header small {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
 }
 .accountPopover > a,
 .themeToggleMenu,
@@ -499,6 +499,10 @@
   gap: 0.45rem;
   border-color: var(--line-strong);
   color: var(--gold-text);
+}
+.themeGlyph {
+  display: inline-flex;
+  animation: themeGlyphIn 200ms ease-out;
 }
 .themeLabel {
   display: none;
@@ -1068,6 +1072,20 @@
 .sparkTokenRadiant.sparkTokenAnimated::before {
   animation: radiantGlassShift 10s linear infinite;
 }
+.sparkTokenAnimated {
+  animation: sparkTokenFloat 5.2s ease-in-out infinite;
+}
+.sparkTokenAnimated:hover {
+  transform: scale(1.1);
+}
+@keyframes sparkTokenFloat {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.05) rotate(2deg); }
+}
+@keyframes themeGlyphIn {
+  from { opacity: 0; transform: rotate(-25deg); }
+  to { opacity: 1; transform: rotate(0deg); }
+}
 @keyframes radiantSpectrum {
   0%,
   100% {
@@ -1299,46 +1317,6 @@
   text-underline-offset: 3px;
 }
 
-.welcomePanel {
-  position: relative;
-  display: flex;
-  min-height: 13rem;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1.25rem;
-  padding: 1.5rem;
-  overflow: hidden;
-  border: 1px solid var(--sidebar-line);
-  border-radius: 1rem;
-  color: var(--hero-ink);
-  background: var(--hero);
-}
-
-.welcomePanel > div {
-  position: relative;
-  z-index: 2;
-  max-width: 40rem;
-}
-.welcomePanel h1 {
-  max-width: 40rem;
-  margin: 0.42rem 0 0.9rem;
-  font-size: clamp(1.8rem, 4.5vw, 2.55rem);
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.15;
-}
-.welcomePanel p:not(.eyebrow) {
-  max-width: 33rem;
-  margin-bottom: 0;
-  color: var(--hero-muted);
-  font-size: 0.88rem;
-  line-height: 1.6;
-}
-.welcomePanel .eyebrow {
-  color: var(--hero-accent);
-}
-
 .appFooter {
   flex: none;
   min-width: 0;
@@ -1357,6 +1335,7 @@
 .waveArtwork {
   position: absolute;
   inset: 0;
+  animation: fadeIn 700ms ease-out;
 }
 .waveStrip {
   position: absolute;
@@ -1423,8 +1402,7 @@
   border-radius: 0.25rem;
 }
 
-.accountEffectBadges,
-.activeRewardStrip {
+.accountEffectBadges {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
@@ -1434,13 +1412,12 @@
   margin-top: 0.35rem;
 }
 
-.accountEffectBadges em,
-.activeRewardStrip span {
+.accountEffectBadges em {
   border: 1px solid color-mix(in srgb, var(--brand-gold), var(--line) 38%);
   border-radius: 999px;
   color: var(--gold-text);
   background: var(--gold-soft);
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-style: normal;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -1450,18 +1427,6 @@
   padding: 0.16rem 0.42rem;
 }
 
-.activeRewardStrip {
-  margin-top: 0.75rem;
-}
-
-.activeRewardStrip span {
-  padding: 0.3rem 0.58rem;
-}
-
-.welcomePanel[data-focus-surface='true'] {
-  border-color: color-mix(in srgb, var(--focus), var(--line) 35%);
-  box-shadow: 0 1rem 3rem color-mix(in srgb, var(--focus), transparent 86%);
-}
 .avatar img,
 .avatarLarge img {
   width: 100%;
@@ -1557,7 +1522,6 @@
   font-weight: 700;
   text-decoration: none;
 }
-.dashboardGrid,
 .formLayout,
 .operationLayout,
 .adminGrid {
@@ -1781,47 +1745,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.categoryTextCell {
-  min-width: 18rem;
-}
-.categoryTextButton {
-  display: block;
-  width: 100%;
-  max-width: 24rem;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.categoryTextButton strong,
-.categoryTextButton span {
-  display: block;
-}
-.categoryTextButton span {
-  max-width: 18rem;
-  margin-top: 0.15rem;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 0.75rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.categoryTextButton:hover span,
-.categoryTextButton:focus-visible span {
-  max-width: 24rem;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-.categoryTextButton:focus-visible {
-  border-radius: 0.25rem;
-  outline: 2px solid var(--focus);
-  outline-offset: 4px;
-}
 .detailGrid,
 .miniDefinition {
   display: grid;
@@ -1910,7 +1833,7 @@
 .thresholdHeader {
   padding: 0 0.15rem 0.4rem;
   color: var(--muted);
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   font-weight: 750;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1987,31 +1910,6 @@
   border-color: var(--danger-line);
   box-shadow: 0 0 0 3px var(--danger-soft);
 }
-.categoryAmountField {
-  display: block;
-  width: 5.75rem;
-}
-.categoryAmountField input {
-  width: 100%;
-  min-height: 2.6rem;
-  padding: 0.55rem 0.65rem;
-  border: 1px solid var(--control-border);
-  border-radius: 0.7rem;
-  color: var(--ink);
-  background: var(--control-bg);
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 700;
-}
-.categoryAmountField input:focus-visible {
-  border-color: var(--focus);
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-.categoryAmountField input[aria-invalid='true'] {
-  border-color: var(--danger-line);
-  box-shadow: 0 0 0 3px var(--danger-soft);
-}
 .inlineActions {
   display: flex;
   align-items: center;
@@ -2045,6 +1943,9 @@
 }
 .categoryDetailsCard {
   border-top: 3px solid var(--brand-gold);
+}
+.categoryDetailsInline {
+  display: none;
 }
 .categoryDetailsBody {
   display: grid;
@@ -3068,7 +2969,7 @@
 }
 .rulesCategorySummary small {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
 }
 .rulesCategoryChevron {
   flex: none;
@@ -3173,6 +3074,7 @@
   overflow-y: auto;
   background: var(--overlay);
   backdrop-filter: blur(7px);
+  animation: fadeIn 180ms ease-out;
 }
 
 .modal {
@@ -3181,6 +3083,7 @@
   padding: 1rem;
   overflow-y: auto;
   border: 1px solid var(--line);
+  animation: modalIn 200ms ease-out;
   border-radius: 1.1rem;
   background: var(--surface-strong);
   box-shadow: var(--shadow-lg);
@@ -3259,6 +3162,57 @@
   background: var(--canvas);
   font-size: 0.8125rem;
 }
+.routeSkeleton {
+  display: grid;
+  min-height: min(42rem, calc(100vh - 10rem));
+  align-content: start;
+  gap: 1rem;
+  padding-top: 1.5rem;
+}
+.routeSkeletonHeading,
+.routeSkeletonGrid,
+.routeSkeletonBody {
+  display: grid;
+  gap: 0.75rem;
+}
+.routeSkeletonHeading span,
+.routeSkeletonGrid span,
+.routeSkeletonBody span {
+  min-height: 1rem;
+  border-radius: 0.8rem;
+  background: linear-gradient(90deg, var(--surface-soft) 15%, var(--surface-hover) 45%, var(--surface-soft) 75%);
+  background-size: 220% 100%;
+  animation: routeSkeletonPulse 1.3s ease-in-out infinite;
+}
+.routeSkeletonHeading span:first-child { width: 10rem; min-height: 0.75rem; }
+.routeSkeletonHeading span:last-child { width: min(28rem, 80%); min-height: 2.6rem; }
+.routeSkeletonGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.routeSkeletonGrid span { min-height: 8rem; }
+.routeSkeletonGrid span:last-child { grid-column: 1 / -1; }
+.routeSkeletonBody span { min-height: 11rem; }
+.routeSkeleton[data-route-kind='catalog'] .routeSkeletonGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.routeSkeleton[data-route-kind='catalog'] .routeSkeletonGrid span {
+  min-height: 14rem;
+}
+.routeSkeleton[data-route-kind='catalog'] .routeSkeletonGrid span:last-child {
+  grid-column: auto;
+}
+.routeSkeleton[data-route-kind='profile'] .routeSkeletonGrid,
+.routeSkeleton[data-route-kind='admin'] .routeSkeletonGrid {
+  grid-template-columns: 1fr;
+}
+.routeSkeleton[data-route-kind='profile'] .routeSkeletonGrid span,
+.routeSkeleton[data-route-kind='admin'] .routeSkeletonBody span {
+  min-height: 8.5rem;
+}
+.routeSkeleton[data-route-kind='form'] .routeSkeletonGrid {
+  grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr);
+}
+.routeSkeleton[data-route-kind='form'] .routeSkeletonGrid span:last-child {
+  grid-column: auto;
+}
 .loadingMark {
   display: grid;
   width: 3.8rem;
@@ -3328,6 +3282,18 @@
   to {
     transform: translateX(138%);
   }
+}
+@keyframes routeSkeletonPulse {
+  from { background-position: 100% 0; }
+  to { background-position: -120% 0; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(1rem) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes notificationRing {
   0%,
@@ -3417,10 +3383,6 @@
   .pageHeaderAction {
     flex: none;
     align-self: flex-end;
-  }
-  .welcomePanel {
-    min-height: 13.5rem;
-    padding: 2rem;
   }
   .balanceGrid,
   .balanceGridCompact {
@@ -3516,6 +3478,17 @@
 }
 
 @media (max-width: 39.99rem) {
+  .routeSkeleton[data-route-kind] .routeSkeletonGrid {
+    grid-template-columns: 1fr;
+  }
+  .routeSkeleton[data-route-kind] .routeSkeletonGrid span:last-child {
+    grid-column: auto;
+  }
+  .backToTop {
+    right: auto;
+    left: max(1rem, env(safe-area-inset-left));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+  }
   .mobileScrollHint {
     display: flex;
     align-items: center;
@@ -3559,6 +3532,15 @@
   }
 }
 
+@media (max-width: 63.99rem) {
+  .categoryDetailsInline {
+    display: block;
+  }
+  .categoryDetailsSidebar {
+    display: none;
+  }
+}
+
 @media (min-width: 64rem) {
   .appShell {
     display: grid;
@@ -3592,9 +3574,6 @@
   .pageHeader {
     margin-top: 1.6rem;
     margin-bottom: 2rem;
-  }
-  .dashboardGrid {
-    grid-template-columns: minmax(0, 1.55fr) minmax(17rem, 0.75fr);
   }
   .formLayout,
   .operationLayout {
@@ -3638,9 +3617,6 @@
   }
   .mainContent {
     padding-inline: 2.8rem;
-  }
-  .welcomePanel {
-    padding: 2rem;
   }
   .approvalGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3715,6 +3691,11 @@
   .loadingLine span,
   .spinner,
   .spinnerLarge,
+  .themeGlyph,
+  .sparkTokenAnimated,
+  .waveArtwork,
+  .modalBackdrop,
+  .modal,
   .sparkTokenRadiant.sparkTokenAnimated .sparkTokenImage,
   .sparkTokenRadiant.sparkTokenAnimated::before {
     animation: none;

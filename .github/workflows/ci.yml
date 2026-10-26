@@ -96,7 +96,7 @@ jobs:
       - name: Run six-role browser and axe E2E
         run: pnpm test:e2e
 
-      - name: Run three-pass Lighthouse budgets on public and key authenticated pages
+      - name: Run three-pass desktop and mobile Lighthouse budgets on public and key authenticated pages
         shell: bash
         run: |
           pnpm --dir server start > /tmp/c-job-sparks-server.log 2>&1 &
@@ -108,6 +108,7 @@ jobs:
           done
 
           pnpm test:lighthouse
+          LIGHTHOUSE_FORM_FACTOR=mobile pnpm test:lighthouse
 
           employee_cookie=$(curl --fail --silent --show-error -D - -o /dev/null \
             -H 'content-type: application/json' \
@@ -115,6 +116,7 @@ jobs:
             http://127.0.0.1:3001/api/v1/auth/login \
             | awk 'BEGIN { IGNORECASE=1 } /^set-cookie:/ { print $2; exit }' | tr -d '\r')
           LIGHTHOUSE_PATHS='/profile,/shop' LIGHTHOUSE_SESSION_COOKIE="$employee_cookie" pnpm test:lighthouse
+          LIGHTHOUSE_FORM_FACTOR=mobile LIGHTHOUSE_PATHS='/profile,/shop' LIGHTHOUSE_SESSION_COOKIE="$employee_cookie" pnpm test:lighthouse
 
           admin_cookie=$(curl --fail --silent --show-error -D - -o /dev/null \
             -H 'content-type: application/json' \
@@ -122,6 +124,7 @@ jobs:
             http://127.0.0.1:3001/api/v1/auth/login \
             | awk 'BEGIN { IGNORECASE=1 } /^set-cookie:/ { print $2; exit }' | tr -d '\r')
           LIGHTHOUSE_PATHS='/admin' LIGHTHOUSE_SESSION_COOKIE="$admin_cookie" pnpm test:lighthouse
+          LIGHTHOUSE_FORM_FACTOR=mobile LIGHTHOUSE_PATHS='/admin' LIGHTHOUSE_SESSION_COOKIE="$admin_cookie" pnpm test:lighthouse
 
       - name: Upload browser reports on failure
         if: failure()

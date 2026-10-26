@@ -206,7 +206,11 @@ export function RegistrationManager() {
                   <div>
                     <strong>{historyLabels[event.action]}</strong>
                     <p>{event.details}</p>
-                    <small><LocalizedText>{employee?.name ?? account?.email ?? 'Account no longer available'}</LocalizedText> <LocalizedText>· actor </LocalizedText>{actor?.name ?? event.actorId}</small>
+                    <small>
+                      <LocalizedText>{employee?.name ?? (account ? account.email : 'Deleted account')}</LocalizedText>{' '}
+                      <LocalizedText>· actor </LocalizedText>
+                      <LocalizedText>{actor?.name ?? 'Former administrator'}</LocalizedText>
+                    </small>
                   </div>
                   <div className={accessStyles.historyStatus}>
                     <StatusBadge status={status} />

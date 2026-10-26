@@ -2,6 +2,7 @@ const lighthousePaths = process.env.LIGHTHOUSE_PATHS
   ? process.env.LIGHTHOUSE_PATHS.split(',').map((path) => path.trim()).filter(Boolean)
   : ['/login', '/register', '/registration-status'];
 const sessionCookie = process.env.LIGHTHOUSE_SESSION_COOKIE;
+const mobile = process.env.LIGHTHOUSE_FORM_FACTOR === 'mobile';
 
 module.exports = {
   ci: {
@@ -11,7 +12,12 @@ module.exports = {
       url: lighthousePaths.map((path) => `http://127.0.0.1:4173${path}`),
       numberOfRuns: 3,
       settings: {
-        preset: 'desktop',
+        ...(mobile
+          ? {
+              formFactor: 'mobile',
+              screenEmulation: { mobile: true, width: 390, height: 844, deviceScaleFactor: 2, disabled: false },
+            }
+          : { preset: 'desktop' }),
         chromeFlags: '--no-sandbox --headless=new',
         ...(sessionCookie ? { extraHeaders: { Cookie: sessionCookie } } : {}),
       },

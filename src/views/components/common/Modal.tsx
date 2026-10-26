@@ -1,4 +1,3 @@
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -23,7 +22,6 @@ export function Modal({
   const { localize } = useUserPreferences();
   const dialog = useRef<HTMLElement>(null);
   const id = useId();
-  const reduced = useReducedMotion();
   useEffect(() => {
     if (!open) return;
     const root = document.getElementById('root');
@@ -35,19 +33,15 @@ export function Modal({
   }, [open]);
   useDialogFocus(open, dialog, onClose);
   return createPortal(
-    <AnimatePresence>
-      {open && (
-        <motion.div
+    <>
+      {open ? (
+        <div
           className={styles.modalBackdrop}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: reduced ? 0 : 0.18 }}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) onClose();
           }}
         >
-          <motion.section
+          <section
             ref={dialog}
             tabIndex={-1}
             className={styles.modal}
@@ -55,9 +49,6 @@ export function Modal({
             aria-modal="true"
             aria-labelledby={`${id}-title`}
             aria-describedby={description ? `${id}-description` : undefined}
-            initial={reduced ? false : { opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduced ? undefined : { opacity: 0, y: 8 }}
           >
             <div className={styles.modalHeader}>
               <div>
@@ -70,10 +61,10 @@ export function Modal({
               </button>
             </div>
             {children}
-          </motion.section>
-        </motion.div>
-      )}
-    </AnimatePresence>,
+          </section>
+        </div>
+      ) : null}
+    </>,
     document.body,
   );
 }

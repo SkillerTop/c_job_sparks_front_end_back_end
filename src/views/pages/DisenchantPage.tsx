@@ -30,11 +30,15 @@ export function DisenchantPage() {
     const timer = window.setTimeout(() => setCelebrate(false), reduced ? 50 : 1600);
     return () => window.clearTimeout(timer);
   }, [celebrate, reduced]);
-  const balances = calculateBalances(snapshot!.transactions, currentUserId);
+  const balances = useMemo(
+    () => calculateBalances(snapshot!.transactions, currentUserId),
+    [snapshot, currentUserId],
+  );
+  const availableForType = balances[type];
   const settings = snapshot!.settings;
   useEffect(() => {
-    setAmount((current) => Math.min(Math.max(balances[type] > 0 ? 1 : 0, current), balances[type]));
-  }, [balances[type], type]);
+    setAmount((current) => Math.min(Math.max(availableForType > 0 ? 1 : 0, current), availableForType));
+  }, [availableForType]);
   const moneyValue = useMemo(
     () => Math.round(settings.sparkMoneyValues[type] * amount * settings.disenchantRate * 100) / 100,
     [settings, type, amount],

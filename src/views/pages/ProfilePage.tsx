@@ -1,5 +1,5 @@
 import { AlertTriangle, RefreshCcw, Settings2 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import { useProfileController } from '@/controllers/useProfileController';
 import { ContactSettings } from '@/views/components/profile/ContactSettings';
 import { EmployeeProfileCard } from '@/views/components/profile/EmployeeProfileCard';
@@ -18,6 +18,7 @@ export function ProfilePage() {
   const { t } = useUserPreferences();
   const { profile, preferences, sessions, loading, busyAction, loadError } = controller;
   const [activeSection, setActiveSection] = useState<ProfileSection>('profile');
+  const tabRefs = useRef<Partial<Record<ProfileSection, HTMLButtonElement | null>>>({});
 
   if (loading || !profile.employee || !preferences) {
     return (
@@ -38,6 +39,29 @@ export function ProfilePage() {
     );
   }
 
+  const sections: ReadonlyArray<readonly [ProfileSection, string]> = [
+    ['profile', t('profile.sectionProfile')],
+    ['preferences', t('profile.sectionPreferences')],
+    ...(profile.user?.authProvider === 'entra'
+      ? []
+      : [['security', t('profile.sectionSecurity')] as const]),
+    ['sessions', t('profile.sectionSessions')],
+  ];
+  const moveTabFocus = (event: KeyboardEvent<HTMLButtonElement>, current: ProfileSection) => {
+    const currentIndex = sections.findIndex(([section]) => section === current);
+    let nextIndex: number;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % sections.length;
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp')
+      nextIndex = (currentIndex - 1 + sections.length) % sections.length;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = sections.length - 1;
+    else return;
+    event.preventDefault();
+    const next = sections[nextIndex]![0];
+    setActiveSection(next);
+    tabRefs.current[next]?.focus();
+  };
+
   return (
     <PageTransition>
       <PageHeader
@@ -48,21 +72,19 @@ export function ProfilePage() {
       />
 
       <div className={styles.profileTabs} role="tablist" aria-label={t('profile.sections')}>
-        {([
-          ['profile', t('profile.sectionProfile')],
-          ['preferences', t('profile.sectionPreferences')],
-          ...(profile.user?.authProvider === 'entra' ? [] : [['security', t('profile.sectionSecurity')] as const]),
-          ['sessions', t('profile.sectionSessions')],
-        ] as const).map(([section, label]) => (
+        {sections.map(([section, label]) => (
           <button
             key={section}
+            ref={(element) => { tabRefs.current[section] = element; }}
             id={`profile-tab-${section}`}
             type="button"
             role="tab"
             aria-selected={activeSection === section}
             aria-controls={`profile-panel-${section}`}
+            tabIndex={activeSection === section ? 0 : -1}
             className={activeSection === section ? styles.profileTabActive : styles.profileTab}
             onClick={() => setActiveSection(section)}
+            onKeyDown={(event) => moveTabFocus(event, section)}
           >
             {label}
           </button>

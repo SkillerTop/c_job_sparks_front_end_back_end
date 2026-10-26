@@ -1,4 +1,3 @@
-import { AnimatePresence } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { AlertTriangle, RefreshCcw, Sparkles } from 'lucide-react';
@@ -47,10 +46,29 @@ const RegistrationStatusPage = lazy(() =>
 );
 
 function RouteLoading() {
+  const { pathname } = useLocation();
+  const routeKind = pathname.startsWith('/profile')
+    ? 'profile'
+    : pathname.startsWith('/shop') || pathname.startsWith('/inventory')
+      ? 'catalog'
+      : pathname.startsWith('/admin')
+        ? 'admin'
+        : ['/recognition', '/award', '/convert', '/disenchant'].some((path) => pathname.startsWith(path))
+          ? 'form'
+          : 'overview';
   return (
-    <div className={styles.emptyState} role="status" aria-live="polite">
-      <LocalizedText>Loading workspace section…
-    </LocalizedText></div>
+    <div
+      className={styles.routeSkeleton}
+      data-route-kind={routeKind}
+      role="status"
+      aria-live="polite"
+      aria-label={`Loading ${pathname}`}
+    >
+      <span className={styles.srOnly}><LocalizedText>Loading workspace section…</LocalizedText></span>
+      <div className={styles.routeSkeletonHeading}><span /><span /></div>
+      <div className={styles.routeSkeletonGrid}><span /><span /><span /></div>
+      <div className={styles.routeSkeletonBody}><span /><span /></div>
+    </div>
   );
 }
 
@@ -81,11 +99,9 @@ function WorkspaceLayout() {
     <AsyncBoundary>
       <AppShell key={currentUserId}>
         <Suspense fallback={<RouteLoading />}>
-          <AnimatePresence mode="wait" initial={false}>
-            <div key={location.pathname}>
-              {sectionLoading ? <RouteLoading /> : <Outlet />}
-            </div>
-          </AnimatePresence>
+          <div key={location.pathname}>
+            {sectionLoading ? <RouteLoading /> : <Outlet />}
+          </div>
         </Suspense>
       </AppShell>
     </AsyncBoundary>

@@ -20,7 +20,6 @@ import {
 import { SHOP_TEXT } from '@/constants/shop';
 import { SHOP_ROLES } from '@/constants/app';
 import { ShopServiceError, shopService } from '@/services/shopService';
-import { calculateBalances } from '@/utils/sparkRules';
 import { useAuth } from '@/controllers/AuthContext';
 import { useSpark } from '@/controllers/SparkContext';
 
@@ -42,7 +41,7 @@ const ShopContext = createContext<ShopContextValue | null>(null);
 export function ShopProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { user } = useAuth();
-  const { snapshot: sparkSnapshot, currentUserId, syncShopTransactions } = useSpark();
+  const { snapshot: sparkSnapshot, syncShopTransactions } = useSpark();
   const [snapshot, setSnapshot] = useState<ShopSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,17 +56,9 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     location.pathname === '/shop' ||
     location.pathname === '/inventory' ||
     (location.pathname === '/admin' && new URLSearchParams(location.search).get('tab') === 'shop');
-  const ledgerBalances = useMemo<SpendableSparkBalances | null>(
-    () => {
-      if (!sparkSnapshot || !currentUserId) return null;
-      const current = calculateBalances(sparkSnapshot.transactions, currentUserId);
-      return { White: current.White, Yellow: current.Yellow, Blue: current.Blue };
-    },
-    [sparkSnapshot, currentUserId],
-  );
   const clientIdentity = useMemo(
     () => user ? { id: user.employeeId, email: user.email, role: user.role } : undefined,
-    [user?.employeeId, user?.email, user?.role],
+    [user],
   );
   const effects = useMemo<ShopEffects>(() => {
     if (!snapshot) return sparkSnapshot?.shopEffects ?? EMPTY_SHOP_EFFECTS;
@@ -193,7 +184,9 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ShopContextValue>(
     () => ({
       snapshot,
-      balances: ledgerBalances ?? snapshot?.balances ?? null,
+      // The shop endpoint reads the authoritative PostgreSQL spark_accounts rows.
+      // A section workspace may intentionally contain only a transaction subset.
+      balances: snapshot?.balances ?? null,
       loading,
       error,
       purchasingId,
@@ -203,7 +196,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       purchase,
       activate,
     }),
-    [snapshot, ledgerBalances, loading, error, purchasingId, activatingId, effects, refresh, purchase, activate],
+    [snapshot, loading, error, purchasingId, activatingId, effects, refresh, purchase, activate],
   );
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;

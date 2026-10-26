@@ -105,7 +105,7 @@
 
 .sparkWallet > small {
   color: #d8e2ee;
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -177,7 +177,7 @@
 
 .sparkWallet em {
   color: #bdcbd9;
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-style: normal;
   line-height: 1.35;
 }
@@ -217,7 +217,7 @@
 }
 
 .sparkWalletCompact .sparkWalletToken > span {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
 }
 
 .sparkAmount {
@@ -923,7 +923,7 @@
   }
   .shopEyebrow {
     margin-bottom: 0.15rem;
-    font-size: 0.65rem;
+    font-size: 0.75rem;
   }
   .shopHero .sparkWallet {
     min-width: 0;
@@ -1387,7 +1387,7 @@
   .sparkWalletCompact { width: 100%; }
   .sparkWalletCompact .sparkWalletValues { width: 100%; justify-content: space-between; gap: 0.1rem; }
   .sparkWalletCompact .sparkWalletToken { gap: 0.16rem; padding: 0.18rem 0.22rem; }
-  .sparkWalletCompact .sparkWalletToken strong { font-size: 0.72rem; }
+  .sparkWalletCompact .sparkWalletToken strong { font-size: 0.8125rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

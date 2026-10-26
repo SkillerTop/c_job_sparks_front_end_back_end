@@ -42,7 +42,9 @@ export function ProductCard({
   const disabled = readOnly || loading || ['purchased', 'activated', 'sold-out', 'soon'].includes(action);
   const category = localize(SHOP_CATEGORIES.find((item) => item.value === product.category)?.label ?? product.category);
   const available = balances[product.priceSparkType];
-  const progress = product.price === 0 ? 100 : Math.min(100, (available / product.price) * 100);
+  const progress = product.price === 0
+    ? 100
+    : Math.min(100, Math.max(0, (available / product.price) * 100));
   const promo = product.isLimited
     ? shopText.labels.limited
     : product.isFeatured

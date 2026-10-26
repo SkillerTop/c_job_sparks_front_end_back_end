@@ -24,14 +24,16 @@ export function AwardPage() {
   const { localize } = useUserPreferences();
   const { snapshot, activeRole, currentUserId, createAward } = useSpark();
   const isRadiantAward = activeRole === 'Top Management';
-  const allowedTypes: SparkType[] =
-    activeRole === 'Top Management'
+  const allowedTypes = useMemo<SparkType[]>(
+    () => activeRole === 'Top Management'
       ? ['Radiant']
       : activeRole === 'Head'
         ? ['White', 'Yellow', 'Blue']
         : activeRole === 'GPM'
           ? ['White', 'Yellow']
-          : ['Yellow'];
+          : ['Yellow'],
+    [activeRole],
+  );
   const [form, setForm] = useState<AwardInput>({
     employeeId: '',
     sparkType: allowedTypes[0],
@@ -49,7 +51,7 @@ export function AwardPage() {
       fulfillmentContactId: '', radiantRewardKind: 'RadiantAcrylic', valuablePrizeDescription: '' });
     setErrors({});
     setMessage(null);
-  }, [activeRole]);
+  }, [allowedTypes]);
   const categories = snapshot!.categories.filter(
     (category) =>
       category.active && category.usageType === 'Award' && category.sparkType === form.sparkType,

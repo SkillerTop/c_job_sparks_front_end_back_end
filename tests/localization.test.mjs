@@ -1,6 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { EN_TRANSLATIONS, translate } from '@/constants/translations';
 import { localizeContent } from '@/services/contentLocalization';
+
+test('lazy interface dictionaries preserve the stable English key contract', async () => {
+  const [{ UK_TRANSLATIONS }, { RU_TRANSLATIONS }] = await Promise.all([
+    import('@/constants/translations.uk'),
+    import('@/constants/translations.ru'),
+  ]);
+  const englishKeys = Object.keys(EN_TRANSLATIONS).sort();
+  assert.deepEqual(Object.keys(UK_TRANSLATIONS).sort(), englishKeys);
+  assert.deepEqual(Object.keys(RU_TRANSLATIONS).sort(), englishKeys);
+  assert.equal(translate(UK_TRANSLATIONS, 'shell.forEmployee', { name: 'Olena' }), 'Для Olena');
+  assert.equal(translate(RU_TRANSLATIONS, 'shell.forEmployee', { name: 'Alex' }), 'Для Alex');
+});
 
 test('localizes interface copy into natural Ukrainian and Russian', () => {
   assert.equal(localizeContent('uk', 'Peer recognition'), 'Визнання колег');

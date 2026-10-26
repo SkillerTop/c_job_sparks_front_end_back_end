@@ -1,5 +1,5 @@
 import { ShieldCheck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/views/components/common/Modal';
 import { Feedback } from '@/views/components/common/Feedback';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
@@ -36,10 +36,13 @@ export function PurchaseModal({
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('OfficePickup');
   const [officeName, setOfficeName] = useState('Main office');
   const assignedContact = contacts.find((contact) => contact.id === product?.fulfillmentContactId);
-  const officeOptions = contacts
-    .filter((contact) => contact.role === 'OfficeManager' && contact.officeName)
-    .map((contact) => contact.officeName!)
-    .filter((office, index, offices) => offices.indexOf(office) === index);
+  const officeOptions = useMemo(
+    () => contacts
+      .filter((contact) => contact.role === 'OfficeManager' && contact.officeName)
+      .map((contact) => contact.officeName!)
+      .filter((office, index, offices) => offices.indexOf(office) === index),
+    [contacts],
+  );
   useEffect(() => {
     if (!product) return;
     const preferredOffice = contacts.find((contact) => contact.role === 'OfficeManager' && contact.officeName === 'Main office')
@@ -50,7 +53,7 @@ export function PurchaseModal({
       : product.fulfillmentKind === 'ITEquipment'
         ? 'InternalCoordination'
         : 'OfficePickup');
-  }, [product?.id, contacts]);
+  }, [product, contacts, officeOptions]);
   const available = product ? balances[product.priceSparkType] : 0;
   const after = product ? available - product.price : available;
   const needsFulfillment = product?.fulfillmentKind !== 'Virtual';

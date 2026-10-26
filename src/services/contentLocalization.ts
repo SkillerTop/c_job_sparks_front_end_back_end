@@ -3,6 +3,7 @@ import type { InterfaceLanguage } from '@/models/profile';
 type PhraseMap = Record<string, string>;
 
 const uk: PhraseMap = {
+  'Deleted account': 'Видалений обліковий запис', 'Former administrator': 'Колишній адміністратор',
   'Your balance': 'Ваш баланс', 'Spark wallet': 'Гаманець Sparks', 'Immutable history': 'Незмінна історія',
   'Recent activity': 'Остання активність', 'Latest': 'Останні', 'Quarter snapshot': 'Підсумок кварталу',
   'Your impact': 'Ваш внесок', 'Recognize a colleague': 'Відзначити колегу', 'Review approvals': 'Переглянути погодження',
@@ -127,6 +128,7 @@ const uk: PhraseMap = {
 };
 
 const ru: PhraseMap = {
+  'Deleted account': 'Удалённая учётная запись', 'Former administrator': 'Бывший администратор',
   'Your balance': 'Ваш баланс', 'Spark wallet': 'Кошелёк Sparks', 'Immutable history': 'Неизменяемая история',
   'Recent activity': 'Последняя активность', 'Latest': 'Последние', 'Quarter snapshot': 'Итоги квартала',
   'Your impact': 'Ваш вклад', 'Recognize a colleague': 'Отметить коллегу', 'Review approvals': 'Проверить согласования',

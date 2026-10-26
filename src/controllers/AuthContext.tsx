@@ -104,37 +104,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user, refreshAuth]);
 
-  const login = async (input: LoginInput) => {
+  const login = useCallback(async (input: LoginInput) => {
     const account = await authService.login(input);
     await refreshAuth();
     return account.status;
-  };
+  }, [refreshAuth]);
 
-  const register = async (input: RegistrationInput) => {
+  const register = useCallback(async (input: RegistrationInput) => {
     const account = await authService.register(input);
     await refreshAuth();
     return account;
-  };
+  }, [refreshAuth]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     refreshGeneration.current += 1;
     authService.logout();
     setUser(null);
     setAccessState({ accounts: [], auditEvents: [] });
     setError(null);
-  };
+  }, []);
 
-  const clearRegistrationView = () => {
+  const clearRegistrationView = useCallback(() => {
     refreshGeneration.current += 1;
     authService.clearRegistrationView();
     setRegistrationAccount(null);
-  };
+  }, []);
 
-  const reviewRegistration: AuthContextValue['reviewRegistration'] = async (accountId, decision, reason, employee) => {
+  const reviewRegistration: AuthContextValue['reviewRegistration'] = useCallback(async (accountId, decision, reason, employee) => {
     const account = await authService.reviewRegistration(accountId, decision, reason, employee);
     await refreshAuth();
     return account;
-  };
+  }, [refreshAuth]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -150,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       reviewRegistration,
       refreshAuth,
     }),
-    [accessState, user, registrationAccount, loading, error, refreshAuth],
+    [accessState, user, registrationAccount, loading, error, login, register, logout, clearRegistrationView, reviewRegistration, refreshAuth],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

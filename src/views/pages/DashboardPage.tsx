@@ -10,11 +10,12 @@ import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { EMPTY_SHOP_EFFECTS } from '@/models/shop';
 import { formatDate } from '@/utils/formatters';
-import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+import styles from '@/views/styles/app.module.css';import dashboardStyles from '@/views/styles/dashboard.module.css';
+import { LocalizedText } from '@/views/components/common/LocalizedText';
 
 
 export function DashboardPage() {
-  const { localize, locale } = useUserPreferences();
+  const { localize, locale, t } = useUserPreferences();
   const data = useDashboardController();
   const { snapshot } = useSpark();
   const effects = snapshot?.shopEffects ?? EMPTY_SHOP_EFFECTS;
@@ -31,7 +32,7 @@ export function DashboardPage() {
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   return (
     <PageTransition>
-      <section className={styles.welcomePanel} data-focus-surface={effects.focusMode || undefined}>
+      <section className={dashboardStyles.welcomePanel} data-focus-surface={effects.focusMode || undefined}>
         <div>
           <p className={styles.eyebrow}>{dateLabel}</p>
           <h1><LocalizedText>{`${greeting}, ${user.name.split(' ')[0]}.`}</LocalizedText></h1>
@@ -43,8 +44,12 @@ export function DashboardPage() {
                 : 'Your work is creating momentum. Here is how it is being recognized.'}
           </LocalizedText></p>
           {(effects.focusMode || effects.doubleWhiteSparks || effects.vipStatus) && (
-            <div className={styles.activeRewardStrip} aria-label={localize('Active rewards')}>
-              {effects.focusMode && <span><LocalizedText>Focus mode active</LocalizedText></span>}
+            <div className={dashboardStyles.activeRewardStrip} aria-label={localize('Active rewards')}>
+              {effects.focusMode && (
+                <Link to="/inventory" title={t('nav.inventory')}>
+                  {t('dashboard.focusMode')}
+                </Link>
+              )}
               {effects.doubleWhiteSparks && <span><LocalizedText>2× White Sparks</LocalizedText></span>}
               {effects.vipStatus && <span><LocalizedText>VIP active</LocalizedText></span>}
             </div>
@@ -74,7 +79,7 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <div className={styles.dashboardGrid}>
+      <div className={dashboardStyles.dashboardGrid}>
         <section className={styles.panel} aria-labelledby="recent-title">
           <div className={styles.panelHeader}>
             <div>

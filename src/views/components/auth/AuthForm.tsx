@@ -216,7 +216,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
                 setEmail(event.target.value);
                 if (errors.email) setErrors((current) => ({ ...current, email: undefined }));
               }}
-              placeholder="name@c-job.test"
+              placeholder="name@c-job.com.ua"
               required
             />
           </span>

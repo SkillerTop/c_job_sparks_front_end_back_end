@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type {
   AppSnapshot,
   AwardInput,
@@ -101,7 +101,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (identityError) logout();
-  }, [identityError]);
+  }, [identityError, logout]);
 
   const refresh = useCallback(async () => {
     const generation = ++workspaceGeneration.current;
@@ -125,7 +125,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
     } finally {
       if (generation === workspaceGeneration.current) setLoading(false);
     }
-  }, [section, user?.accountId]);
+  }, [section, user]);
 
   useEffect(() => {
     const generation = ++workspaceGeneration.current;
@@ -153,7 +153,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
     return () => {
       workspaceGeneration.current += 1;
     };
-  }, [user?.accountId]);
+  }, [user]);
 
   useEffect(() => {
     if (!user || !layoutReady) return;
@@ -173,7 +173,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
       .finally(() => {
         if (generation === workspaceGeneration.current) setSectionLoading(false);
       });
-  }, [layoutReady, section, user?.accountId]);
+  }, [layoutReady, section, user]);
 
   useEffect(() => {
     const syncCalendarState = async () => {
@@ -203,7 +203,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.clearInterval(interval);
     };
-  }, [isLocked, section, user?.accountId]);
+  }, [isLocked, section, user]);
 
   const updateSnapshot = (next: AppSnapshot) =>
     setSnapshot((current) => ({ ...next, shell: next.shell ?? current?.shell }));
@@ -310,8 +310,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const value = useMemo<SparkContextValue>(
-    () => ({
+  const value: SparkContextValue = {
       snapshot,
       loading,
       sectionLoading,
@@ -338,9 +337,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
       deleteEmployee,
       syncShopTransactions,
       resetDemo,
-    }),
-    [snapshot, loading, sectionLoading, mutating, error, identityError, activeRole, currentUserId, refresh, syncShopTransactions],
-  );
+  };
 
   return <SparkContext.Provider value={value}>{children}</SparkContext.Provider>;
 }

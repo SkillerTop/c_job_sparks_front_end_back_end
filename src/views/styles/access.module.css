@@ -85,7 +85,7 @@
 
 .registrationMeta dt {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -110,7 +110,7 @@
 .approvalBlocked {
   max-width: 22rem;
   color: var(--danger);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
@@ -170,7 +170,7 @@
 .historyList small {
   margin-top: 0.25rem;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
 

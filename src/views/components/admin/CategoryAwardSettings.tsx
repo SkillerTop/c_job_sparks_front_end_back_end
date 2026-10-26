@@ -8,6 +8,7 @@ import type { ReferenceDraft, SparkCategory } from '@/models';
 import { createReferenceDraft } from '@/utils/referenceDraft';
 import { ReferenceEditor } from './ReferenceEditor';
 import styles from '@/views/styles/app.module.css';
+import adminStyles from '@/views/styles/admin.module.css';
 import { LocalizedText } from '@/views/components/common/LocalizedText';
 
 const editableSparkTypes: SparkCategory['sparkType'][] = ['White', 'Yellow', 'Blue'];
@@ -35,6 +36,17 @@ export function CategoryAwardSettings() {
   const [draft, setDraft] = useState<ReferenceDraft | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const [query, setQuery] = useState('');
+  const [showAllPeer, setShowAllPeer] = useState(false);
+  const [showAllAward, setShowAllAward] = useState(false);
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const matchesQuery = (category: SparkCategory) =>
+    !normalizedQuery || [category.name, category.description, category.sparkType]
+      .some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
+  const filteredPeer = peerCategories.filter(matchesQuery);
+  const filteredAward = categories.filter(matchesQuery);
+  const visiblePeer = showAllPeer || normalizedQuery ? filteredPeer : filteredPeer.slice(0, 8);
+  const visibleAward = showAllAward || normalizedQuery ? filteredAward : filteredAward.slice(0, 8);
 
   useEffect(() => {
     setAmounts(Object.fromEntries(managedCategories.map((category) => [category.id, category.amount])));
@@ -64,7 +76,7 @@ export function CategoryAwardSettings() {
   const categoryText = (category: SparkCategory) => (
     <button
       type="button"
-      className={styles.categoryTextButton}
+      className={adminStyles.categoryTextButton}
       title={`${localize(category.name)}\n${localize(category.description)}`}
       aria-label={localize(`Edit ${category.name}`)}
       onClick={() => editCategory(category)}
@@ -126,6 +138,19 @@ export function CategoryAwardSettings() {
         <SlidersHorizontal size={20} aria-hidden="true" />
       </div>
       {message && <Feedback tone={message.tone}>{message.text}</Feedback>}
+      <label className={adminStyles.categorySearch}>
+        <span>{t('adminCategory.search')}</span>
+        <input
+          type="search"
+          value={query}
+          placeholder={t('adminCategory.searchPlaceholder')}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setShowAllPeer(false);
+            setShowAllAward(false);
+          }}
+        />
+      </label>
       <div className={styles.panelHeader}>
         <div>
           <h3><LocalizedText>Peer Recognition categories</LocalizedText></h3>
@@ -135,8 +160,8 @@ export function CategoryAwardSettings() {
           <Plus size={15} /> <LocalizedText>Add Peer category</LocalizedText>
         </button>
       </div>
-      <div className={styles.tableScroller} tabIndex={0} aria-label={localize('Peer Recognition categories')}>
-        <table className={styles.dataTable}>
+      <div className={`${styles.tableScroller} ${adminStyles.categoryTableScroller}`} tabIndex={0} aria-label={localize('Peer Recognition categories')}>
+        <table className={`${styles.dataTable} ${adminStyles.categoryAdminTable}`}>
           <thead>
             <tr>
               <th>{t('adminCategory.category')}</th>
@@ -148,17 +173,17 @@ export function CategoryAwardSettings() {
             </tr>
           </thead>
           <tbody>
-            {peerCategories.map((category) => {
+            {visiblePeer.map((category) => {
               const amount = amounts[category.id];
               const invalid = !Number.isInteger(amount) || amount < 1 || amount > 100;
               const unchanged = amount === category.amount;
               return (
                 <tr key={category.id}>
-                  <td className={styles.categoryTextCell}>{categoryText(category)}</td>
-                  <td><LocalizedText>Peer Recognition</LocalizedText></td>
-                  <td><SparkBadge type="White" amount={category.amount} /></td>
-                  <td>
-                    <label className={styles.categoryAmountField}>
+                  <td className={adminStyles.categoryTextCell} data-label={t('adminCategory.category')}>{categoryText(category)}</td>
+                  <td data-label={localize('Usage')}><LocalizedText>Peer Recognition</LocalizedText></td>
+                  <td data-label={t('adminCategory.current')}><SparkBadge type="White" amount={category.amount} /></td>
+                  <td data-label={t('adminCategory.newReward')}>
+                    <label className={adminStyles.categoryAmountField}>
                       <span className={styles.srOnly}>{t('adminCategory.amountFor', { name: category.name })}</span>
                       <input
                         type="number"
@@ -175,13 +200,13 @@ export function CategoryAwardSettings() {
                       />
                     </label>
                   </td>
-                  <td>
+                  <td data-label={t('adminCategory.status')}>
                     <span className={`${styles.statusBadge} ${category.active ? styles.statusApproved : styles.statusCancelled}`}>
                       {category.active ? t('adminCategory.active') : t('adminCategory.inactive')}
                     </span>
                   </td>
-                  <td>
-                    <div className={styles.inlineActions}>
+                  <td data-label={t('adminCategory.actions')}>
+                    <div className={`${styles.inlineActions} ${adminStyles.categoryActions}`}>
                       <button type="button" className={styles.iconButton} aria-label={localize(`Edit ${category.name}`)} onClick={() => editCategory(category)}>
                         <Pencil size={15} />
                       </button>
@@ -211,6 +236,13 @@ export function CategoryAwardSettings() {
           </tbody>
         </table>
       </div>
+      {filteredPeer.length === 0 ? (
+        <p className={adminStyles.categoryEmpty}>{t('adminCategory.noResults')}</p>
+      ) : filteredPeer.length > 8 && !normalizedQuery ? (
+        <button type="button" className={styles.textButton} aria-expanded={showAllPeer} onClick={() => setShowAllPeer((value) => !value)}>
+          {showAllPeer ? t('adminCategory.showFewer') : t('adminCategory.showAll', { count: filteredPeer.length })}
+        </button>
+      ) : null}
       <div className={styles.panelHeader}>
         <div>
           <h3><LocalizedText>Award a Spark categories</LocalizedText></h3>
@@ -220,8 +252,8 @@ export function CategoryAwardSettings() {
           <Plus size={15} /> <LocalizedText>Add Award category</LocalizedText>
         </button>
       </div>
-      <div className={styles.tableScroller} tabIndex={0} aria-label={t('adminCategory.title')}>
-        <table className={styles.dataTable}>
+      <div className={`${styles.tableScroller} ${adminStyles.categoryTableScroller}`} tabIndex={0} aria-label={t('adminCategory.title')}>
+        <table className={`${styles.dataTable} ${adminStyles.categoryAdminTable}`}>
           <caption className={styles.srOnly}>{t('adminCategory.description')}</caption>
           <thead>
             <tr>
@@ -234,17 +266,17 @@ export function CategoryAwardSettings() {
             </tr>
           </thead>
           <tbody>
-            {categories.map((category) => {
+            {visibleAward.map((category) => {
               const amount = amounts[category.id];
               const invalid = !Number.isInteger(amount) || amount < 1 || amount > 100;
               const unchanged = amount === category.amount;
               return (
                 <tr key={category.id}>
-                  <td className={styles.categoryTextCell}>{categoryText(category)}</td>
-                  <td><LocalizedText>Award a Spark</LocalizedText></td>
-                  <td><SparkBadge type={category.sparkType} amount={category.amount} /></td>
-                  <td>
-                    <label className={styles.categoryAmountField}>
+                  <td className={adminStyles.categoryTextCell} data-label={t('adminCategory.category')}>{categoryText(category)}</td>
+                  <td data-label={localize('Usage')}><LocalizedText>Award a Spark</LocalizedText></td>
+                  <td data-label={t('adminCategory.current')}><SparkBadge type={category.sparkType} amount={category.amount} /></td>
+                  <td data-label={t('adminCategory.newReward')}>
+                    <label className={adminStyles.categoryAmountField}>
                       <span className={styles.srOnly}>
                         {t('adminCategory.amountFor', { name: category.name })}
                       </span>
@@ -266,13 +298,13 @@ export function CategoryAwardSettings() {
                       />
                     </label>
                   </td>
-                  <td>
+                  <td data-label={t('adminCategory.status')}>
                     <span className={`${styles.statusBadge} ${category.active ? styles.statusApproved : styles.statusCancelled}`}>
                       {category.active ? t('adminCategory.active') : t('adminCategory.inactive')}
                     </span>
                   </td>
-                  <td>
-                    <div className={styles.inlineActions}>
+                  <td data-label={t('adminCategory.actions')}>
+                    <div className={`${styles.inlineActions} ${adminStyles.categoryActions}`}>
                       <button type="button" className={styles.iconButton} aria-label={localize(`Edit ${category.name}`)} onClick={() => editCategory(category)}>
                         <Pencil size={15} />
                       </button>
@@ -302,6 +334,13 @@ export function CategoryAwardSettings() {
           </tbody>
         </table>
       </div>
+      {filteredAward.length === 0 ? (
+        <p className={adminStyles.categoryEmpty}>{t('adminCategory.noResults')}</p>
+      ) : filteredAward.length > 8 && !normalizedQuery ? (
+        <button type="button" className={styles.textButton} aria-expanded={showAllAward} onClick={() => setShowAllAward((value) => !value)}>
+          {showAllAward ? t('adminCategory.showFewer') : t('adminCategory.showAll', { count: filteredAward.length })}
+        </button>
+      ) : null}
       <p className={styles.infoNote}>{t('adminCategory.policy')}</p>
       {draft && (
         <ReferenceEditor

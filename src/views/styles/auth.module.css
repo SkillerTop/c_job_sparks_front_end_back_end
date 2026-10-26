@@ -131,7 +131,7 @@
   border-radius: 0.72rem;
   color: var(--warning);
   background: var(--warning-soft);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.4;
   text-align: center;
@@ -439,7 +439,7 @@
 .demoGrid span {
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.73rem;
+  font-size: 0.8125rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

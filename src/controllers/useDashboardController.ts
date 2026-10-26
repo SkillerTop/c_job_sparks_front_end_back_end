@@ -10,7 +10,7 @@ export function useDashboardController() {
     if (!snapshot) return null;
     const user = snapshot.employees.find((employee) => employee.id === currentUserId)!;
     const department = snapshot.departments.find((item) => item.id === user.departmentId)!;
-    const balances = calculateBalances(snapshot.transactions, currentUserId);
+    const balances = snapshot.shell?.balances ?? calculateBalances(snapshot.transactions, currentUserId);
     const recentTransactions = snapshot.transactions
       .filter((item) => item.employeeId === currentUserId)
       .sort((a, b) => b.dateTime.localeCompare(a.dateTime))

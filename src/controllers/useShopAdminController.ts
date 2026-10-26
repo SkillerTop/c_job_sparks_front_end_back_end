@@ -54,7 +54,7 @@ export function useShopAdminController() {
       user
         ? { id: user.employeeId, email: user.email, role: user.role }
         : undefined,
-    [user?.employeeId, user?.email, user?.role],
+    [user],
   );
 
   const load = useCallback(async () => {

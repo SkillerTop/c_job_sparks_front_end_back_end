@@ -18,7 +18,14 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'mobile-chromium',
+      testMatch: /(?:roles|mobile-ux)\.spec\.ts/,
+      use: { ...devices['Pixel 5'] },
+    },
+  ],
   webServer: [
     {
       command: 'pnpm --dir server start',

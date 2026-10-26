@@ -16,7 +16,7 @@
     "preview": "vite preview --configLoader native",
     "lint": "tsc --noEmit && eslint src server/src server/test tests e2e scripts *.ts && stylelint \"src/**/*.css\"",
     "lint:types": "tsc --noEmit",
-    "lint:eslint": "eslint src server/src server/test tests e2e scripts *.ts",
+    "lint:eslint": "eslint src server/src server/test tests e2e scripts *.ts --max-warnings=0",
     "lint:css": "stylelint \"src/**/*.css\"",
     "test": "node --import ./tests/register.mjs --test --test-isolation=none tests/architecture.test.mjs tests/domain.test.mjs tests/auth.test.mjs tests/shop-demo.test.mjs tests/localization.test.mjs tests/rules-categories.test.mjs",
     "test:localization": "node scripts/audit-localization.mjs --check && node --import ./tests/register.mjs --test --test-isolation=none tests/localization.test.mjs",

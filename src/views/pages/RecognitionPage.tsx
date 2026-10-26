@@ -111,6 +111,11 @@ export function RecognitionPage() {
                 </small>
               )}
             </label>
+            {selectedCategory ? (
+              <div className={`${styles.fieldFull} ${styles.categoryDetailsInline}`}>
+                <CategoryDetailsCard category={selectedCategory} />
+              </div>
+            ) : null}
             <label className={`${styles.formField} ${styles.fieldFull}`}>
               <span>
                 <LocalizedText>Reason / description </LocalizedText><b aria-hidden="true">*</b>
@@ -176,7 +181,11 @@ export function RecognitionPage() {
               <strong>{quarterEndLabel(snapshot!.settings.currentQuarter)}</strong>.
             </p>
           </section>
-          {selectedCategory ? <CategoryDetailsCard category={selectedCategory} /> : null}
+          {selectedCategory ? (
+            <div className={styles.categoryDetailsSidebar}>
+              <CategoryDetailsCard category={selectedCategory} />
+            </div>
+          ) : null}
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
