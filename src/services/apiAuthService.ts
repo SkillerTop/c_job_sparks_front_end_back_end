@@ -41,7 +41,7 @@ export const apiAuthService = {
   },
 
   async initialize() {
-    await me();
+    // Session restoration below is the single source of truth; avoid issuing /me twice on every refresh.
   },
 
   getAccessState: () => apiRequest<AuthAccessState>('/api/v1/admin/access-requests'),

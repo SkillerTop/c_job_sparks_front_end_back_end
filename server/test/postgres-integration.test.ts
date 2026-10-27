@@ -848,7 +848,7 @@ if (!sourceDatabaseUrl) {
           AND accessibility_settings->>'avatarDataUrl' IS NOT NULL`, [account.rows[0]!.id]), 1);
       const accessQueue = await authenticated('Administrator', 'GET', '/api/v1/admin/access-requests');
       assert.equal(accessQueue.statusCode, 200, accessQueue.body);
-      const microsoftRequest = accessQueue.json<{ accounts: Array<{
+      const accessQueueBody = accessQueue.json<{ accounts: Array<{
         id: string;
         requestedDepartmentId?: string;
         suggestedDepartmentName?: string;
@@ -856,7 +856,17 @@ if (!sourceDatabaseUrl) {
         suggestedManagerId?: string;
         suggestedManagerName?: string;
         suggestedRole?: string;
-      }> }>().accounts.find((item) => item.id === account.rows[0]!.id);
+      }>; auditEvents: Array<{
+        accountLabel: string;
+        actorLabel: string;
+        details: string;
+      }> }>();
+      const microsoftRequest = accessQueueBody.accounts.find((item) => item.id === account.rows[0]!.id);
+      assert.ok(accessQueueBody.auditEvents.some((event) =>
+        event.accountLabel === email && event.actorLabel.length > 0 && event.details.length > 0));
+      assert.ok(accessQueueBody.auditEvents.every((event) =>
+        !/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(event.accountLabel) &&
+        !/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(event.actorLabel)));
       assert.equal(microsoftRequest?.suggestedJobTitle, 'Senior QA Engineer');
       assert.equal(microsoftRequest?.suggestedDepartmentName, microsoftDepartment);
       assert.ok(microsoftRequest?.requestedDepartmentId);

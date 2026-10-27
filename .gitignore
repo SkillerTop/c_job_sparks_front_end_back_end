@@ -31,6 +31,11 @@ node_modules/
 # misc
 .DS_Store
 *.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
 
 # debug
 npm-debug.log*

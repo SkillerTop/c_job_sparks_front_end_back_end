@@ -1341,9 +1341,23 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
             WHEN 'ACCESS_APPROVED' THEN 'REGISTRATION_APPROVED'
             WHEN 'ACCESS_REJECTED' THEN 'REGISTRATION_REJECTED' ELSE audit.action END AS action,
           COALESCE(actor_employee.id::text,actor_user_id::text,'system') AS "actorId",
-          occurred_at AS "createdAt",COALESCE(reason,audit.action) AS details FROM app.audit_events audit
+          COALESCE(account_employee.display_name,
+            CASE WHEN account_user.email::text ~* '^deleted[.].+@invalid[.]local$' THEN 'Deleted account'
+                 ELSE account_user.email::text END,
+            'Deleted account') AS "accountLabel",
+          COALESCE(actor_employee.display_name,
+            CASE WHEN actor_user_id IS NULL THEN 'System' ELSE 'Former administrator' END) AS "actorLabel",
+          occurred_at AS "createdAt",
+          COALESCE(NULLIF(btrim(reason),''), CASE audit.action
+            WHEN 'ACCESS_REQUESTED' THEN 'Access requested'
+            WHEN 'MICROSOFT_ACCESS_REQUESTED' THEN 'Microsoft access requested'
+            WHEN 'ACCESS_APPROVED' THEN 'Access approved'
+            WHEN 'ACCESS_REJECTED' THEN 'Access rejected'
+            ELSE 'Access account updated' END) AS details
+          FROM app.audit_events audit
           LEFT JOIN app.access_requests request ON audit.entity_id=request.id::text
           LEFT JOIN app.users account_user ON account_user.id=request.resulting_user_id
+          LEFT JOIN app.employees account_employee ON account_employee.user_id=account_user.id
           LEFT JOIN app.employees actor_employee ON actor_employee.user_id=audit.actor_user_id
           WHERE entity_type='AccessRequest' ORDER BY occurred_at DESC LIMIT 200`);
         return { accounts, auditEvents };

@@ -18,6 +18,7 @@ import type {
   RegistrationInput,
 } from '@/models/auth';
 import { AUTH_CHANGE_EVENT, AUTH_STATE_STORAGE_KEY, authService } from '@/services/authService';
+import { sessionRevalidationDelay } from '@/utils/sessionRevalidation';
 
 interface AuthContextValue extends AuthAccessState {
   user: AuthUser | null;
@@ -39,6 +40,18 @@ interface AuthContextValue extends AuthAccessState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const sameUser = (current: AuthUser | null, next: AuthUser | null) =>
+  current === next || Boolean(current && next &&
+    current.accountId === next.accountId &&
+    current.employeeId === next.employeeId &&
+    current.email === next.email &&
+    current.name === next.name &&
+    current.initials === next.initials &&
+    current.title === next.title &&
+    current.departmentId === next.departmentId &&
+    current.role === next.role &&
+    current.authProvider === next.authProvider);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [registrationAccount, setRegistrationAccount] = useState<AuthAccount | null>(null);
@@ -46,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const refreshGeneration = useRef(0);
+  const authenticatedUserRef = useRef<AuthUser | null>(null);
 
   const refreshAuth = useCallback(async () => {
     const requestId = ++refreshGeneration.current;
@@ -56,18 +70,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         nextUser?.role === 'Administrator'
           ? authService.getAccessState()
           : Promise.resolve({ accounts: [], auditEvents: [] }),
-        authService.getLastRegistration(),
+        nextUser ? Promise.resolve(null) : authService.getLastRegistration(),
       ]);
       if (requestId !== refreshGeneration.current) return;
-      setUser(nextUser);
+      setUser((current) => {
+        const stableUser = sameUser(current, nextUser) ? current : nextUser;
+        authenticatedUserRef.current = stableUser;
+        return stableUser;
+      });
       setAccessState(nextAccess);
       setRegistrationAccount(nextRegistration);
       setError(null);
     } catch (caught) {
       if (requestId !== refreshGeneration.current) return;
-      setUser(null);
-      setAccessState({ accounts: [], auditEvents: [] });
-      setError(caught instanceof Error ? caught.message : 'Could not prepare sign-in.');
+      // A temporary network failure during focus/visibility revalidation must
+      // not tear down an otherwise valid workspace. An expired session is
+      // represented by restoreSession() as `null` in the successful branch.
+      if (!authenticatedUserRef.current)
+        setError(caught instanceof Error ? caught.message : 'Could not prepare sign-in.');
     } finally {
       if (requestId === refreshGeneration.current) setLoading(false);
     }
@@ -87,22 +107,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshAuth]);
 
+  const authenticatedAccountId = user?.accountId ?? null;
   useEffect(() => {
-    if (!user) return;
+    if (!authenticatedAccountId) return;
     const revalidate = () => void refreshAuth();
     const expiry = authService.getSessionExpiry();
-    const timeout = window.setTimeout(revalidate, Math.max(0, (expiry ?? Date.now()) - Date.now() + 50));
+    const delay = sessionRevalidationDelay(expiry);
+    const timeout = delay === null ? undefined : window.setTimeout(revalidate, delay);
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') revalidate();
     };
     window.addEventListener('focus', revalidate);
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
-      window.clearTimeout(timeout);
+      if (timeout !== undefined) window.clearTimeout(timeout);
       window.removeEventListener('focus', revalidate);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [user, refreshAuth]);
+  }, [authenticatedAccountId, refreshAuth]);
 
   const login = useCallback(async (input: LoginInput) => {
     const account = await authService.login(input);
@@ -118,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     refreshGeneration.current += 1;
+    authenticatedUserRef.current = null;
     authService.logout();
     setUser(null);
     setAccessState({ accounts: [], auditEvents: [] });

@@ -32,6 +32,12 @@ work
 
 *.log
 *.tsbuildinfo
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
 .DS_Store
 .idea
 .vscode

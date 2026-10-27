@@ -2,7 +2,7 @@
 .sectionTitle p {
   margin: 0 0 0.2rem;
   color: var(--accent-green);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -17,7 +17,7 @@
   border-radius: 999px;
   color: var(--muted-strong);
   background: var(--surface);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 750;
 }
 
@@ -201,7 +201,7 @@
   gap: 0.4rem;
   margin-bottom: 0.32rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -357,7 +357,7 @@
 .field small,
 .fieldHint {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.45;
 }
@@ -518,7 +518,7 @@
 
 .switchRow small {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
 }
 
@@ -635,7 +635,7 @@
   margin: 0.18rem 0 0;
   overflow-wrap: anywhere;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
 }
 

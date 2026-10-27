@@ -207,9 +207,9 @@ export function RegistrationManager() {
                     <strong>{historyLabels[event.action]}</strong>
                     <p>{event.details}</p>
                     <small>
-                      <LocalizedText>{employee?.name ?? (account ? account.email : 'Deleted account')}</LocalizedText>{' '}
+                      <LocalizedText>{event.accountLabel ?? employee?.name ?? (account ? account.email : 'Deleted account')}</LocalizedText>{' '}
                       <LocalizedText>· actor </LocalizedText>
-                      <LocalizedText>{actor?.name ?? 'Former administrator'}</LocalizedText>
+                      <LocalizedText>{event.actorLabel ?? actor?.name ?? 'Former administrator'}</LocalizedText>
                     </small>
                   </div>
                   <div className={accessStyles.historyStatus}>

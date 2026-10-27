@@ -280,6 +280,8 @@ const addAudit = (
     accountId: account.id,
     action,
     actorId,
+    accountLabel: account.email.startsWith('deleted.') ? 'Deleted account' : account.email,
+    actorLabel: actorId === 'system' ? 'System' : undefined,
     createdAt: new Date().toISOString(),
     details,
   });

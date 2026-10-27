@@ -1,0 +1,325 @@
+.rulesToc {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: var(--surface);
+}
+
+.rulesToc > strong {
+  font-size: 0.875rem;
+}
+
+.rulesToc > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.rulesToc a {
+  min-height: 2.75rem;
+  padding: 0.68rem 0.78rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--link);
+  background: var(--surface-soft);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.rulesToc a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rulesToc a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.rulesLead {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  border-top: 3px solid var(--brand-gold);
+}
+
+.rulesLead h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.15rem;
+}
+
+.rulesLead p {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+.rulesTierGrid,
+.rulesGrid {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.rulesTierGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 1rem;
+}
+
+.rulesTierCard {
+  min-width: 0;
+  padding: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.rulesTierCard h3 {
+  margin: 1rem 0 0.32rem;
+  font-size: 1rem;
+}
+
+.rulesTierCard p {
+  margin: 0;
+  color: var(--spark-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.rulesList {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--muted-strong);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.roleRuleList {
+  display: grid;
+  margin: 0;
+}
+
+.roleRuleList > div {
+  padding: 0.72rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.roleRuleList > div:last-child {
+  border-bottom: 0;
+}
+
+.roleRuleList dt {
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.roleRuleList dd {
+  margin: 0.2rem 0 0;
+  color: var(--muted-strong);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.categorySearch {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 0.45rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.categorySearch > span:last-child {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--control-border);
+  border-radius: 0.75rem;
+  background: var(--control-bg);
+}
+
+.categorySearch input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  font-weight: 500;
+}
+
+.categorySearch > span:last-child:focus-within {
+  border-color: var(--focus);
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.searchStatus {
+  min-height: 1.35rem;
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.rulesCategoryList {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.rulesDisclosure {
+  border-top: 1px solid var(--line);
+}
+
+.rulesCategoryHeader {
+  display: flex;
+  width: 100%;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  border-radius: 0.6rem;
+  color: inherit;
+  cursor: pointer;
+  list-style: none;
+}
+
+.rulesCategoryHeader::-webkit-details-marker {
+  display: none;
+}
+
+.rulesCategoryHeader::marker {
+  content: '';
+}
+
+.rulesCategoryHeader:hover {
+  background: var(--surface-soft);
+}
+
+.rulesCategoryHeader:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.rulesCategoryMeta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.rulesCategoryMeta strong,
+.rulesCategorySummary small {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.rulesCategoryMeta strong {
+  text-align: right;
+}
+
+.rulesCategorySummary {
+  display: grid;
+  gap: 0.12rem;
+  justify-items: end;
+}
+
+.rulesCategoryChevron {
+  flex: none;
+  transition: transform 180ms ease;
+}
+
+.rulesDisclosure[open] .rulesCategoryChevron {
+  transform: rotate(180deg);
+}
+
+.rulesDisclosure ul {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 0 0.85rem;
+  padding: 0;
+  list-style: none;
+}
+
+.rulesDisclosure li {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem;
+  border-radius: 0.65rem;
+  background: var(--surface-soft);
+  font-size: 0.875rem;
+}
+
+.rulesDisclosure li strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rulesDisclosure li > div {
+  min-width: 0;
+}
+
+.rulesDisclosure li p {
+  margin: 0.22rem 0 0;
+  color: var(--muted-strong);
+  line-height: 1.45;
+}
+
+.rulesDisclosure li span {
+  flex: none;
+  color: var(--muted);
+  text-align: right;
+}
+
+.rulesNote {
+  margin: 0.8rem 0 0;
+  padding: 0.75rem;
+  border-radius: 0.7rem;
+  color: var(--warning);
+  background: var(--warning-soft);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.rulesListSpaced {
+  margin-top: 0.9rem;
+}
+
+@media (min-width: 46rem) {
+  .rulesTierGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 72rem) {
+  .rulesGrid .rulesList,
+  .rulesGrid .roleRuleList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.5rem;
+  }
+}
+
+@media (min-width: 88rem) {
+  .rulesCategoryList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rulesCategoryChevron {
+    transition: none;
+  }
+}

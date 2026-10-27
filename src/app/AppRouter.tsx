@@ -62,7 +62,6 @@ function RouteLoading() {
       data-route-kind={routeKind}
       role="status"
       aria-live="polite"
-      aria-label={`Loading ${pathname}`}
     >
       <span className={styles.srOnly}><LocalizedText>Loading workspace section…</LocalizedText></span>
       <div className={styles.routeSkeletonHeading}><span /><span /></div>

@@ -186,6 +186,7 @@ export interface AuditEvent {
   id: string;
   action: string;
   actorId: string;
+  actorName?: string;
   subjectId: string;
   dateTime: string;
   details: string;

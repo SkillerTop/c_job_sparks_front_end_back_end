@@ -57,6 +57,8 @@ export interface AuthAuditEvent {
     | 'REGISTRATION_REJECTED'
     | 'PASSWORD_CHANGED';
   actorId: string;
+  accountLabel?: string;
+  actorLabel?: string;
   createdAt: string;
   details: string;
 }

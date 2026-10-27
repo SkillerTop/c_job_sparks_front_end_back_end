@@ -13,7 +13,7 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Feedback } from '@/views/components/common/Feedback';
 import { Modal } from '@/views/components/common/Modal';
@@ -34,7 +34,8 @@ import { quarterForDate } from '@/utils/quarter';
 import { useAppMode } from '@/controllers/useAppMode';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import styles from '@/views/styles/app.module.css';
-import adminStyles from '@/views/styles/admin.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+import adminStyles from '@/views/styles/admin.module.css';
+import { LocalizedText } from '@/views/components/common/LocalizedText';
 
 
 type Tab = 'Access' | 'Shop' | 'Accounting' | 'Import' | 'Directory' | 'Rules' | 'Audit';
@@ -48,6 +49,7 @@ export function AdminPage() {
   const navigate = useNavigate();
   const requestedTab = new URLSearchParams(location.search).get('tab')?.toLowerCase();
   const tab = ADMIN_TABS.find((item) => item.toLowerCase() === requestedTab) ?? 'Access';
+  const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
   const [kind, setKind] = useState<'KPI' | 'Evaluation'>('KPI');
   const [quarter, setQuarter] = useState(snapshot!.settings.currentQuarter);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
@@ -58,6 +60,28 @@ export function AdminPage() {
   const [message, setMessage] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [resetKey, setResetKey] = useState(0);
   const kindLabel = kind === 'Evaluation' ? 'Personal cards reward' : 'KPI';
+  const selectTab = (nextTab: Tab, focus = false) => {
+    navigate(
+      { pathname: location.pathname, search: `?tab=${nextTab.toLowerCase()}` },
+      { replace: true },
+    );
+    if (focus) requestAnimationFrame(() => tabRefs.current[nextTab]?.focus());
+  };
+  const moveTabFocus = (event: KeyboardEvent<HTMLButtonElement>, currentTab: Tab) => {
+    const currentIndex = ADMIN_TABS.indexOf(currentTab);
+    const nextIndex = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? ADMIN_TABS.length - 1
+        : event.key === 'ArrowRight' || event.key === 'ArrowDown'
+          ? (currentIndex + 1) % ADMIN_TABS.length
+          : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+            ? (currentIndex - 1 + ADMIN_TABS.length) % ADMIN_TABS.length
+            : -1;
+    if (nextIndex < 0) return;
+    event.preventDefault();
+    selectTab(ADMIN_TABS[nextIndex]!, true);
+  };
   const quarterOptions = Array.from({ length: 8 }, (_, index) => {
     const date = new Date();
     return quarterForDate(
@@ -143,19 +167,20 @@ export function AdminPage() {
         ) : undefined}
       />
       {message && <Feedback tone={message.tone}>{message.text}</Feedback>}
-      <div className={styles.adminTabs} role="group" aria-label={localize('Admin sections')}>
+      <div className={styles.adminTabs} role="tablist" aria-label={localize('Admin sections')}>
         {ADMIN_TABS.map((item) => (
           <button
             type="button"
-            aria-pressed={tab === item}
+            ref={(element) => { tabRefs.current[item] = element; }}
+            id={`admin-tab-${item.toLowerCase()}`}
+            role="tab"
+            aria-selected={tab === item}
+            aria-controls={`admin-panel-${item.toLowerCase()}`}
+            tabIndex={tab === item ? 0 : -1}
             className={tab === item ? styles.adminTabActive : ''}
             key={item}
-            onClick={() =>
-              navigate(
-                { pathname: location.pathname, search: `?tab=${item.toLowerCase()}` },
-                { replace: true },
-              )
-            }
+            onClick={() => selectTab(item)}
+            onKeyDown={(event) => moveTabFocus(event, item)}
           >
             {item === 'Access' ? (
               <UserCheck size={16} />
@@ -176,6 +201,13 @@ export function AdminPage() {
           </button>
         ))}
       </div>
+
+      <div
+        id={`admin-panel-${tab.toLowerCase()}`}
+        role="tabpanel"
+        aria-labelledby={`admin-tab-${tab.toLowerCase()}`}
+        tabIndex={0}
+      >
 
       {tab === 'Access' && <RegistrationManager />}
 
@@ -440,7 +472,8 @@ export function AdminPage() {
                   <strong>{event.action.replaceAll('_', ' ')}</strong>
                   <p>{event.details}</p>
                   <small>
-                    {formatDateTime(event.dateTime)} <LocalizedText>· actor </LocalizedText>{event.actorId}
+                    {formatDateTime(event.dateTime)} <LocalizedText>· actor </LocalizedText>
+                    <LocalizedText>{event.actorName ?? snapshot!.employees.find((employee) => employee.id === event.actorId)?.name ?? 'Former user'}</LocalizedText>
                   </small>
                 </div>
               </article>
@@ -448,6 +481,8 @@ export function AdminPage() {
           </div>
         </section>
       )}
+
+      </div>
 
       {!isApiMode && (
         <Modal

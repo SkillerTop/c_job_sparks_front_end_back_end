@@ -5,17 +5,21 @@ import {
   ChevronDown,
   Coins,
   Gauge,
+  Search,
   ShieldCheck,
   Users,
   Workflow,
 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { PageHeader } from '@/views/components/common/PageHeader';
 import { PageTransition } from '@/views/components/common/PageTransition';
 import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { useSpark } from '@/controllers/SparkContext';
 import type { PerformanceRewardTier, SparkType } from '@/models';
 import { buildRuleCategoryGroups } from '@/utils/ruleCategoryGroups';
-import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
+import styles from '@/views/styles/app.module.css';import rulesStyles from '@/views/styles/rules.module.css';
+import { LocalizedText } from '@/views/components/common/LocalizedText';
 
 
 const tierDescriptions: Record<SparkType, string> = {
@@ -37,8 +41,31 @@ const performanceThresholdDescription = (tiers: PerformanceRewardTier[]) => {
 
 export function RulesPage() {
   const { snapshot } = useSpark();
+  const { localize } = useUserPreferences();
+  const [categoryQuery, setCategoryQuery] = useState('');
   const settings = snapshot!.settings;
-  const categoryGroups = buildRuleCategoryGroups(snapshot!.categories);
+  const categories = snapshot!.categories;
+  const categoryGroups = useMemo(
+    () => buildRuleCategoryGroups(categories),
+    [categories],
+  );
+  const normalizedCategoryQuery = categoryQuery.trim().toLocaleLowerCase();
+  const visibleCategoryGroups = useMemo(() => categoryGroups
+    .map((group) => ({
+      ...group,
+      categories: normalizedCategoryQuery
+        ? group.categories.filter((category) =>
+            [category.name, category.description, group.label]
+              .map((value) => localize(value).toLocaleLowerCase())
+              .some((value) => value.includes(normalizedCategoryQuery)))
+        : group.categories,
+    }))
+    .filter((group) => group.categories.length > 0),
+  [categoryGroups, localize, normalizedCategoryQuery]);
+  const visibleCategoryCount = visibleCategoryGroups.reduce(
+    (total, group) => total + group.categories.length,
+    0,
+  );
 
   return (
     <PageTransition>
@@ -48,7 +75,20 @@ export function RulesPage() {
         description="What the system is, who can recognize whom, how every Spark is created and what happens after it reaches your account."
       />
 
-      <section className={`${styles.panel} ${styles.rulesLead}`} aria-labelledby="rules-purpose-title">
+      <nav className={rulesStyles.rulesToc} aria-label={localize('Rules contents')}>
+        <strong><LocalizedText>On this page</LocalizedText></strong>
+        <div>
+          <a href="#peer-rules-title"><LocalizedText>Peer recognition</LocalizedText></a>
+          <a href="#role-rules-title"><LocalizedText>Role permissions</LocalizedText></a>
+          <a href="#approval-rules-title"><LocalizedText>Approvals</LocalizedText></a>
+          <a href="#performance-rules-title"><LocalizedText>Performance rewards</LocalizedText></a>
+          <a href="#award-rules-title"><LocalizedText>Award categories</LocalizedText></a>
+          <a href="#economy-rules-title"><LocalizedText>Spark economy</LocalizedText></a>
+          <a href="#quality-rules-title"><LocalizedText>Quality and history</LocalizedText></a>
+        </div>
+      </nav>
+
+      <section className={`${styles.panel} ${rulesStyles.rulesLead}`} aria-labelledby="rules-purpose-title">
         <span className={styles.largeIcon}>
           <BookOpen size={23} />
         </span>
@@ -70,9 +110,9 @@ export function RulesPage() {
             <h2 id="tier-rules-title"><LocalizedText>What each Spark means</LocalizedText></h2>
           </div>
         </div>
-        <div className={styles.rulesTierGrid}>
+        <div className={rulesStyles.rulesTierGrid}>
           {(['White', 'Yellow', 'Blue', 'Radiant'] as SparkType[]).map((type) => (
-            <article className={`${styles.rulesTierCard} ${styles[`tone${type}`]}`} key={type}>
+            <article className={`${rulesStyles.rulesTierCard} ${styles[`tone${type}`]}`} key={type}>
               <SparkBadge type={type} />
               <h3>{type}</h3>
               <p>{tierDescriptions[type]}</p>
@@ -81,7 +121,7 @@ export function RulesPage() {
         </div>
       </section>
 
-      <div className={styles.rulesGrid}>
+      <div className={rulesStyles.rulesGrid}>
         <section className={styles.panel} aria-labelledby="peer-rules-title">
           <div className={styles.panelHeader}>
             <div>
@@ -90,9 +130,9 @@ export function RulesPage() {
             </div>
             <CalendarClock size={20} />
           </div>
-          <ul className={styles.rulesList}>
+          <ul className={rulesStyles.rulesList}>
             <li>
-              <LocalizedText>Employees, Coordinators and GPMs start with </LocalizedText>{settings.peerBaseLimit} <LocalizedText>peer nomination per
+              <LocalizedText>Employees, Coordinators and GPMs start with </LocalizedText>{settings.peerBaseLimit} <LocalizedText>peer nominations per
               quarter. Heads and Top Management use their award workspaces instead.
             </LocalizedText></li>
             <li>
@@ -118,7 +158,7 @@ export function RulesPage() {
             </div>
             <Users size={20} />
           </div>
-          <dl className={styles.roleRuleList}>
+          <dl className={rulesStyles.roleRuleList}>
             <div>
               <dt><LocalizedText>Employee</LocalizedText></dt>
               <dd><LocalizedText>Peer recognition, own Sparks, achievements, conversion and disenchant requests.</LocalizedText></dd>
@@ -163,7 +203,7 @@ export function RulesPage() {
             </div>
             <Workflow size={20} />
           </div>
-          <dl className={styles.roleRuleList}>
+          <dl className={rulesStyles.roleRuleList}>
             <div>
               <dt><LocalizedText>Peer recognition</LocalizedText></dt>
               <dd>
@@ -200,7 +240,7 @@ export function RulesPage() {
             </div>
             <Gauge size={20} />
           </div>
-          <dl className={styles.roleRuleList}>
+          <dl className={rulesStyles.roleRuleList}>
             <div>
               <dt><LocalizedText>KPI thresholds</LocalizedText></dt>
               <dd>{performanceThresholdDescription(settings.performanceThresholds.kpi)} <LocalizedText>White.</LocalizedText></dd>
@@ -228,17 +268,38 @@ export function RulesPage() {
             </div>
             <ShieldCheck size={20} />
           </div>
-          <div className={styles.rulesCategoryList}>
-            {categoryGroups.map((group) => (
-              <details className={styles.rulesDisclosure} key={group.key} open>
-                <summary className={styles.rulesCategoryHeader}>
+          <label className={rulesStyles.categorySearch}>
+            <span><LocalizedText>Search award categories</LocalizedText></span>
+            <span>
+              <Search size={17} aria-hidden="true" />
+              <input
+                type="search"
+                value={categoryQuery}
+                onChange={(event) => setCategoryQuery(event.target.value)}
+                placeholder={localize('Search by category name or description')}
+              />
+            </span>
+          </label>
+          <p className={rulesStyles.searchStatus} role="status" aria-live="polite">
+            {categoryQuery.trim()
+              ? <><strong>{visibleCategoryCount}</strong>{' '}<LocalizedText>matching categories</LocalizedText></>
+              : <LocalizedText>Category groups are collapsed until you open them.</LocalizedText>}
+          </p>
+          <div className={rulesStyles.rulesCategoryList}>
+            {visibleCategoryGroups.map((group) => (
+              <details
+                className={rulesStyles.rulesDisclosure}
+                key={`${group.key}-${normalizedCategoryQuery ? 'search' : 'browse'}`}
+                open={normalizedCategoryQuery ? true : undefined}
+              >
+                <summary className={rulesStyles.rulesCategoryHeader}>
                   <SparkBadge type={group.sparkType} />
-                  <span className={styles.rulesCategoryMeta}>
-                    <span className={styles.rulesCategorySummary}>
+                  <span className={rulesStyles.rulesCategoryMeta}>
+                    <span className={rulesStyles.rulesCategorySummary}>
                       <strong id={group.key}><LocalizedText>{group.label}</LocalizedText></strong>
                       <small><LocalizedText>{`${group.categories.length} active categories`}</LocalizedText></small>
                     </span>
-                    <ChevronDown className={styles.rulesCategoryChevron} size={18} aria-hidden="true" />
+                    <ChevronDown className={rulesStyles.rulesCategoryChevron} size={18} aria-hidden="true" />
                   </span>
                 </summary>
                 <ul aria-labelledby={group.key}>
@@ -260,19 +321,23 @@ export function RulesPage() {
                 </ul>
               </details>
             ))}
+            {visibleCategoryGroups.length === 0 ? (
+              <p className={styles.mutedCopy}><LocalizedText>No award categories match this search.</LocalizedText></p>
+            ) : null}
           </div>
-          <p className={styles.rulesNote}>
+          <p className={rulesStyles.rulesNote}>
             <LocalizedText>Direct Yellow awards and pending Yellow requests together cannot exceed</LocalizedText>{' '}
             <strong>{settings.yellowQuarterlyLimit} <LocalizedText>per employee per quarter</LocalizedText></strong><LocalizedText>. The same Yellow category
             cannot be used twice in that quarter. White credits, converted Yellow, Blue and Radiant do not use
             this limit.
           </LocalizedText></p>
-          <ul className={`${styles.rulesList} ${styles.rulesListSpaced}`}>
+          <ul className={`${rulesStyles.rulesList} ${rulesStyles.rulesListSpaced}`}>
             <li><LocalizedText>There is no issuer limit on the number of awards or recipients.</LocalizedText></li>
             <li>
-              <LocalizedText>An award that would exceed the 7 Yellow limit is blocked in full and is never reduced
-              automatically.
-            </LocalizedText></li>
+              <LocalizedText>An award that would exceed the configured Yellow limit of </LocalizedText>
+              {settings.yellowQuarterlyLimit}{' '}
+              <LocalizedText>is blocked in full and is never reduced automatically.</LocalizedText>
+            </li>
             <li>
               <LocalizedText>The first acting coordinator or lead category is unavailable after coordination experience is
               recorded.
@@ -288,7 +353,7 @@ export function RulesPage() {
             </LocalizedText></li>
             <li><LocalizedText>Employee of the Year has an annual department quota of floor(active employees ÷ 10).</LocalizedText></li>
           </ul>
-          <div className={styles.rulesNote}>
+          <div className={rulesStyles.rulesNote}>
             <strong><LocalizedText>Radiant has no fixed categories.</LocalizedText></strong> <LocalizedText>Top Management chooses an employee, enters a required
             reason and description, and awards exactly 1 Radiant directly. It is permanent and needs no approval.
           </LocalizedText></div>
@@ -316,7 +381,7 @@ export function RulesPage() {
               <strong>{settings.conversionFee} <LocalizedText>source Spark per bundle</LocalizedText></strong>
             </div>
           </div>
-          <ul className={styles.rulesList}>
+          <ul className={rulesStyles.rulesList}>
             <li>
               <LocalizedText>A complete White → Yellow bundle debits </LocalizedText>{settings.whiteToYellow + settings.conversionFee} <LocalizedText>White:
               </LocalizedText>{' '}{settings.whiteToYellow} <LocalizedText>for the conversion and </LocalizedText>{settings.conversionFee} <LocalizedText>as the fee.
@@ -343,7 +408,7 @@ export function RulesPage() {
             </div>
             <CheckCircle2 size={20} />
           </div>
-          <ul className={styles.rulesList}>
+          <ul className={rulesStyles.rulesList}>
             <li>
               <LocalizedText>An active Quality Gate blocks all positive White sources during its stated dates: KPI, Personal
               Cards, Peer Recognition, direct/manual awards and adjustments.
@@ -363,7 +428,7 @@ export function RulesPage() {
             </div>
             <Users size={20} />
           </div>
-          <ul className={styles.rulesList}>
+          <ul className={rulesStyles.rulesList}>
             <li><LocalizedText>A Coordinator sees active colleagues from their own department.</LocalizedText></li>
             <li>
               <LocalizedText>A Coordinator can award only colleagues in a shared active project team who have recorded hours on

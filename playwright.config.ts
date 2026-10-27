@@ -22,7 +22,7 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     {
       name: 'mobile-chromium',
-      testMatch: /(?:roles|mobile-ux)\.spec\.ts/,
+      testMatch: /(?:roles|mobile-ux|visual-regression)\.spec\.ts/,
       use: { ...devices['Pixel 5'] },
     },
   ],

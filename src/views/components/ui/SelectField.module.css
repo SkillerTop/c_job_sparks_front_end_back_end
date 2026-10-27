@@ -75,7 +75,7 @@
 }
 
 .filter {
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding-block: 0.5rem;
 }
 
@@ -85,7 +85,7 @@
   border: 0;
   border-radius: 0.7rem;
   background: transparent;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .compact .value {
@@ -127,6 +127,10 @@
 .popup[data-ending-style] {
   opacity: 0;
   transform: scale(0.98) translateY(-3px);
+}
+
+.popup[data-closed] {
+  display: none;
 }
 
 .list {
@@ -212,7 +216,7 @@
 .itemDescription {
   display: none;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.45;
   overflow-wrap: anywhere;

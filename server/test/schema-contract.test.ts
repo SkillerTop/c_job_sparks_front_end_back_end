@@ -33,6 +33,7 @@ test('the MVP schema is complete and ordered', async () => {
     '0015_test_fulfillment_contact.sql',
     '0016_graph_mail_delivery.sql',
     '0017_product_catalog_deletion.sql',
+    '0018_content_spelling_cleanup.sql',
   ]);
   for (const table of [
     'users', 'employees', 'departments', 'roles', 'role_assignments', 'projects', 'project_members',

@@ -8,6 +8,7 @@ export function startWebVitalsRum() {
   let lcp = 0;
   let cls = 0;
   let inp = 0;
+  const interactionDurations = new Map<number, number>();
   const observers: PerformanceObserver[] = [];
   const observe = (type: string, callback: PerformanceObserverCallback) => {
     try {
@@ -26,8 +27,17 @@ export function startWebVitalsRum() {
       if (!entry.hadRecentInput) cls += entry.value;
   });
   observe('event', (list) => {
-    for (const entry of list.getEntries() as EventTimingEntry[])
-      if ((entry.interactionId ?? 0) > 0) inp = Math.max(inp, entry.duration);
+    for (const entry of list.getEntries() as EventTimingEntry[]) {
+      const interactionId = entry.interactionId ?? 0;
+      if (interactionId <= 0) continue;
+      interactionDurations.set(
+        interactionId,
+        Math.max(interactionDurations.get(interactionId) ?? 0, entry.duration),
+      );
+    }
+    const durations = [...interactionDurations.values()].sort((left, right) => right - left);
+    const highPercentileIndex = Math.min(Math.floor(durations.length / 50), durations.length - 1);
+    inp = durations[highPercentileIndex] ?? inp;
   });
   const report = () => {
     if (document.visibilityState !== 'hidden') return;

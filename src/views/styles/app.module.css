@@ -40,7 +40,7 @@
   align-items: center;
   gap: 0.6rem;
   color: var(--sidebar-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 .brandLockup {
@@ -59,7 +59,7 @@
 }
 .brandSystemLabel {
   color: var(--sidebar-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 750;
   letter-spacing: 0.18em;
 }
@@ -83,7 +83,7 @@
 .navLabelSecondary {
   margin: 0 0 0.55rem 0.75rem;
   color: var(--sidebar-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -149,7 +149,7 @@
   border-radius: 999px;
   color: var(--on-gold);
   background: var(--brand-gold);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-align: center;
 }
@@ -200,7 +200,7 @@
   border-radius: 999px;
   color: var(--muted-strong);
   background: var(--surface-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.035em;
   white-space: nowrap;
@@ -318,7 +318,7 @@
 .compactBalanceTrigger strong,
 .compactBalanceTrigger span {
   color: var(--ink);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .compactBalanceTrigger span {
   color: var(--muted);
@@ -372,7 +372,7 @@
   align-items: center;
   gap: 0.45rem;
   color: var(--muted-strong);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .accountMenuTrigger {
@@ -561,7 +561,7 @@
   border-radius: 0.78rem;
   color: var(--muted-strong);
   background: var(--surface);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -642,7 +642,7 @@
   max-width: 13rem;
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -662,7 +662,7 @@
 .avatar {
   width: 2.15rem;
   height: 2.15rem;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .avatarLarge {
   width: 3.1rem;
@@ -705,7 +705,7 @@
 .eyebrow {
   margin-bottom: 0.3rem;
   color: var(--accent-green);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -800,7 +800,7 @@
 .checklist small {
   display: block;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .checklist {
   min-width: 0;
@@ -871,7 +871,7 @@
 .balanceCard p {
   margin: 0.65rem 0 0.15rem;
   color: var(--spark-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .balanceCard strong {
@@ -882,7 +882,7 @@
 }
 .balanceCard small {
   color: var(--spark-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .sparkOrb {
   display: grid;
@@ -1109,7 +1109,7 @@
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--spark-ink);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
@@ -1117,7 +1117,7 @@
 
 .compactBadge {
   padding: 0.34rem 0.5rem;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .sparkBadge.toneRadiant {
   color: var(--radiant-text);
@@ -1133,7 +1133,7 @@
   border-radius: 999px;
   color: var(--muted);
   background: var(--surface-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -1270,8 +1270,8 @@
 }
 .textButton,
 .rowButton {
-  min-height: 2rem;
-  padding: 0;
+  min-height: 2.75rem;
+  padding: 0.35rem 0;
   border: 0;
   color: var(--link);
   background: transparent;
@@ -1438,7 +1438,7 @@
   flex: 1 1 16rem;
   margin: 0;
   color: var(--sidebar-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.7;
 }
 .footerTagline span {
@@ -1456,7 +1456,7 @@
   border-radius: 0.6rem;
   color: var(--sidebar-ink);
   background: var(--sidebar-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition:
     border-color 160ms ease,
@@ -1476,7 +1476,7 @@
   border-radius: 0.6rem;
   color: var(--sidebar-ink);
   background: transparent;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
 }
@@ -1496,7 +1496,7 @@
   padding-top: 1rem;
   border-top: 1px solid var(--sidebar-line);
   color: var(--sidebar-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.6;
 }
 
@@ -1576,7 +1576,7 @@
   margin: 0;
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.45;
   text-overflow: ellipsis;
 }
@@ -1646,7 +1646,7 @@
   display: block;
   margin-bottom: 0.2rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .miniMetrics strong,
 .previewMetrics strong,
@@ -1660,7 +1660,7 @@
 }
 .searchField {
   display: flex;
-  min-height: 2.4rem;
+  min-height: 2.75rem;
   align-items: center;
   gap: 0.42rem;
   padding: 0 0.7rem;
@@ -1705,7 +1705,7 @@
   width: 100%;
   min-width: 46rem;
   border-collapse: collapse;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .dataTable th,
 .dataTable td {
@@ -1717,7 +1717,7 @@
 .dataTable th {
   color: var(--muted);
   background: var(--surface-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1741,7 +1741,7 @@
   margin-top: 0.15rem;
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1759,7 +1759,7 @@
 .miniDefinition dt {
   margin-bottom: 0.25rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -1842,7 +1842,7 @@
   margin-top: 0.5rem;
 }
 .thresholdRow strong {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .thresholdRow input {
   width: 100%;
@@ -1870,7 +1870,9 @@
 .formField > span small,
 .formField > small:not(.fieldError) {
   color: var(--muted);
+  font-size: 0.8125rem;
   font-weight: 500;
+  line-height: 1.45;
 }
 .formField input,
 .formField select,
@@ -1918,7 +1920,7 @@
 }
 .fieldError {
   color: var(--danger) !important;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .formFooter {
   display: flex;
@@ -1934,7 +1936,7 @@
   gap: 0.38rem;
   margin: 0;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .sideStack {
   display: grid;
@@ -1971,7 +1973,7 @@
   padding-top: 0.75rem;
   border-top: 1px solid var(--line);
   color: var(--muted-strong);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.45;
 }
 .quotaDots {
@@ -1988,7 +1990,7 @@
   border-radius: 50%;
   color: var(--accent-green);
   background: var(--accent-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .quotaDots > .quotaUsed {
@@ -2026,7 +2028,7 @@
 .metricCard small {
   margin: 0;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .metricCard strong {
   display: block;
@@ -2130,7 +2132,7 @@
   margin-top: auto;
   padding-top: 0.8rem;
   border-top: 1px solid var(--line);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .achievementCard footer span,
 .achievementCard footer time {
@@ -2143,7 +2145,7 @@
 .achievementCard footer strong {
   overflow-wrap: anywhere;
   color: var(--spark-ink);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .achievementActions {
   display: flex;
@@ -2188,7 +2190,7 @@
   border-radius: 0.62rem;
   color: var(--muted-strong);
   background: transparent;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -2215,7 +2217,7 @@
 }
 .conversionBox > span:first-child {
   color: var(--muted-strong);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .conversionBox label {
@@ -2260,7 +2262,7 @@
   gap: 0.8rem;
   margin: 0.85rem 0;
   color: var(--muted-strong);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .feeRow strong {
   color: var(--ink);
@@ -2363,7 +2365,7 @@
 }
 .payoutCard span {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .payoutCard strong {
   font-size: 2rem;
@@ -2371,7 +2373,7 @@
 }
 .payoutCard small {
   color: var(--muted-strong);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .infoNote,
 .warningBox,
@@ -2382,7 +2384,7 @@
   gap: 0.55rem;
   padding: 0.75rem;
   border-radius: 0.75rem;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.5;
 }
 .infoNote,
@@ -2407,7 +2409,7 @@
 }
 .stepList li > span {
   color: var(--accent-green);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -2420,7 +2422,7 @@
 .stepList p {
   margin-top: 0.2rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.45;
 }
 .sparkBurst {
@@ -2552,7 +2554,7 @@
 .personLine p,
 .personLine span {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .personLine h2 {
   margin: 0.11rem 0;
@@ -2573,13 +2575,13 @@
 .approvalFacts dt {
   margin-bottom: 0.18rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   text-transform: uppercase;
 }
 .approvalFacts dd {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 680;
 }
 .approvalCard blockquote {
@@ -2589,7 +2591,7 @@
   border-left: 3px solid var(--brand-gold);
   color: var(--muted-strong);
   background: var(--surface-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-style: italic;
   line-height: 1.55;
 }
@@ -2634,7 +2636,7 @@
 .personCard header p,
 .personIdentity > span {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .personCardControls {
   display: grid;
@@ -2701,7 +2703,7 @@
 }
 .recognizeLink {
   display: inline-flex;
-  min-height: 2.4rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   padding: 0.48rem 0.68rem;
@@ -2709,7 +2711,7 @@
   border-radius: 0.68rem;
   color: var(--link);
   background: var(--surface-strong);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-align: center;
   text-decoration: none;
@@ -2723,7 +2725,7 @@
 }
 .gateMeta {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .accountingPanel {
   margin-top: 1rem;
@@ -2739,7 +2741,7 @@
   display: grid;
   gap: 0.3rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .reportControls input {
@@ -2796,7 +2798,7 @@
 }
 .uploadZone span {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .uploadBusy {
   opacity: 0.7;
@@ -2845,186 +2847,6 @@
   font-size: 0.86rem;
   line-height: 1.65;
 }
-.rulesLead {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.9rem;
-  border-top: 3px solid var(--brand-gold);
-}
-.rulesLead h2 {
-  margin: 0 0 0.4rem;
-  font-size: 1.15rem;
-}
-.rulesLead p {
-  margin: 0;
-  color: var(--muted-strong);
-  font-size: 0.86rem;
-  line-height: 1.65;
-}
-.rulesTierGrid,
-.rulesGrid {
-  display: grid;
-  gap: 0.8rem;
-}
-.rulesTierGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-bottom: 1rem;
-}
-.rulesTierCard {
-  min-width: 0;
-  padding: 1rem;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 0.9rem;
-  box-shadow: var(--shadow-sm);
-}
-.rulesTierCard h3 {
-  margin: 1rem 0 0.32rem;
-  font-size: 1rem;
-}
-.rulesTierCard p {
-  margin: 0;
-  color: var(--spark-muted);
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-.rulesList {
-  display: grid;
-  gap: 0.7rem;
-  margin: 0;
-  padding-left: 1.2rem;
-  color: var(--muted-strong);
-  font-size: 0.8125rem;
-  line-height: 1.55;
-}
-.roleRuleList {
-  display: grid;
-  margin: 0;
-}
-.roleRuleList > div {
-  padding: 0.72rem 0;
-  border-bottom: 1px solid var(--line);
-}
-.roleRuleList > div:last-child {
-  border-bottom: 0;
-}
-.roleRuleList dt {
-  font-size: 0.8125rem;
-  font-weight: 800;
-}
-.roleRuleList dd {
-  margin: 0.2rem 0 0;
-  color: var(--muted-strong);
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-.rulesCategoryList {
-  display: grid;
-  gap: 0.8rem;
-}
-.rulesDisclosure {
-  border-top: 1px solid var(--line);
-}
-.rulesCategoryHeader {
-  display: flex;
-  width: 100%;
-  min-height: 3.5rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
-  border-radius: 0.6rem;
-  color: inherit;
-  cursor: pointer;
-  list-style: none;
-}
-.rulesCategoryHeader::-webkit-details-marker {
-  display: none;
-}
-.rulesCategoryHeader::marker {
-  content: '';
-}
-.rulesCategoryHeader:hover {
-  background: var(--surface-soft);
-}
-.rulesCategoryHeader:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-.rulesCategoryMeta {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.45rem;
-}
-.rulesCategoryMeta strong {
-  color: var(--muted);
-  font-size: 0.75rem;
-  text-align: right;
-}
-.rulesCategorySummary {
-  display: grid;
-  gap: 0.12rem;
-  justify-items: end;
-}
-.rulesCategorySummary small {
-  color: var(--muted);
-  font-size: 0.8125rem;
-}
-.rulesCategoryChevron {
-  flex: none;
-  transition: transform 180ms ease;
-}
-.rulesDisclosure[open] .rulesCategoryChevron {
-  transform: rotate(180deg);
-}
-.rulesDisclosure ul {
-  display: grid;
-  gap: 0.55rem;
-  margin: 0 0 0.85rem;
-  padding: 0;
-  list-style: none;
-}
-.rulesDisclosure li {
-  display: flex;
-  min-width: 0;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem;
-  border-radius: 0.65rem;
-  background: var(--surface-soft);
-  font-size: 0.75rem;
-}
-.rulesDisclosure li strong {
-  display: block;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.rulesDisclosure li > div {
-  min-width: 0;
-}
-.rulesDisclosure li p {
-  margin: 0.22rem 0 0;
-  color: var(--muted-strong);
-  line-height: 1.45;
-}
-.rulesDisclosure li span {
-  flex: none;
-  color: var(--muted);
-  text-align: right;
-}
-.rulesNote {
-  margin: 0.8rem 0 0;
-  padding: 0.75rem;
-  border-radius: 0.7rem;
-  color: var(--warning);
-  background: var(--warning-soft);
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-.rulesListSpaced {
-  margin-top: 0.9rem;
-}
 .auditList article {
   display: flex;
   gap: 0.7rem;
@@ -3061,7 +2883,7 @@
 }
 .auditList small {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 
 .modalBackdrop {
@@ -3104,7 +2926,7 @@
 .modalHeader p:not(.eyebrow) {
   margin: 0.4rem 0 0;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.5;
 }
 .emptyState,
@@ -3346,7 +3168,7 @@
     display: block;
     padding-left: 0.7rem;
     color: var(--muted);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 650;
     white-space: nowrap;
   }
@@ -3397,9 +3219,6 @@
   }
   .metricGridTwo {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .rulesTierGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .achievementGrid,
   .peopleGrid,
@@ -3495,7 +3314,7 @@
     gap: 0.4rem;
     margin: 0 0 0.55rem;
     color: var(--muted-strong);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     line-height: 1.4;
   }
   .mobileScrollHint svg {
@@ -3550,10 +3369,12 @@
     position: sticky;
     top: 0;
     display: flex;
-    height: 100vh;
+    align-self: start;
+    min-height: 100vh;
+    height: auto;
     flex-direction: column;
     padding: 1.45rem 0.85rem 1.1rem;
-    overflow-y: auto;
+    overflow: visible;
     background: var(--sidebar);
   }
   .mobileBackdrop,
@@ -3591,18 +3412,9 @@
   .peopleGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .rulesGrid .rulesList,
-  .rulesGrid .roleRuleList {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 1.5rem;
-  }
 }
 
 @media (min-width: 88rem) {
-  .rulesCategoryList {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
-  }
   .profileCompact {
     display: flex;
   }
@@ -3632,7 +3444,7 @@
     display: inline;
   }
   .adminTabs {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
   }
   .signOutButton {
     width: auto;
@@ -3678,9 +3490,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rulesCategoryChevron {
-    transition: none;
-  }
   .waveStrip {
     animation: none;
   }

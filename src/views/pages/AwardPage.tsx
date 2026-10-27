@@ -346,9 +346,14 @@ export function AwardPage() {
                     placeholder={localize("Describe the current year's valuable prize and any ordering notes…")}
                     maxLength={1000}
                     aria-invalid={Boolean(errors.valuablePrizeDescription)}
+                    aria-describedby={errors.valuablePrizeDescription ? 'valuable-prize-error' : undefined}
                     required
                   />
-                  {errors.valuablePrizeDescription && <small className={styles.fieldError}>{errors.valuablePrizeDescription}</small>}
+                  {errors.valuablePrizeDescription && (
+                    <small id="valuable-prize-error" className={styles.fieldError}>
+                      {errors.valuablePrizeDescription}
+                    </small>
+                  )}
                 </label>
               </>
             )}

@@ -271,7 +271,11 @@ export const buildWorkspace = async (
        WHERE request.employee_id=$1 OR ($2='Head' AND request.department_id=$3) OR $2='Administrator'
        ORDER BY request.created_at DESC LIMIT 200`, [principal.employeeId, principal.role, principal.departmentId]) : Promise.resolve([]),
     () => include('audit') && principal.role === 'Administrator'
-      ? rows<any>(db, `SELECT * FROM app.audit_events ORDER BY occurred_at DESC LIMIT 500`)
+      ? rows<any>(db, `SELECT audit.*,COALESCE(actor.display_name,
+          CASE WHEN audit.actor_user_id IS NULL THEN 'System' ELSE 'Former user' END) AS actor_name
+          FROM app.audit_events audit
+          LEFT JOIN app.employees actor ON actor.user_id=audit.actor_user_id
+          ORDER BY audit.occurred_at DESC LIMIT 500`)
       : Promise.resolve([]),
     () => effectiveRuleSet(db),
     () => include('fulfillment') ? rows<any>(db, `SELECT id,display_name,email::text,contact_role,office_name
@@ -452,6 +456,7 @@ export const buildWorkspace = async (
       id: String(row.id),
       action: row.action,
       actorId: row.actor_user_id ?? 'system',
+      actorName: row.actor_name,
       subjectId: row.entity_id,
       dateTime: date(row.occurred_at),
       details: row.reason ?? row.action,

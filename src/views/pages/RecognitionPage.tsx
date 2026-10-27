@@ -19,11 +19,10 @@ import { CategoryDetailsCard } from '@/views/components/common/CategoryDetailsCa
 export function RecognitionPage() {
   const { localize } = useUserPreferences();
   const controller = useRecognitionController();
-  const { snapshot, activeRole } = useSpark();
+  const { snapshot } = useSpark();
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const remaining = Math.max(0, controller.quota - controller.usedCount);
   const selectedCategory = controller.categories.find((category) => category.name === controller.form.category);
-  const canExpandHistory = ['Coordinator', 'GPM', 'Head', 'Top Management'].includes(activeRole);
   const visibleRecognitions = historyExpanded
     ? controller.ownRecognitions
     : controller.ownRecognitions.slice(0, 2);
@@ -213,7 +212,7 @@ export function RecognitionPage() {
                     <StatusBadge status={item.status} />
                   </article>
                 ))}
-                {canExpandHistory && controller.ownRecognitions.length > 2 && (
+                {controller.ownRecognitions.length > 2 && (
                   <button
                     type="button"
                     className={styles.textButton}

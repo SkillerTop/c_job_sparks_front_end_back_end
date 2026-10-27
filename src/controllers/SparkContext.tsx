@@ -97,6 +97,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
     : null;
   const activeRole: Role = directoryUser?.role ?? 'Employee';
   const currentUserId = user?.employeeId ?? '';
+  const workspaceIdentity = user ? `${user.accountId}:${user.employeeId}:${user.role}` : null;
   const section = sectionForPath(location.pathname);
 
   useEffect(() => {
@@ -105,7 +106,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     const generation = ++workspaceGeneration.current;
-    if (!user) {
+    if (!workspaceIdentity) {
       setSnapshot(null);
       setError(null);
       setLoading(false);
@@ -125,13 +126,13 @@ export function SparkProvider({ children }: { children: ReactNode }) {
     } finally {
       if (generation === workspaceGeneration.current) setLoading(false);
     }
-  }, [section, user]);
+  }, [section, workspaceIdentity]);
 
   useEffect(() => {
     const generation = ++workspaceGeneration.current;
     setSnapshot(null);
     setLayoutReady(false);
-    if (!user) {
+    if (!workspaceIdentity) {
       setLoading(false);
       return;
     }
@@ -153,10 +154,10 @@ export function SparkProvider({ children }: { children: ReactNode }) {
     return () => {
       workspaceGeneration.current += 1;
     };
-  }, [user]);
+  }, [workspaceIdentity]);
 
   useEffect(() => {
-    if (!user || !layoutReady) return;
+    if (!workspaceIdentity || !layoutReady) return;
     const generation = ++workspaceGeneration.current;
     setSectionLoading(true);
     void sparkService.getSnapshot(section)
@@ -173,11 +174,11 @@ export function SparkProvider({ children }: { children: ReactNode }) {
       .finally(() => {
         if (generation === workspaceGeneration.current) setSectionLoading(false);
       });
-  }, [layoutReady, section, user]);
+  }, [layoutReady, section, workspaceIdentity]);
 
   useEffect(() => {
     const syncCalendarState = async () => {
-      if (!user || document.visibilityState !== 'visible' || isLocked()) return;
+      if (!workspaceIdentity || document.visibilityState !== 'visible' || isLocked()) return;
       if (Date.now() - lastSectionRefreshAt.current < 5 * 60_000) return;
       const generation = ++workspaceGeneration.current;
       try {
@@ -203,7 +204,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.clearInterval(interval);
     };
-  }, [isLocked, section, user]);
+  }, [isLocked, section, workspaceIdentity]);
 
   const updateSnapshot = (next: AppSnapshot) =>
     setSnapshot((current) => ({ ...next, shell: next.shell ?? current?.shell }));
