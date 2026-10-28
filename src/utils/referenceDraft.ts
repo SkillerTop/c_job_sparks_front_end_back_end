@@ -26,6 +26,7 @@ export const createReferenceDraft = (kind: ReferenceDraft['kind'], snapshot: App
           ...base,
           description: '',
           sparkType: 'Yellow',
+          usageType: 'Award',
           amount: 1,
           period: 'Quarterly',
         },

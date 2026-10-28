@@ -1,11 +1,13 @@
 import { Select } from '@base-ui/react/select';
 import { Check, ChevronDown } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import selectStyles from './SelectField.module.css';
 
 export interface SelectOption<Value extends string = string> {
   value: Value;
   label: ReactNode;
+  description?: string;
   disabled?: boolean;
 }
 
@@ -42,8 +44,10 @@ export function SelectField<Value extends string>({
   required,
   variant = 'default',
 }: SelectFieldProps<Value>) {
+  const { localize } = useUserPreferences();
+  const localizeLabel = (label: ReactNode) => typeof label === 'string' ? localize(label) : label;
   const items = options.map((option) => ({
-    label: option.label,
+    label: localizeLabel(option.label),
     value: option.value === '' ? null : option.value,
   }));
   const selectedValue = value === '' ? null : value;
@@ -60,7 +64,7 @@ export function SelectField<Value extends string>({
     >
       <Select.Trigger
         className={joinClasses(selectStyles.trigger, selectStyles[variant], className)}
-        aria-label={ariaLabel}
+        aria-label={localize(ariaLabel)}
         aria-describedby={ariaDescribedBy}
         aria-invalid={ariaInvalid || undefined}
         aria-required={required || undefined}
@@ -89,13 +93,18 @@ export function SelectField<Value extends string>({
                     className={selectStyles.item}
                     key={option.value || '__empty'}
                     value={optionValue}
-                    label={typeof option.label === 'string' ? option.label : undefined}
+                    label={typeof option.label === 'string' ? localize(option.label) : undefined}
                     disabled={option.disabled}
                   >
                     <Select.ItemIndicator className={selectStyles.indicator}>
                       <Check size={15} aria-hidden="true" />
                     </Select.ItemIndicator>
-                    <Select.ItemText className={selectStyles.itemText}>{option.label}</Select.ItemText>
+                    <span className={selectStyles.itemContent}>
+                      <Select.ItemText className={selectStyles.itemText}>{localizeLabel(option.label)}</Select.ItemText>
+                      {option.description ? (
+                        <span className={selectStyles.itemDescription}>{localize(option.description)}</span>
+                      ) : null}
+                    </span>
                   </Select.Item>
                 );
               })}

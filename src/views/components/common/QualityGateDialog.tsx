@@ -5,7 +5,9 @@ import { todayIso } from '@/utils/quarter';
 import { formatDate } from '@/utils/formatters';
 import { Modal } from './Modal';
 import { Feedback } from './Feedback';
-import styles from '@/views/styles/app.module.css';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function QualityGateDialog({
   employee,
@@ -18,6 +20,7 @@ export function QualityGateDialog({
   onClose: () => void;
   onConfirm: (input?: QualityGateInput) => Promise<void>;
 }) {
+  const { localize } = useUserPreferences();
   const [input, setInput] = useState<QualityGateInput>({
     startDate: todayIso(),
     endDate: todayIso(),
@@ -61,14 +64,14 @@ export function QualityGateDialog({
             <p>
               {gate.reason}
               <br />
-              {formatDate(gate.startDate)} – {formatDate(gate.endDate)}. Cancelling allows future White
+              {formatDate(gate.startDate)} – {formatDate(gate.endDate)}<LocalizedText>. Cancelling allows future White
               credits; blocked past rewards are not automatically restored.
-            </p>
+            </LocalizedText></p>
           </div>
         ) : (
           <div className={styles.fieldGrid}>
             <label className={styles.formField}>
-              <span>Start date *</span>
+              <span><LocalizedText>Start date *</LocalizedText></span>
               <input
                 type="date"
                 required
@@ -86,7 +89,7 @@ export function QualityGateDialog({
               />
             </label>
             <label className={styles.formField}>
-              <span>End date *</span>
+              <span><LocalizedText>End date *</LocalizedText></span>
               <input
                 type="date"
                 required
@@ -99,7 +102,7 @@ export function QualityGateDialog({
               />
             </label>
             <label className={`${styles.formField} ${styles.fieldFull}`}>
-              <span>Reason *</span>
+              <span><LocalizedText>Reason *</LocalizedText></span>
               <textarea
                 required
                 rows={4}
@@ -108,22 +111,22 @@ export function QualityGateDialog({
                   setError('');
                   setInput((current) => ({ ...current, reason: event.target.value }));
                 }}
-                placeholder="Describe the issue, remediation and review criteria…"
+                placeholder={localize('Describe the issue, remediation and review criteria…')}
               />
             </label>
           </div>
         )}
         <div className={styles.modalActions}>
           <button className={styles.secondaryButton} type="button" disabled={processing} onClick={onClose}>
-            Back
-          </button>
+            <LocalizedText>Back
+          </LocalizedText></button>
           <button
             className={gate ? styles.primaryButton : styles.rejectButton}
             type="submit"
             disabled={processing}
           >
             {processing ? <span className={styles.spinner} /> : <ShieldAlert size={16} />}
-            {gate ? 'Cancel gate' : 'Save gate'}
+            <LocalizedText>{gate ? 'Cancel gate' : 'Save gate'}</LocalizedText>
           </button>
         </div>
       </form>

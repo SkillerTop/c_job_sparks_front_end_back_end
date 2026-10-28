@@ -1,0 +1,16 @@
+[Unit]
+Description=C-Job Sparks Docker Compose
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/c-job-sparks/app
+ExecStart=/usr/bin/docker compose --env-file .env.production -f compose.prod.yaml up -d
+ExecStop=/usr/bin/docker compose --env-file .env.production -f compose.prod.yaml stop
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

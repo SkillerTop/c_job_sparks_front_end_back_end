@@ -6,14 +6,33 @@ export type AuthAccountSource = 'Seed' | 'Registration';
 
 export interface AuthAccount {
   id: string;
-  employeeId: string;
+  employeeId?: string;
   email: string;
   status: AuthAccountStatus;
   source: AuthAccountSource;
   requestedAt: string;
+  firstName?: string;
+  lastName?: string;
+  requestedDepartmentId?: string;
+  employeeNumber?: string;
+  suggestedJobTitle?: string;
+  suggestedDepartmentName?: string;
+  suggestedManagerEmail?: string;
+  suggestedManagerId?: string;
+  suggestedManagerName?: string;
+  suggestedRole?: Role;
+  authProvider?: 'local' | 'entra';
   reviewedAt?: string;
   reviewedBy?: string;
   rejectionReason?: string;
+}
+
+export interface AccessApprovalEmployeeInput {
+  name: string;
+  title: string;
+  departmentId: string;
+  role: Role;
+  managerId?: string;
 }
 
 export interface AuthUser {
@@ -25,6 +44,7 @@ export interface AuthUser {
   title: string;
   departmentId: string;
   role: Role;
+  authProvider?: 'local' | 'entra';
 }
 
 export interface AuthAuditEvent {
@@ -37,6 +57,8 @@ export interface AuthAuditEvent {
     | 'REGISTRATION_REJECTED'
     | 'PASSWORD_CHANGED';
   actorId: string;
+  accountLabel?: string;
+  actorLabel?: string;
   createdAt: string;
   details: string;
 }

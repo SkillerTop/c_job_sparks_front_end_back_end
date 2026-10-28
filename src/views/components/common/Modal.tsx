@@ -1,9 +1,10 @@
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogFocus } from '@/hooks/useDialogFocus';
-import styles from '@/views/styles/app.module.css';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function Modal({
   open,
@@ -18,9 +19,9 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const { localize } = useUserPreferences();
   const dialog = useRef<HTMLElement>(null);
   const id = useId();
-  const reduced = useReducedMotion();
   useEffect(() => {
     if (!open) return;
     const root = document.getElementById('root');
@@ -32,19 +33,15 @@ export function Modal({
   }, [open]);
   useDialogFocus(open, dialog, onClose);
   return createPortal(
-    <AnimatePresence>
-      {open && (
-        <motion.div
+    <>
+      {open ? (
+        <div
           className={styles.modalBackdrop}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: reduced ? 0 : 0.18 }}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) onClose();
           }}
         >
-          <motion.section
+          <section
             ref={dialog}
             tabIndex={-1}
             className={styles.modal}
@@ -52,25 +49,22 @@ export function Modal({
             aria-modal="true"
             aria-labelledby={`${id}-title`}
             aria-describedby={description ? `${id}-description` : undefined}
-            initial={reduced ? false : { opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduced ? undefined : { opacity: 0, y: 8 }}
           >
             <div className={styles.modalHeader}>
               <div>
-                <p className={styles.eyebrow}>C-Job Sparks</p>
-                <h2 id={`${id}-title`}>{title}</h2>
-                {description && <p id={`${id}-description`}>{description}</p>}
+                <p className={styles.eyebrow}><LocalizedText>C-Job Sparks</LocalizedText></p>
+                <h2 id={`${id}-title`}>{localize(title)}</h2>
+                {description && <p id={`${id}-description`}>{localize(description)}</p>}
               </div>
-              <button className={styles.iconButton} type="button" onClick={onClose} aria-label="Close dialog">
+              <button className={styles.iconButton} type="button" onClick={onClose} aria-label={localize('Close dialog')}>
                 <X size={18} />
               </button>
             </div>
             {children}
-          </motion.section>
-        </motion.div>
-      )}
-    </AnimatePresence>,
+          </section>
+        </div>
+      ) : null}
+    </>,
     document.body,
   );
 }

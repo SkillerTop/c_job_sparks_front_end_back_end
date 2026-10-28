@@ -11,7 +11,8 @@ registerHooks({
       const base = specifier.startsWith('@/')
         ? resolve(sourceRoot, specifier.slice(2))
         : resolve(dirname(fileURLToPath(context.parentURL)), specifier);
-      const candidates = extname(base) ? [base] : [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}.mjs`];
+      const hasLoadableExtension = ['.ts', '.tsx', '.mjs', '.js', '.css'].includes(extname(base));
+      const candidates = hasLoadableExtension ? [base] : [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}.mjs`];
       const found = candidates.find(existsSync);
       if (found) return { url: pathToFileURL(found).href, shortCircuit: true };
     }

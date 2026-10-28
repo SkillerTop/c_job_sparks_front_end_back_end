@@ -14,7 +14,7 @@
   border-radius: 999px;
   color: var(--warning);
   background: var(--warning-soft);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 750;
 }
 
@@ -25,7 +25,7 @@
   border-radius: 0.75rem;
   color: var(--warning);
   background: var(--warning-soft);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 650;
   line-height: 1.45;
 }
@@ -85,14 +85,14 @@
 
 .registrationMeta dt {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .registrationMeta dd {
   margin: 0.08rem 0 0;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
@@ -110,7 +110,7 @@
 .approvalBlocked {
   max-width: 22rem;
   color: var(--danger);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
@@ -163,14 +163,14 @@
 .historyList p {
   margin: 0.1rem 0 0;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
 
 .historyList small {
   margin-top: 0.25rem;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
 
@@ -202,6 +202,11 @@
 
 .reviewSummary p {
   margin: 0;
+}
+
+.approvalProfile {
+  display: grid;
+  gap: 1rem;
 }
 
 @media (min-width: 42rem) {

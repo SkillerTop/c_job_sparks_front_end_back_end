@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useRef, type ReactNode } from 'react';
 
-export function PageTransition({ children }: { children: ReactNode }) {
+export function PageTransition({ children, className }: { children: ReactNode; className?: string }) {
   const reduced = useReducedMotion();
   const page = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -28,6 +28,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
   return (
     <motion.div
       ref={page}
+      className={className}
       tabIndex={-1}
       initial={reduced ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}

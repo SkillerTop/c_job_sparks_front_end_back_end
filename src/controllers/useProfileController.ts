@@ -8,12 +8,11 @@ import type {
 } from '@/models/profile';
 import { authService } from '@/services/authService';
 import { profileService } from '@/services/profileService';
-import { prepareProfilePhoto } from '@/utils/profileImage';
-import { useAuth } from './AuthContext';
-import { useSpark } from './SparkContext';
-import { useUserPreferences } from './UserPreferencesContext';
+import { useAuth } from '@/controllers/AuthContext';
+import { useSpark } from '@/controllers/SparkContext';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 
-export type ProfileAction = 'avatar' | 'email' | 'preferences' | 'password' | 'session' | 'all-sessions';
+export type ProfileAction = 'preferences' | 'password' | 'session' | 'all-sessions';
 
 export function useProfileController() {
   const { user, logout } = useAuth();
@@ -27,8 +26,8 @@ export function useProfileController() {
 
   const employee = snapshot?.employees.find((item) => item.id === currentUserId) ?? null;
   const department = snapshot?.departments.find((item) => item.id === employee?.departmentId) ?? null;
-  const managerId = employee?.managerId || (department?.headId !== employee?.id ? department?.headId : '');
-  const manager = snapshot?.employees.find((item) => item.id === managerId) ?? null;
+  const directoryManager = snapshot?.employees.find((item) => item.id === employee?.managerId) ?? null;
+  const managerName = employee?.managerName ?? directoryManager?.name ?? null;
 
   const refresh = useCallback(async () => {
     if (!user) return;
@@ -61,35 +60,10 @@ export function useProfileController() {
     }
   };
 
-  const requestEmailVerification = (email: string) =>
-    execute('email', async () => {
-      if (!user) throw new Error('Sign in to update your contact email.');
-      const next = await profileService.requestEmailVerification(user.employeeId, user.email, email);
-      await refreshPreferences();
-      return next;
-    });
-
   const savePreferences = (language: InterfaceLanguage, notifications: NotificationPreferences) =>
     execute('preferences', async () => {
       if (!user) throw new Error('Sign in to update your preferences.');
       const next = await profileService.savePreferences(user.employeeId, user.email, language, notifications);
-      await refreshPreferences();
-      return next;
-    });
-
-  const updateAvatar = (file: File) =>
-    execute('avatar', async () => {
-      if (!user) throw new Error('Sign in to update your profile photo.');
-      const avatarDataUrl = await prepareProfilePhoto(file);
-      const next = await profileService.saveAvatar(user.employeeId, user.email, avatarDataUrl);
-      await refreshPreferences();
-      return next;
-    });
-
-  const removeAvatar = () =>
-    execute('avatar', async () => {
-      if (!user) throw new Error('Sign in to update your profile photo.');
-      const next = await profileService.saveAvatar(user.employeeId, user.email);
       await refreshPreferences();
       return next;
     });
@@ -121,8 +95,8 @@ export function useProfileController() {
     });
 
   const profile = useMemo(
-    () => ({ employee, department, manager, role: activeRole, user }),
-    [employee, department, manager, activeRole, user],
+    () => ({ employee, department, managerName, role: activeRole, user }),
+    [employee, department, managerName, activeRole, user],
   );
 
   return {
@@ -133,10 +107,7 @@ export function useProfileController() {
     busyAction,
     loadError,
     refresh,
-    requestEmailVerification,
     savePreferences,
-    updateAvatar,
-    removeAvatar,
     changePassword,
     terminateSession,
     signOutAll,

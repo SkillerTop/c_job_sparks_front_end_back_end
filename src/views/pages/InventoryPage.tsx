@@ -9,12 +9,14 @@ import { InventoryItem } from '@/views/components/shop/InventoryItem';
 import { ShopSkeleton } from '@/views/components/shop/ShopSkeleton';
 import { SparkWallet } from '@/views/components/shop/SparkWallet';
 import { TransactionHistory } from '@/views/components/shop/TransactionHistory';
-import { SHOP_TEXT } from '@/constants/shop';
+
 import { useShop } from '@/controllers/ShopContext';
 import type { ShopInventoryItem } from '@/models/shop';
-import styles from '@/views/styles/shop.module.css';
+import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
+
 
 export function InventoryPage() {
+  const shopText = useLocalizedShopText();
   const { snapshot, balances, loading, error, activatingId, activate, refresh } = useShop();
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
 
@@ -22,11 +24,11 @@ export function InventoryPage() {
     setMessage(null);
     try {
       await activate(item.id);
-      setMessage({ tone: 'success', text: SHOP_TEXT.status.activationSuccess });
+      setMessage({ tone: 'success', text: shopText.status.activationSuccess });
     } catch (caught) {
       setMessage({
         tone: 'error',
-        text: caught instanceof Error ? caught.message : SHOP_TEXT.errors.activateItem,
+        text: caught instanceof Error ? caught.message : shopText.errors.activateItem,
       });
     }
   };
@@ -35,9 +37,9 @@ export function InventoryPage() {
     <PageTransition>
       <div className={styles.inventoryPage}>
         <PageHeader
-          eyebrow={SHOP_TEXT.inventory.eyebrow}
-          title={SHOP_TEXT.inventory.title}
-          description={SHOP_TEXT.inventory.description}
+          eyebrow={shopText.inventory.eyebrow}
+          title={shopText.inventory.title}
+          description={shopText.inventory.description}
           action={<SparkWallet balances={balances} compact loading={loading} />}
         />
         {message && <Feedback tone={message.tone}>{message.text}</Feedback>}
@@ -45,14 +47,14 @@ export function InventoryPage() {
           <div className={styles.shopFeedback}>
             <Feedback tone="error">{error}</Feedback>
             <button type="button" className={styles.shopSecondaryButton} onClick={() => void refresh()}>
-              <RefreshCcw size={15} /> {SHOP_TEXT.shop.retry}
+              <RefreshCcw size={15} /> {shopText.shop.retry}
             </button>
           </div>
         )}
         {loading && !snapshot ? (
           <ShopSkeleton count={4} />
         ) : snapshot?.inventory.length ? (
-          <section className={styles.inventoryGrid} aria-label={SHOP_TEXT.inventory.acquiredItems}>
+          <section className={styles.inventoryGrid} aria-label={shopText.inventory.acquiredItems}>
             {snapshot.inventory.map((item) => (
               <InventoryItem
                 key={item.id}
@@ -64,18 +66,18 @@ export function InventoryPage() {
           </section>
         ) : snapshot ? (
           <EmptyState
-            title={SHOP_TEXT.inventory.emptyTitle}
-            description={SHOP_TEXT.inventory.emptyDescription}
+            title={shopText.inventory.emptyTitle}
+            description={shopText.inventory.emptyDescription}
             action={
               <Link className={styles.shopPrimaryLink} to="/shop">
-                <ShoppingBag size={16} /> {SHOP_TEXT.inventory.goToShop}
+                <ShoppingBag size={16} /> {shopText.inventory.goToShop}
               </Link>
             }
           />
         ) : null}
         {snapshot && <TransactionHistory transactions={snapshot.transactions} />}
         {!snapshot && !loading && !error && (
-          <div className={styles.inventoryPlaceholder}><PackageOpen size={24} /> {SHOP_TEXT.inventory.unavailable}</div>
+          <div className={styles.inventoryPlaceholder}><PackageOpen size={24} /> {shopText.inventory.unavailable}</div>
         )}
       </div>
     </PageTransition>

@@ -1,5 +1,6 @@
 export type Role = 'Employee' | 'Coordinator' | 'GPM' | 'Head' | 'Top Management' | 'Administrator';
 export type SparkType = 'White' | 'Yellow' | 'Blue' | 'Radiant';
+export type SparkBalances = Record<SparkType, number>;
 export type RequestStatus = 'Pending' | 'Approved' | 'Rejected';
 export type AsyncStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -21,6 +22,8 @@ export interface Employee {
   active: boolean;
   hasCoordinationExperience: boolean;
   managerId?: string;
+  managerName?: string;
+  managerEmail?: string;
 }
 
 export interface ProjectTeamMember {
@@ -42,6 +45,7 @@ export interface SparkCategory {
   name: string;
   description: string;
   sparkType: Exclude<SparkType, 'Radiant'>;
+  usageType: 'PeerRecognition' | 'Award' | 'Performance' | 'Administrative';
   amount: number;
   period: 'Quarterly' | 'Yearly' | 'One-time' | 'Unrestricted';
   active: boolean;
@@ -77,6 +81,7 @@ export interface PeerRecognition {
   recipientId: string;
   category: string;
   categoryId?: string;
+  amount: number;
   description: string;
   createdAt: string;
   status: RequestStatus;
@@ -134,6 +139,7 @@ export interface Achievement {
 export interface DisenchantRequest {
   id: string;
   employeeId: string;
+  employeeName?: string;
   departmentId: string;
   sparkType: Exclude<SparkType, 'Radiant'>;
   amount: number;
@@ -142,13 +148,45 @@ export interface DisenchantRequest {
   currency: string;
   createdAt: string;
   accountingPeriod: string;
-  status: 'Created' | 'Exported' | 'Paid';
+  status: 'Created' | 'Exported' | 'Paid' | 'Cancelled';
+}
+
+export interface FulfillmentContact {
+  id: string;
+  name: string;
+  email: string;
+  role: 'Director' | 'OfficeManager' | 'DepartmentHead';
+  officeName: string | null;
+}
+
+export interface DisenchantReport {
+  id: string;
+  reportMonth: string;
+  rangeStartedAt: string | null;
+  rangeEndedAt: string;
+  status: 'Created' | 'Submitted' | 'Paid';
+  itemCount: number;
+  moneyTotal: number;
+  createdAt: string;
+}
+
+export interface DisenchantReportResult extends DisenchantReport {
+  fileName: string;
+  csv: string;
+  lines: Array<{
+    employeeName: string;
+    sparkType: Exclude<SparkType, 'Radiant'>;
+    sparkAmount: number;
+    moneyAmount: number;
+    currency: string;
+  }>;
 }
 
 export interface AuditEvent {
   id: string;
   action: string;
   actorId: string;
+  actorName?: string;
   subjectId: string;
   dateTime: string;
   details: string;
@@ -193,21 +231,41 @@ export interface SparkSettings {
   disenchantRate: number;
   currency: string;
   sparkMoneyValues: Record<Exclude<SparkType, 'Radiant'>, number>;
+  performanceThresholds: PerformanceThresholdSettings;
+}
+
+export interface PerformanceRewardTier {
+  minimum: number;
+  reward: number;
+}
+
+export interface PerformanceThresholdSettings {
+  kpi: PerformanceRewardTier[];
+  personalCards: PerformanceRewardTier[];
 }
 
 export interface AppSnapshot {
+  shell?: {
+    balances: SparkBalances;
+    pendingApprovals: number;
+    pendingDisenchant: number;
+  };
   categories: SparkCategory[];
   employees: Employee[];
   departments: Department[];
   projectTeams: ProjectTeam[];
   transactions: SparkTransaction[];
+  departmentBalances: Record<string, SparkBalances>;
   recognitions: PeerRecognition[];
   awardRequests: AwardRequest[];
   qualityGates: QualityGate[];
   performance: PerformanceRecord[];
   achievements: Achievement[];
   disenchantRequests: DisenchantRequest[];
+  disenchantReports: DisenchantReport[];
+  fulfillmentContacts: FulfillmentContact[];
   auditEvents: AuditEvent[];
+  shopEffects?: import('@/models/shop').ShopEffects;
   settings: SparkSettings;
 }
 
@@ -222,4 +280,7 @@ export interface AwardInput {
   sparkType: SparkType;
   category: string;
   description: string;
+  fulfillmentContactId?: string;
+  radiantRewardKind?: 'RadiantAcrylic' | 'RadiantVesselModel';
+  valuablePrizeDescription?: string;
 }

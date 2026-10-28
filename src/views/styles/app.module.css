@@ -40,7 +40,7 @@
   align-items: center;
   gap: 0.6rem;
   color: var(--sidebar-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 .brandLockup {
@@ -59,7 +59,7 @@
 }
 .brandSystemLabel {
   color: var(--sidebar-muted);
-  font-size: 0.66rem;
+  font-size: 0.8125rem;
   font-weight: 750;
   letter-spacing: 0.18em;
 }
@@ -83,7 +83,7 @@
 .navLabelSecondary {
   margin: 0 0 0.55rem 0.75rem;
   color: var(--sidebar-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -149,7 +149,7 @@
   border-radius: 999px;
   color: var(--on-gold);
   background: var(--brand-gold);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-align: center;
 }
@@ -200,7 +200,7 @@
   border-radius: 999px;
   color: var(--muted-strong);
   background: var(--surface-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.035em;
   white-space: nowrap;
@@ -318,7 +318,7 @@
 .compactBalanceTrigger strong,
 .compactBalanceTrigger span {
   color: var(--ink);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
 }
 .compactBalanceTrigger span {
   color: var(--muted);
@@ -349,7 +349,7 @@
 .compactBalancePopover > p {
   margin: 0 0 0.45rem;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -372,7 +372,7 @@
   align-items: center;
   gap: 0.45rem;
   color: var(--muted-strong);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .accountMenuTrigger {
@@ -412,7 +412,7 @@
 }
 .accountPopover header small {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
 }
 .accountPopover > a,
 .themeToggleMenu,
@@ -500,6 +500,10 @@
   border-color: var(--line-strong);
   color: var(--gold-text);
 }
+.themeGlyph {
+  display: inline-flex;
+  animation: themeGlyphIn 200ms ease-out;
+}
 .themeLabel {
   display: none;
   font-size: 0.8125rem;
@@ -557,7 +561,7 @@
   border-radius: 0.78rem;
   color: var(--muted-strong);
   background: var(--surface);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -638,7 +642,7 @@
   max-width: 13rem;
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -658,7 +662,7 @@
 .avatar {
   width: 2.15rem;
   height: 2.15rem;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .avatarLarge {
   width: 3.1rem;
@@ -701,7 +705,7 @@
 .eyebrow {
   margin-bottom: 0.3rem;
   color: var(--accent-green);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -796,7 +800,7 @@
 .checklist small {
   display: block;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .checklist {
   min-width: 0;
@@ -867,7 +871,7 @@
 .balanceCard p {
   margin: 0.65rem 0 0.15rem;
   color: var(--spark-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .balanceCard strong {
@@ -878,7 +882,7 @@
 }
 .balanceCard small {
   color: var(--spark-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .sparkOrb {
   display: grid;
@@ -1068,6 +1072,20 @@
 .sparkTokenRadiant.sparkTokenAnimated::before {
   animation: radiantGlassShift 10s linear infinite;
 }
+.sparkTokenAnimated {
+  animation: sparkTokenFloat 5.2s ease-in-out infinite;
+}
+.sparkTokenAnimated:hover {
+  transform: scale(1.1);
+}
+@keyframes sparkTokenFloat {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.05) rotate(2deg); }
+}
+@keyframes themeGlyphIn {
+  from { opacity: 0; transform: rotate(-25deg); }
+  to { opacity: 1; transform: rotate(0deg); }
+}
 @keyframes radiantSpectrum {
   0%,
   100% {
@@ -1091,7 +1109,7 @@
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--spark-ink);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
@@ -1099,7 +1117,7 @@
 
 .compactBadge {
   padding: 0.34rem 0.5rem;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .sparkBadge.toneRadiant {
   color: var(--radiant-text);
@@ -1115,7 +1133,7 @@
   border-radius: 999px;
   color: var(--muted);
   background: var(--surface-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -1252,8 +1270,8 @@
 }
 .textButton,
 .rowButton {
-  min-height: 2rem;
-  padding: 0;
+  min-height: 2.75rem;
+  padding: 0.35rem 0;
   border: 0;
   color: var(--link);
   background: transparent;
@@ -1299,46 +1317,6 @@
   text-underline-offset: 3px;
 }
 
-.welcomePanel {
-  position: relative;
-  display: flex;
-  min-height: 13rem;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1.25rem;
-  padding: 1.5rem;
-  overflow: hidden;
-  border: 1px solid var(--sidebar-line);
-  border-radius: 1rem;
-  color: var(--hero-ink);
-  background: var(--hero);
-}
-
-.welcomePanel > div {
-  position: relative;
-  z-index: 2;
-  max-width: 40rem;
-}
-.welcomePanel h1 {
-  max-width: 40rem;
-  margin: 0.42rem 0 0.9rem;
-  font-size: clamp(1.8rem, 4.5vw, 2.55rem);
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.15;
-}
-.welcomePanel p:not(.eyebrow) {
-  max-width: 33rem;
-  margin-bottom: 0;
-  color: var(--hero-muted);
-  font-size: 0.88rem;
-  line-height: 1.6;
-}
-.welcomePanel .eyebrow {
-  color: var(--hero-accent);
-}
-
 .appFooter {
   flex: none;
   min-width: 0;
@@ -1357,6 +1335,7 @@
 .waveArtwork {
   position: absolute;
   inset: 0;
+  animation: fadeIn 700ms ease-out;
 }
 .waveStrip {
   position: absolute;
@@ -1423,8 +1402,7 @@
   border-radius: 0.25rem;
 }
 
-.accountEffectBadges,
-.activeRewardStrip {
+.accountEffectBadges {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
@@ -1434,13 +1412,12 @@
   margin-top: 0.35rem;
 }
 
-.accountEffectBadges em,
-.activeRewardStrip span {
+.accountEffectBadges em {
   border: 1px solid color-mix(in srgb, var(--brand-gold), var(--line) 38%);
   border-radius: 999px;
   color: var(--gold-text);
   background: var(--gold-soft);
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-style: normal;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -1450,18 +1427,6 @@
   padding: 0.16rem 0.42rem;
 }
 
-.activeRewardStrip {
-  margin-top: 0.75rem;
-}
-
-.activeRewardStrip span {
-  padding: 0.3rem 0.58rem;
-}
-
-.welcomePanel[data-focus-surface='true'] {
-  border-color: color-mix(in srgb, var(--focus), var(--line) 35%);
-  box-shadow: 0 1rem 3rem color-mix(in srgb, var(--focus), transparent 86%);
-}
 .avatar img,
 .avatarLarge img {
   width: 100%;
@@ -1473,7 +1438,7 @@
   flex: 1 1 16rem;
   margin: 0;
   color: var(--sidebar-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.7;
 }
 .footerTagline span {
@@ -1491,7 +1456,7 @@
   border-radius: 0.6rem;
   color: var(--sidebar-ink);
   background: var(--sidebar-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition:
     border-color 160ms ease,
@@ -1511,7 +1476,7 @@
   border-radius: 0.6rem;
   color: var(--sidebar-ink);
   background: transparent;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
 }
@@ -1531,7 +1496,7 @@
   padding-top: 1rem;
   border-top: 1px solid var(--sidebar-line);
   color: var(--sidebar-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.6;
 }
 
@@ -1557,7 +1522,6 @@
   font-weight: 700;
   text-decoration: none;
 }
-.dashboardGrid,
 .formLayout,
 .operationLayout,
 .adminGrid {
@@ -1612,7 +1576,7 @@
   margin: 0;
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.45;
   text-overflow: ellipsis;
 }
@@ -1682,7 +1646,7 @@
   display: block;
   margin-bottom: 0.2rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .miniMetrics strong,
 .previewMetrics strong,
@@ -1696,7 +1660,7 @@
 }
 .searchField {
   display: flex;
-  min-height: 2.4rem;
+  min-height: 2.75rem;
   align-items: center;
   gap: 0.42rem;
   padding: 0 0.7rem;
@@ -1741,7 +1705,7 @@
   width: 100%;
   min-width: 46rem;
   border-collapse: collapse;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .dataTable th,
 .dataTable td {
@@ -1753,7 +1717,7 @@
 .dataTable th {
   color: var(--muted);
   background: var(--surface-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1777,7 +1741,7 @@
   margin-top: 0.15rem;
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1795,7 +1759,7 @@
 .miniDefinition dt {
   margin-bottom: 0.25rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -1831,6 +1795,70 @@
   display: grid;
   gap: 0.9rem;
 }
+.settingsSection {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.35rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.settingsSection h3 {
+  margin: 0.15rem 0 0;
+  font-size: 1rem;
+}
+.thresholdGroups {
+  display: grid;
+  gap: 0.8rem;
+}
+.thresholdGroup {
+  min-width: 0;
+  margin: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.82rem;
+  background: var(--surface-soft);
+}
+.thresholdGroup legend {
+  padding: 0 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+.thresholdHeader,
+.thresholdRow {
+  display: grid;
+  grid-template-columns: minmax(3.5rem, 0.65fr) repeat(2, minmax(6rem, 1fr));
+  align-items: center;
+  gap: 0.55rem;
+}
+.thresholdHeader {
+  padding: 0 0.15rem 0.4rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.thresholdRow + .thresholdRow {
+  margin-top: 0.5rem;
+}
+.thresholdRow strong {
+  font-size: 0.8125rem;
+}
+.thresholdRow input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--control-border);
+  border-radius: 0.68rem;
+  color: var(--ink);
+  background: var(--control-bg);
+  font: inherit;
+}
+.thresholdRow input:focus-visible {
+  border-color: var(--focus);
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
 .formField {
   display: grid;
   gap: 0.42rem;
@@ -1842,7 +1870,9 @@
 .formField > span small,
 .formField > small:not(.fieldError) {
   color: var(--muted);
+  font-size: 0.8125rem;
   font-weight: 500;
+  line-height: 1.45;
 }
 .formField input,
 .formField select,
@@ -1882,34 +1912,15 @@
   border-color: var(--danger-line);
   box-shadow: 0 0 0 3px var(--danger-soft);
 }
-.categoryAmountField {
-  display: block;
-  width: 5.75rem;
-}
-.categoryAmountField input {
-  width: 100%;
-  min-height: 2.6rem;
-  padding: 0.55rem 0.65rem;
-  border: 1px solid var(--control-border);
-  border-radius: 0.7rem;
-  color: var(--ink);
-  background: var(--control-bg);
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 700;
-}
-.categoryAmountField input:focus-visible {
-  border-color: var(--focus);
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-.categoryAmountField input[aria-invalid='true'] {
-  border-color: var(--danger-line);
-  box-shadow: 0 0 0 3px var(--danger-soft);
+.inlineActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
 }
 .fieldError {
   color: var(--danger) !important;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .formFooter {
   display: flex;
@@ -1925,12 +1936,30 @@
   gap: 0.38rem;
   margin: 0;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .sideStack {
   display: grid;
   align-content: start;
   gap: 0.85rem;
+}
+.categoryDetailsCard {
+  border-top: 3px solid var(--brand-gold);
+}
+.categoryDetailsInline {
+  display: none;
+}
+.categoryDetailsBody {
+  display: grid;
+  align-items: start;
+  gap: 0.8rem;
+}
+.categoryDetailsBody > p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 .quotaPanel {
   background: var(--surface);
@@ -1944,7 +1973,7 @@
   padding-top: 0.75rem;
   border-top: 1px solid var(--line);
   color: var(--muted-strong);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.45;
 }
 .quotaDots {
@@ -1961,7 +1990,7 @@
   border-radius: 50%;
   color: var(--accent-green);
   background: var(--accent-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .quotaDots > .quotaUsed {
@@ -1999,7 +2028,7 @@
 .metricCard small {
   margin: 0;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .metricCard strong {
   display: block;
@@ -2010,37 +2039,6 @@
 .metricCard > svg {
   align-self: flex-start;
   color: var(--muted);
-}
-.chartWrap {
-  width: 100%;
-  height: 18rem;
-  margin-top: 0.4rem;
-}
-.performanceOverview {
-  min-width: 0;
-  margin-bottom: 1.65rem;
-}
-.performanceExplanation {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.8rem 1.2rem;
-  margin-bottom: 0.9rem;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 0.82rem;
-  background: var(--surface-soft);
-}
-.performanceExplanation p {
-  max-width: 62rem;
-  margin: 0;
-  color: var(--muted-strong);
-  font-size: 0.8125rem;
-  line-height: 1.55;
-}
-.performanceExplanation .textLink {
-  flex: none;
-  white-space: nowrap;
 }
 .ruleList {
   display: grid;
@@ -2134,7 +2132,7 @@
   margin-top: auto;
   padding-top: 0.8rem;
   border-top: 1px solid var(--line);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .achievementCard footer span,
 .achievementCard footer time {
@@ -2147,7 +2145,7 @@
 .achievementCard footer strong {
   overflow-wrap: anywhere;
   color: var(--spark-ink);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .achievementActions {
   display: flex;
@@ -2192,7 +2190,7 @@
   border-radius: 0.62rem;
   color: var(--muted-strong);
   background: transparent;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -2219,7 +2217,7 @@
 }
 .conversionBox > span:first-child {
   color: var(--muted-strong);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .conversionBox label {
@@ -2264,7 +2262,7 @@
   gap: 0.8rem;
   margin: 0.85rem 0;
   color: var(--muted-strong);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .feeRow strong {
   color: var(--ink);
@@ -2367,7 +2365,7 @@
 }
 .payoutCard span {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .payoutCard strong {
   font-size: 2rem;
@@ -2375,7 +2373,7 @@
 }
 .payoutCard small {
   color: var(--muted-strong);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .infoNote,
 .warningBox,
@@ -2386,7 +2384,7 @@
   gap: 0.55rem;
   padding: 0.75rem;
   border-radius: 0.75rem;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.5;
 }
 .infoNote,
@@ -2411,7 +2409,7 @@
 }
 .stepList li > span {
   color: var(--accent-green);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -2424,7 +2422,7 @@
 .stepList p {
   margin-top: 0.2rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.45;
 }
 .sparkBurst {
@@ -2556,7 +2554,7 @@
 .personLine p,
 .personLine span {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .personLine h2 {
   margin: 0.11rem 0;
@@ -2577,13 +2575,13 @@
 .approvalFacts dt {
   margin-bottom: 0.18rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   text-transform: uppercase;
 }
 .approvalFacts dd {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 680;
 }
 .approvalCard blockquote {
@@ -2593,7 +2591,7 @@
   border-left: 3px solid var(--brand-gold);
   color: var(--muted-strong);
   background: var(--surface-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-style: italic;
   line-height: 1.55;
 }
@@ -2638,7 +2636,7 @@
 .personCard header p,
 .personIdentity > span {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .personCardControls {
   display: grid;
@@ -2705,7 +2703,7 @@
 }
 .recognizeLink {
   display: inline-flex;
-  min-height: 2.4rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   padding: 0.48rem 0.68rem;
@@ -2713,7 +2711,7 @@
   border-radius: 0.68rem;
   color: var(--link);
   background: var(--surface-strong);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-align: center;
   text-decoration: none;
@@ -2727,10 +2725,38 @@
 }
 .gateMeta {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .accountingPanel {
   margin-top: 1rem;
+}
+.reportControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+.reportControls label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.reportControls input {
+  min-height: 2.65rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--control-border);
+  border-radius: 0.75rem;
+  color: var(--ink);
+  background: var(--control-bg);
+  color-scheme: dark;
+}
+.reportControls input:focus-visible {
+  border-color: var(--focus);
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 .adminTabs {
   display: grid;
@@ -2772,7 +2798,7 @@
 }
 .uploadZone span {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 .uploadBusy {
   opacity: 0.7;
@@ -2821,177 +2847,6 @@
   font-size: 0.86rem;
   line-height: 1.65;
 }
-.rulesLead {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.9rem;
-  border-top: 3px solid var(--brand-gold);
-}
-.rulesLead h2 {
-  margin: 0 0 0.4rem;
-  font-size: 1.15rem;
-}
-.rulesLead p {
-  margin: 0;
-  color: var(--muted-strong);
-  font-size: 0.86rem;
-  line-height: 1.65;
-}
-.rulesTierGrid,
-.rulesGrid {
-  display: grid;
-  gap: 0.8rem;
-}
-.rulesTierGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-bottom: 1rem;
-}
-.rulesTierCard {
-  min-width: 0;
-  padding: 1rem;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 0.9rem;
-  box-shadow: var(--shadow-sm);
-}
-.rulesTierCard h3 {
-  margin: 1rem 0 0.32rem;
-  font-size: 1rem;
-}
-.rulesTierCard p {
-  margin: 0;
-  color: var(--spark-muted);
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-.rulesList {
-  display: grid;
-  gap: 0.7rem;
-  margin: 0;
-  padding-left: 1.2rem;
-  color: var(--muted-strong);
-  font-size: 0.8125rem;
-  line-height: 1.55;
-}
-.roleRuleList {
-  display: grid;
-  margin: 0;
-}
-.roleRuleList > div {
-  padding: 0.72rem 0;
-  border-bottom: 1px solid var(--line);
-}
-.roleRuleList > div:last-child {
-  border-bottom: 0;
-}
-.roleRuleList dt {
-  font-size: 0.8125rem;
-  font-weight: 800;
-}
-.roleRuleList dd {
-  margin: 0.2rem 0 0;
-  color: var(--muted-strong);
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-.rulesCategoryList {
-  display: grid;
-  gap: 0.8rem;
-}
-.rulesDisclosure {
-  border-top: 1px solid var(--line);
-}
-.rulesCategoryHeader {
-  display: flex;
-  width: 100%;
-  min-height: 3.5rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
-  border-radius: 0.6rem;
-  color: inherit;
-  cursor: pointer;
-  list-style: none;
-}
-.rulesCategoryHeader::-webkit-details-marker {
-  display: none;
-}
-.rulesCategoryHeader::marker {
-  content: '';
-}
-.rulesCategoryHeader:hover {
-  background: var(--surface-soft);
-}
-.rulesCategoryHeader:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-.rulesCategoryMeta {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.45rem;
-}
-.rulesCategoryMeta strong {
-  color: var(--muted);
-  font-size: 0.75rem;
-  text-align: right;
-}
-.rulesCategoryChevron {
-  flex: none;
-  transition: transform 180ms ease;
-}
-.rulesDisclosure[open] .rulesCategoryChevron {
-  transform: rotate(180deg);
-}
-.rulesDisclosure ul {
-  display: grid;
-  gap: 0.55rem;
-  margin: 0 0 0.85rem;
-  padding: 0;
-  list-style: none;
-}
-.rulesDisclosure li {
-  display: flex;
-  min-width: 0;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem;
-  border-radius: 0.65rem;
-  background: var(--surface-soft);
-  font-size: 0.75rem;
-}
-.rulesDisclosure li strong {
-  display: block;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.rulesDisclosure li > div {
-  min-width: 0;
-}
-.rulesDisclosure li p {
-  margin: 0.22rem 0 0;
-  color: var(--muted-strong);
-  line-height: 1.45;
-}
-.rulesDisclosure li span {
-  flex: none;
-  color: var(--muted);
-  text-align: right;
-}
-.rulesNote {
-  margin: 0.8rem 0 0;
-  padding: 0.75rem;
-  border-radius: 0.7rem;
-  color: var(--warning);
-  background: var(--warning-soft);
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-.rulesListSpaced {
-  margin-top: 0.9rem;
-}
 .auditList article {
   display: flex;
   gap: 0.7rem;
@@ -3028,7 +2883,7 @@
 }
 .auditList small {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 
 .modalBackdrop {
@@ -3041,6 +2896,7 @@
   overflow-y: auto;
   background: var(--overlay);
   backdrop-filter: blur(7px);
+  animation: fadeIn 180ms ease-out;
 }
 
 .modal {
@@ -3049,6 +2905,7 @@
   padding: 1rem;
   overflow-y: auto;
   border: 1px solid var(--line);
+  animation: modalIn 200ms ease-out;
   border-radius: 1.1rem;
   background: var(--surface-strong);
   box-shadow: var(--shadow-lg);
@@ -3069,7 +2926,7 @@
 .modalHeader p:not(.eyebrow) {
   margin: 0.4rem 0 0;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.5;
 }
 .emptyState,
@@ -3126,6 +2983,57 @@
   color: var(--muted-strong);
   background: var(--canvas);
   font-size: 0.8125rem;
+}
+.routeSkeleton {
+  display: grid;
+  min-height: min(42rem, calc(100vh - 10rem));
+  align-content: start;
+  gap: 1rem;
+  padding-top: 1.5rem;
+}
+.routeSkeletonHeading,
+.routeSkeletonGrid,
+.routeSkeletonBody {
+  display: grid;
+  gap: 0.75rem;
+}
+.routeSkeletonHeading span,
+.routeSkeletonGrid span,
+.routeSkeletonBody span {
+  min-height: 1rem;
+  border-radius: 0.8rem;
+  background: linear-gradient(90deg, var(--surface-soft) 15%, var(--surface-hover) 45%, var(--surface-soft) 75%);
+  background-size: 220% 100%;
+  animation: routeSkeletonPulse 1.3s ease-in-out infinite;
+}
+.routeSkeletonHeading span:first-child { width: 10rem; min-height: 0.75rem; }
+.routeSkeletonHeading span:last-child { width: min(28rem, 80%); min-height: 2.6rem; }
+.routeSkeletonGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.routeSkeletonGrid span { min-height: 8rem; }
+.routeSkeletonGrid span:last-child { grid-column: 1 / -1; }
+.routeSkeletonBody span { min-height: 11rem; }
+.routeSkeleton[data-route-kind='catalog'] .routeSkeletonGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.routeSkeleton[data-route-kind='catalog'] .routeSkeletonGrid span {
+  min-height: 14rem;
+}
+.routeSkeleton[data-route-kind='catalog'] .routeSkeletonGrid span:last-child {
+  grid-column: auto;
+}
+.routeSkeleton[data-route-kind='profile'] .routeSkeletonGrid,
+.routeSkeleton[data-route-kind='admin'] .routeSkeletonGrid {
+  grid-template-columns: 1fr;
+}
+.routeSkeleton[data-route-kind='profile'] .routeSkeletonGrid span,
+.routeSkeleton[data-route-kind='admin'] .routeSkeletonBody span {
+  min-height: 8.5rem;
+}
+.routeSkeleton[data-route-kind='form'] .routeSkeletonGrid {
+  grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr);
+}
+.routeSkeleton[data-route-kind='form'] .routeSkeletonGrid span:last-child {
+  grid-column: auto;
 }
 .loadingMark {
   display: grid;
@@ -3197,6 +3105,18 @@
     transform: translateX(138%);
   }
 }
+@keyframes routeSkeletonPulse {
+  from { background-position: 100% 0; }
+  to { background-position: -120% 0; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(1rem) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 @keyframes notificationRing {
   0%,
   72%,
@@ -3248,7 +3168,7 @@
     display: block;
     padding-left: 0.7rem;
     color: var(--muted);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 650;
     white-space: nowrap;
   }
@@ -3286,10 +3206,6 @@
     flex: none;
     align-self: flex-end;
   }
-  .welcomePanel {
-    min-height: 13.5rem;
-    padding: 2rem;
-  }
   .balanceGrid,
   .balanceGridCompact {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3303,9 +3219,6 @@
   }
   .metricGridTwo {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .rulesTierGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .achievementGrid,
   .peopleGrid,
@@ -3322,6 +3235,9 @@
     width: auto;
   }
   .fieldGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .thresholdGroups {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .fieldFull {
@@ -3381,12 +3297,16 @@
 }
 
 @media (max-width: 39.99rem) {
-  .performanceExplanation {
-    align-items: stretch;
-    flex-direction: column;
+  .routeSkeleton[data-route-kind] .routeSkeletonGrid {
+    grid-template-columns: 1fr;
   }
-  .performanceExplanation .textLink {
-    white-space: normal;
+  .routeSkeleton[data-route-kind] .routeSkeletonGrid span:last-child {
+    grid-column: auto;
+  }
+  .backToTop {
+    right: auto;
+    left: max(1rem, env(safe-area-inset-left));
+    bottom: max(1rem, env(safe-area-inset-bottom));
   }
   .mobileScrollHint {
     display: flex;
@@ -3394,7 +3314,7 @@
     gap: 0.4rem;
     margin: 0 0 0.55rem;
     color: var(--muted-strong);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     line-height: 1.4;
   }
   .mobileScrollHint svg {
@@ -3431,6 +3351,15 @@
   }
 }
 
+@media (max-width: 63.99rem) {
+  .categoryDetailsInline {
+    display: block;
+  }
+  .categoryDetailsSidebar {
+    display: none;
+  }
+}
+
 @media (min-width: 64rem) {
   .appShell {
     display: grid;
@@ -3440,10 +3369,12 @@
     position: sticky;
     top: 0;
     display: flex;
-    height: 100vh;
+    align-self: start;
+    min-height: 100vh;
+    height: auto;
     flex-direction: column;
     padding: 1.45rem 0.85rem 1.1rem;
-    overflow-y: auto;
+    overflow: visible;
     background: var(--sidebar);
   }
   .mobileBackdrop,
@@ -3465,9 +3396,6 @@
     margin-top: 1.6rem;
     margin-bottom: 2rem;
   }
-  .dashboardGrid {
-    grid-template-columns: minmax(0, 1.55fr) minmax(17rem, 0.75fr);
-  }
   .formLayout,
   .operationLayout {
     grid-template-columns: minmax(0, 1.45fr) minmax(17rem, 0.7fr);
@@ -3484,18 +3412,9 @@
   .peopleGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .rulesGrid .rulesList,
-  .rulesGrid .roleRuleList {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 1.5rem;
-  }
 }
 
 @media (min-width: 88rem) {
-  .rulesCategoryList {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
-  }
   .profileCompact {
     display: flex;
   }
@@ -3511,9 +3430,6 @@
   .mainContent {
     padding-inline: 2.8rem;
   }
-  .welcomePanel {
-    padding: 2rem;
-  }
   .approvalGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -3528,7 +3444,7 @@
     display: inline;
   }
   .adminTabs {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
   }
   .signOutButton {
     width: auto;
@@ -3574,9 +3490,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rulesCategoryChevron {
-    transition: none;
-  }
   .waveStrip {
     animation: none;
   }
@@ -3587,6 +3500,11 @@
   .loadingLine span,
   .spinner,
   .spinnerLarge,
+  .themeGlyph,
+  .sparkTokenAnimated,
+  .waveArtwork,
+  .modalBackdrop,
+  .modal,
   .sparkTokenRadiant.sparkTokenAnimated .sparkTokenImage,
   .sparkTokenRadiant.sparkTokenAnimated::before {
     animation: none;

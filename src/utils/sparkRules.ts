@@ -6,7 +6,11 @@ import type {
   SparkSettings,
   SparkTransaction,
   SparkType,
+  PerformanceRewardTier,
+  PerformanceThresholdSettings,
 } from '@/models';
+import { getActiveLocale } from '@/utils/locale';
+import { DEFAULT_PERFORMANCE_THRESHOLDS } from '@/constants/app';
 import { todayIso } from './quarter';
 
 export const calculateBalances = (transactions: SparkTransaction[], employeeId: string) => {
@@ -37,20 +41,41 @@ export const calculateLifetimeEarnings = (transactions: SparkTransaction[], empl
   return earnings;
 };
 
-export const kpiReward = (value: number) => {
+const tieredReward = (value: number, tiers: PerformanceRewardTier[]) => {
   if (!Number.isFinite(value) || value < 0) return 0;
-  if (value < 1.02) return 0;
-  if (value < 1.07) return 1;
-  if (value < 1.12) return 2;
-  return 3;
+  return tiers.reduce((reward, tier) => value >= tier.minimum ? tier.reward : reward, 0);
 };
 
-export const evaluationReward = (value: number) => {
-  if (!Number.isFinite(value) || value < 0) return 0;
-  if (value < 3.5) return 0;
-  if (value < 4.2) return 1;
-  if (value < 4.5) return 2;
-  return 3;
+export const kpiReward = (
+  value: number,
+  tiers = DEFAULT_PERFORMANCE_THRESHOLDS.kpi,
+) => tieredReward(value, Array.isArray(tiers) ? tiers : DEFAULT_PERFORMANCE_THRESHOLDS.kpi);
+
+export const evaluationReward = (
+  value: number,
+  tiers = DEFAULT_PERFORMANCE_THRESHOLDS.personalCards,
+) => tieredReward(value, Array.isArray(tiers) ? tiers : DEFAULT_PERFORMANCE_THRESHOLDS.personalCards);
+
+export const performanceThresholdValidationIssue = (thresholds: PerformanceThresholdSettings) => {
+  for (const [source, tiers] of Object.entries(thresholds) as Array<
+    [keyof PerformanceThresholdSettings, PerformanceRewardTier[]]
+  >) {
+    const label = source === 'kpi' ? 'KPI' : 'Personal Cards';
+    if (tiers.length !== 3) return `${label} must have exactly three reward tiers.`;
+    for (const [index, tier] of tiers.entries()) {
+      if (!Number.isFinite(tier.minimum) || tier.minimum < 0)
+        return `${label} Tier ${index + 1}: minimum score must be zero or greater.`;
+      if (!Number.isSafeInteger(tier.reward) || tier.reward < 0)
+        return `${label} Tier ${index + 1}: White reward must be a non-negative whole number.`;
+      if (index > 0 && tier.minimum <= tiers[index - 1]!.minimum)
+        return `${label} Tier ${index + 1}: minimum score must be greater than Tier ${index}.`;
+      if (index > 0 && tier.reward < tiers[index - 1]!.reward)
+        return `${label} Tier ${index + 1}: White reward cannot be lower than Tier ${index}.`;
+    }
+  }
+  if (thresholds.personalCards.some((tier) => tier.minimum > 5))
+    return 'Personal Cards minimum scores cannot exceed 5.';
+  return null;
 };
 
 export const conversionRule = (
@@ -129,4 +154,4 @@ export const gpmWhiteAwardQuota = (controlledCoordinatorCount: number, multiplie
   controlledCoordinatorCount > 0 ? Math.ceil(controlledCoordinatorCount / multiplier) : 0;
 
 export const formatMoney = (value: number, currency: string) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
+  new Intl.NumberFormat(getActiveLocale(), { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);

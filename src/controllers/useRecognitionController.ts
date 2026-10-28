@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { RecognitionInput } from '@/models';
-import { useSpark } from './SparkContext';
+import { useSpark } from '@/controllers/SparkContext';
 import { recognitionQuota } from '@/utils/sparkRules';
 import { quarterForDate } from '@/utils/quarter';
 
@@ -98,8 +98,17 @@ export function useRecognitionController() {
     usedCount,
     categories:
       snapshot?.categories
-        .filter((category) => category.active && category.sparkType === 'White')
-        .map((category) => category.name) ?? [],
+        .filter((category) => category.active && category.usageType === 'PeerRecognition')
+        .map((category) => ({
+          id: category.id,
+          name: category.name,
+          description: category.description,
+          sparkType: category.sparkType,
+          usageType: category.usageType,
+          amount: category.amount,
+          period: category.period,
+          active: category.active,
+        })) ?? [],
     submit,
   };
 }

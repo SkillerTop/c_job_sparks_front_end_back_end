@@ -4,7 +4,8 @@ import type { SpendableSparkBalances } from '@/models/shop';
 import { formatSparkAmount, SPENDABLE_SPARK_TYPES } from '@/utils/shop';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function CompactBalanceMenu({
   balances,
@@ -46,7 +47,7 @@ export function CompactBalanceMenu({
       >
         <WalletCards size={17} aria-hidden="true" />
         <strong>{loading ? '…' : balances ? formatSparkAmount(total) : '—'}</strong>
-        <span>Sparks</span>
+        <span><LocalizedText>Sparks</LocalizedText></span>
         <ChevronDown size={14} aria-hidden="true" />
       </button>
       {open && (

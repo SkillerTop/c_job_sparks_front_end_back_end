@@ -1,6 +1,6 @@
 import { Check, Clock3, Eye, LockKeyhole, ShoppingBag } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { SHOP_CATEGORIES, SHOP_TEXT } from '@/constants/shop';
+import { SHOP_CATEGORIES } from '@/constants/shop';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
 import type { ShopInventoryItem, ShopProduct, SpendableSparkBalances } from '@/models/shop';
@@ -8,16 +8,8 @@ import { durationLabel, formatSparkPrice, getProductAction, isProductNew } from 
 import { ProductVisual, rarityClass } from './ProductVisual';
 import { RarityBadge } from './RarityBadge';
 import { SparkAmount } from './SparkAmount';
-import styles from '@/views/styles/shop.module.css';
+import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
 
-const ACTION_LABELS = {
-  buy: SHOP_TEXT.actions.buy,
-  insufficient: SHOP_TEXT.actions.insufficient,
-  purchased: SHOP_TEXT.actions.purchased,
-  activated: SHOP_TEXT.actions.activated,
-  'sold-out': SHOP_TEXT.actions.soldOut,
-  soon: SHOP_TEXT.actions.soon,
-} as const;
 
 export function ProductCard({
   product,
@@ -34,20 +26,31 @@ export function ProductCard({
   readOnly?: boolean;
   onAction: (product: ShopProduct, action: ReturnType<typeof getProductAction>) => void;
 }) {
+  const shopText = useLocalizedShopText();
+  const actionLabels = {
+    buy: shopText.actions.buy,
+    insufficient: shopText.actions.insufficient,
+    purchased: shopText.actions.purchased,
+    activated: shopText.actions.activated,
+    'sold-out': shopText.actions.soldOut,
+    soon: shopText.actions.soon,
+  } as const;
   const reduced = useReducedMotion();
-  const { t } = useUserPreferences();
+  const { t, localize } = useUserPreferences();
   const action = getProductAction(product, balances, inventory);
-  const actionLabel = readOnly ? t('shop.viewOnly') : ACTION_LABELS[action];
+  const actionLabel = readOnly ? t('shop.viewOnly') : actionLabels[action];
   const disabled = readOnly || loading || ['purchased', 'activated', 'sold-out', 'soon'].includes(action);
-  const category = SHOP_CATEGORIES.find((item) => item.value === product.category)?.label ?? product.category;
+  const category = localize(SHOP_CATEGORIES.find((item) => item.value === product.category)?.label ?? product.category);
   const available = balances[product.priceSparkType];
-  const progress = product.price === 0 ? 100 : Math.min(100, (available / product.price) * 100);
+  const progress = product.price === 0
+    ? 100
+    : Math.min(100, Math.max(0, (available / product.price) * 100));
   const promo = product.isLimited
-    ? SHOP_TEXT.labels.limited
+    ? shopText.labels.limited
     : product.isFeatured
-      ? SHOP_TEXT.labels.hit
+      ? shopText.labels.hit
       : isProductNew(product)
-        ? SHOP_TEXT.labels.new
+        ? shopText.labels.new
         : null;
   return (
     <motion.article
@@ -71,12 +74,12 @@ export function ProductCard({
         </div>
         <div className={styles.priceRow}>
           <SparkAmount amount={product.price} sparkType={product.priceSparkType} className={styles.price} />
-          {product.stock !== null && <small>{SHOP_TEXT.product.remaining(product.stock)}</small>}
+          {product.stock !== null && <small>{shopText.product.remaining(product.stock)}</small>}
         </div>
         <div
           className={styles.priceProgress}
           role="progressbar"
-          aria-label={SHOP_TEXT.product.balanceCoverage(Math.round(progress))}
+          aria-label={shopText.product.balanceCoverage(Math.round(progress))}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(progress)}
@@ -87,7 +90,7 @@ export function ProductCard({
           className={`${styles.buyButton} ${action === 'insufficient' ? styles.buyButtonMuted : ''}`}
           type="button"
           disabled={disabled}
-          aria-label={SHOP_TEXT.aria.productAction(
+          aria-label={shopText.aria.productAction(
             actionLabel,
             product.name,
             formatSparkPrice(product.price, product.priceSparkType),
@@ -109,7 +112,7 @@ export function ProductCard({
           ) : (
             <SparkIcon type={product.priceSparkType} size={16} animated={false} />
           )}
-          {loading ? SHOP_TEXT.actions.processing : actionLabel}
+          {loading ? shopText.actions.processing : actionLabel}
         </button>
       </div>
     </motion.article>

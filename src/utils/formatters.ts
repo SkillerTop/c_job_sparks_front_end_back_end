@@ -5,11 +5,11 @@ const parseCalendarDate = (value: string) => {
 };
 
 export const formatDate = (value: string, options?: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat('en-GB', options ?? { day: '2-digit', month: 'short', year: 'numeric' }).format(
+  new Intl.DateTimeFormat(getActiveLocale(), options ?? { day: '2-digit', month: 'short', year: 'numeric' }).format(
     parseCalendarDate(value),
   );
 
-export const formatDateTime = (value: string, locale = 'en-GB') =>
+export const formatDateTime = (value: string, locale = getActiveLocale()) =>
   new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: 'short',
@@ -21,3 +21,5 @@ export const pluralize = (value: number, singular: string, plural = `${singular}
   `${value} ${value === 1 ? singular : plural}`;
 
 export const makeId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+import { getActiveLocale } from '@/utils/locale';
+

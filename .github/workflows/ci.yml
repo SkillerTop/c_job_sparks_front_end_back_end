@@ -1,4 +1,4 @@
-name: Frontend CI
+name: Full-stack CI
 
 on:
   push:
@@ -8,9 +8,37 @@ on:
 permissions:
   contents: read
 
+env:
+  DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/c_job_sparks_test
+  DATABASE_SSL: disable
+  COOKIE_SECRET: ci-cookie-secret-that-is-longer-than-32-characters
+  CORS_ORIGINS: http://127.0.0.1:5173
+  FRONTEND_ORIGIN: http://127.0.0.1:5173
+  VITE_APP_MODE: api
+  VITE_SHOP_MODE: api
+  VITE_API_BASE_URL: http://127.0.0.1:3001
+  VITE_PUBLIC_ORIGIN: http://127.0.0.1:5173
+  MICROSOFT_AUTH_ENABLED: 'false'
+  MAIL_ENABLED: 'false'
+  LOG_LEVEL: silent
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: c_job_sparks_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d c_job_sparks_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -29,11 +57,81 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Type-check
-        run: pnpm lint
+      - name: Check migrations
+        run: |
+          pnpm migrate
+          pnpm --dir server migrate:status
 
-      - name: Test
-        run: pnpm test
+      - name: Type-check frontend and backend
+        run: |
+          pnpm lint:types
+          pnpm --dir server typecheck
 
-      - name: Build
-        run: pnpm build
+      - name: Lint TypeScript and CSS independently
+        run: |
+          pnpm lint:eslint
+          pnpm lint:css
+
+      - name: Run frontend, server and realistic-volume PostgreSQL tests
+        run: |
+          pnpm test
+          pnpm test:server
+          pnpm --dir server test:integration
+
+      - name: Build production frontend and backend
+        run: |
+          pnpm build
+          pnpm verify:production-bundle
+          pnpm build:server
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod
+
+      - name: Prepare browser E2E data
+        run: pnpm --dir server seed:dev
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run six-role browser and axe E2E
+        run: pnpm test:e2e
+
+      - name: Run three-pass desktop and mobile Lighthouse budgets on public and key authenticated pages
+        shell: bash
+        run: |
+          pnpm --dir server start > /tmp/c-job-sparks-server.log 2>&1 &
+          backend_pid=$!
+          trap 'kill "$backend_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            curl --fail --silent http://127.0.0.1:3001/health/ready && break
+            sleep 1
+          done
+
+          pnpm test:lighthouse
+          LIGHTHOUSE_FORM_FACTOR=mobile pnpm test:lighthouse
+
+          employee_cookie=$(curl --fail --silent --show-error -D - -o /dev/null \
+            -H 'content-type: application/json' \
+            --data '{"email":"alex.stone@c-job.test","password":"SparkDemo2026!"}' \
+            http://127.0.0.1:3001/api/v1/auth/login \
+            | awk 'BEGIN { IGNORECASE=1 } /^set-cookie:/ { print $2; exit }' | tr -d '\r')
+          LIGHTHOUSE_PATHS='/profile,/shop' LIGHTHOUSE_SESSION_COOKIE="$employee_cookie" pnpm test:lighthouse
+          LIGHTHOUSE_FORM_FACTOR=mobile LIGHTHOUSE_PATHS='/profile,/shop' LIGHTHOUSE_SESSION_COOKIE="$employee_cookie" pnpm test:lighthouse
+
+          admin_cookie=$(curl --fail --silent --show-error -D - -o /dev/null \
+            -H 'content-type: application/json' \
+            --data '{"email":"ida.novak@c-job.test","password":"SparkDemo2026!"}' \
+            http://127.0.0.1:3001/api/v1/auth/login \
+            | awk 'BEGIN { IGNORECASE=1 } /^set-cookie:/ { print $2; exit }' | tr -d '\r')
+          LIGHTHOUSE_PATHS='/admin' LIGHTHOUSE_SESSION_COOKIE="$admin_cookie" pnpm test:lighthouse
+          LIGHTHOUSE_FORM_FACTOR=mobile LIGHTHOUSE_PATHS='/admin' LIGHTHOUSE_SESSION_COOKIE="$admin_cookie" pnpm test:lighthouse
+
+      - name: Upload browser reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-quality-reports
+          path: |
+            playwright-report
+            .lighthouseci
+          if-no-files-found: ignore

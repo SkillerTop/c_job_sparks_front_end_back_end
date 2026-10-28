@@ -1,4 +1,5 @@
 import { DEMO_SHOP_PRODUCTS } from '@/data/mockShopCatalog';
+import { REWARD_FULFILLMENT_CONTACTS } from '@/constants/fulfillment';
 import type {
   AdminBalance,
   ProductDraft,
@@ -111,6 +112,7 @@ const expireInventory = (state: DemoShopState) => {
 const publicPurchase = ({ requestId: _requestId, ...purchase }: StoredPurchase): ShopPurchase => purchase;
 const publicInventory = ({ userId: _userId, ...item }: StoredInventoryItem): ShopInventoryItem => item;
 const publicTransaction = ({ userId: _userId, ...transaction }: StoredTransaction): ShopSparkTransaction => transaction;
+const demoFulfillmentContacts = REWARD_FULFILLMENT_CONTACTS.map((contact) => ({ ...contact }));
 
 const snapshotFor = (state: DemoShopState, identity: ShopClientIdentity): ShopSnapshot => {
   ensureUser(state, identity);
@@ -120,6 +122,7 @@ const snapshotFor = (state: DemoShopState, identity: ShopClientIdentity): ShopSn
     balances: { ...state.balances[identity.id] },
     inventory: state.inventory.filter((item) => item.userId === identity.id).map(publicInventory),
     transactions: state.transactions.filter((item) => item.userId === identity.id).map(publicTransaction),
+    fulfillmentContacts: demoFulfillmentContacts,
     identity: { id: identity.id, email: identity.email, authenticated: true },
   };
 };
@@ -158,7 +161,7 @@ export const demoShopService = {
     return snapshot;
   },
 
-  async purchase(productId: string, identity?: ShopClientIdentity, requestId = makeId('request')): Promise<PurchaseResult> {
+  async purchase(productId: string, identity?: ShopClientIdentity, requestId = makeId('request'), _fulfillment?: unknown): Promise<PurchaseResult> {
     const current = requireIdentity(identity);
     if (current.role === 'Administrator' || current.role === 'Top Management') {
       throw new ShopServiceError('Your role can browse the Reward Shop but cannot make purchases.', 'FORBIDDEN', 403);
@@ -174,7 +177,7 @@ export const demoShopService = {
         throw new ShopServiceError('This purchase request was already used for another item.', 'REQUEST_REUSED', 409);
       const item = state.inventory.find((entry) => entry.purchaseId === repeated.id && entry.userId === current.id);
       if (!item) throw new Error('The purchased item could not be found.');
-      return { ...snapshotFor(state, current), purchase: publicPurchase(repeated), inventoryItem: publicInventory(item) };
+      return { ...snapshotFor(state, current), purchase: publicPurchase(repeated), inventoryItem: publicInventory(item), fulfillment: null };
     }
 
     const product = state.products.find((entry) => entry.id === productId);
@@ -240,6 +243,7 @@ export const demoShopService = {
       ...snapshotFor(state, current),
       purchase: publicPurchase(purchase),
       inventoryItem: publicInventory(inventoryItem),
+      fulfillment: null,
     };
   },
 
@@ -275,13 +279,16 @@ export const demoShopService = {
       balances: { ...value },
       updatedAt: new Date().toISOString(),
     }));
-    return { products: copy(state.products), purchases: state.purchases.map(publicPurchase), balances };
+    return { products: copy(state.products), purchases: state.purchases.map(publicPurchase), balances,
+      fulfillmentContacts: demoFulfillmentContacts, fulfillments: [] };
   },
 
   async saveProduct(draft: ProductDraft, identity?: ShopClientIdentity): Promise<ShopAdminState> {
     requireAdmin(identity);
     if (!draft.name.trim() || !draft.description.trim()) throw new Error('Name and description are required.');
     if (!Number.isInteger(draft.price) || draft.price < 1) throw new Error('Price must be a positive whole number.');
+    if (draft.fulfillmentKind !== 'Virtual' && !draft.fulfillmentContactId)
+      throw new Error('Choose who is responsible for fulfilling this reward.');
 
     const state = loadState();
     const existingIndex = draft.id ? state.products.findIndex((product) => product.id === draft.id) : -1;
@@ -296,6 +303,16 @@ export const demoShopService = {
     };
     if (existingIndex >= 0) state.products[existingIndex] = product;
     else state.products.unshift(product);
+    saveState(state);
+    return this.getAdminState(identity);
+  },
+
+  async deleteProduct(productId: string, identity?: ShopClientIdentity): Promise<ShopAdminState> {
+    requireAdmin(identity);
+    const state = loadState();
+    const productIndex = state.products.findIndex((product) => product.id === productId);
+    if (productIndex < 0) throw new Error('Product was not found.');
+    state.products.splice(productIndex, 1);
     saveState(state);
     return this.getAdminState(identity);
   },
@@ -333,5 +350,9 @@ export const demoShopService = {
     if (!file.type.startsWith('image/')) throw new Error('Choose a supported image file.');
     if (file.size > MAX_IMAGE_BYTES) throw new Error('The image must be 2 MB or smaller.');
     return { imageUrl: await asDataUrl(file) };
+  },
+
+  async updateFulfillmentStatus(_id: string, _status: string, _notes: string, identity?: ShopClientIdentity) {
+    return this.getAdminState(identity);
   },
 };

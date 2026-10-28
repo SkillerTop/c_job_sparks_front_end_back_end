@@ -1,5 +1,4 @@
-import { useRef } from 'react';
-import { motion, useInView, useReducedMotion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 import { usePageVisibility } from '@/hooks/usePageVisibility';
 import styles from '@/views/styles/app.module.css';
 
@@ -9,9 +8,18 @@ const layers = ['waveBack', 'waveMiddle', 'waveFront'] as const;
 
 export function AnimatedWaves({ paused, id }: { paused: boolean; id: string }) {
   const container = useRef<HTMLDivElement>(null);
-  const inView = useInView(container, { margin: '80px 0px' });
-  const reduced = useReducedMotion();
+  const [inView, setInView] = useState(false);
   const visible = usePageVisibility();
+  useEffect(() => {
+    const element = container.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(Boolean(entry?.isIntersecting)),
+      { rootMargin: '80px 0px' },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   // CSS follows live changes to reduced motion without restarting the component.
   const playing = !paused && visible && inView;
 
@@ -22,12 +30,7 @@ export function AnimatedWaves({ paused, id }: { paused: boolean; id: string }) {
       className={`${styles.waveLayers} ${playing ? styles.waveRunning : ''}`}
       aria-hidden="true"
     >
-      <motion.div
-        className={styles.waveArtwork}
-        initial={reduced ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: reduced ? 0 : 0.7 }}
-      >
+      <div className={styles.waveArtwork}>
         {layers.map((layer) => (
           <svg
             key={layer}
@@ -40,7 +43,7 @@ export function AnimatedWaves({ paused, id }: { paused: boolean; id: string }) {
             <path d={WAVE_PATH} />
           </svg>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }

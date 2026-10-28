@@ -20,6 +20,8 @@ const EMPTY_PRODUCT: ProductDraft = {
   price: 4,
   priceSparkType: 'White',
   productType: 'Consumable',
+  fulfillmentKind: 'Virtual',
+  fulfillmentContactId: null,
   durationHours: null,
   stock: null,
   isActive: true,
@@ -52,7 +54,7 @@ export function useShopAdminController() {
       user
         ? { id: user.employeeId, email: user.email, role: user.role }
         : undefined,
-    [user?.employeeId, user?.email, user?.role],
+    [user],
   );
 
   const load = useCallback(async () => {
@@ -103,6 +105,8 @@ export function useShopAdminController() {
             price: product.price,
             priceSparkType: product.priceSparkType,
             productType: product.productType,
+            fulfillmentKind: product.fulfillmentKind,
+            fulfillmentContactId: product.fulfillmentContactId,
             durationHours: product.durationHours,
             stock: product.stock,
             isActive: product.isActive,
@@ -117,6 +121,10 @@ export function useShopAdminController() {
 
   const saveProduct = async () => {
     if (!editing || saving) return;
+    if (editing.fulfillmentKind !== 'Virtual' && !editing.fulfillmentContactId) {
+      setMessage({ tone: 'error', text: 'Choose who is responsible for fulfilling this reward.' });
+      return;
+    }
     setSaving(true);
     setMessage(null);
     try {
@@ -130,6 +138,28 @@ export function useShopAdminController() {
         tone: 'error',
         text: error instanceof Error ? error.message : SHOP_TEXT.errors.saveProduct,
       });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteProduct = async (productId: string) => {
+    if (saving) return false;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const next = await shopService.deleteProduct(productId, clientIdentity);
+      setState(next);
+      setEditing((current) => current?.id === productId ? null : current);
+      setMessage({ tone: 'success', text: SHOP_TEXT.admin.productDeleted });
+      await refreshShop();
+      return true;
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: error instanceof Error ? error.message : SHOP_TEXT.errors.deleteProduct,
+      });
+      return false;
     } finally {
       setSaving(false);
     }
@@ -179,6 +209,20 @@ export function useShopAdminController() {
     }
   };
 
+  const updateFulfillment = async (id: string, status: string, notes: string) => {
+    if (saving) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      setState(await shopService.updateFulfillmentStatus(id, status, notes, clientIdentity));
+      setMessage({ tone: 'success', text: 'Reward fulfillment status updated.' });
+    } catch (error) {
+      setMessage({ tone: 'error', text: error instanceof Error ? error.message : 'Could not update fulfillment.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return {
     state,
     loading,
@@ -198,7 +242,9 @@ export function useShopAdminController() {
     previewProduct,
     openProduct,
     saveProduct,
+    deleteProduct,
     uploadImage,
     submitAdjustment,
+    updateFulfillment,
   };
 }

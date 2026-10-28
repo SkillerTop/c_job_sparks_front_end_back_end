@@ -19,6 +19,22 @@ test('the standalone shop purchases and activates an item exactly once', async (
   values.clear();
   const initial = await demoShopService.getSnapshot(employee);
   assert.equal(initial.balances.White, 18);
+  assert.equal(initial.fulfillmentContacts.length, 10);
+  assert.deepEqual(
+    initial.fulfillmentContacts.map((contact) => contact.email),
+    [
+      'a.zherebetsky@c-job.com.ua',
+      'o.kalnauz@c-job.com.ua',
+      'm.nazarenko@c-job.com.ua',
+      'm.keranova@c-job.com.ua',
+      'm.petrenko@c-job.com.ua',
+      'm.balanovskiy@c-job.com.ua',
+      'i.tatko@c-job.com.ua',
+      'm.klimova@c-job.com.ua',
+      'd.volik@c-job.com.ua',
+      'y.petrashenko@c-job.com.ua',
+    ],
+  );
 
   const first = await demoShopService.purchase('task-reroll', employee, 'request-1');
   assert.equal(first.balances.White, 14);
@@ -46,5 +62,21 @@ test('role restrictions and balance adjustments use the API-compatible error mod
   await assert.rejects(
     demoShopService.purchase('gold-profile-frame', { ...employee, id: 'unknown-user' }, 'request-poor'),
     (error) => error instanceof ShopServiceError && error.code === 'INSUFFICIENT_SPARKS',
+  );
+});
+
+test('an administrator can remove a product while purchase history stays intact', async () => {
+  values.clear();
+  const purchased = await demoShopService.purchase('task-reroll', employee, 'delete-history-request');
+  const before = await demoShopService.getAdminState(administrator);
+  assert.ok(before.products.some((product) => product.id === 'task-reroll'));
+
+  const after = await demoShopService.deleteProduct('task-reroll', administrator);
+  assert.ok(after.products.every((product) => product.id !== 'task-reroll'));
+  assert.ok(after.purchases.some((purchase) => purchase.id === purchased.purchase.id));
+
+  await assert.rejects(
+    demoShopService.deleteProduct('gold-profile-frame', employee),
+    (error) => error instanceof ShopServiceError && error.code === 'FORBIDDEN',
   );
 });

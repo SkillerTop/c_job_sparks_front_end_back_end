@@ -16,7 +16,7 @@ export function AppFooter() {
       <AnimatedWaves paused={paused} id={wavesId} />
       <div className={styles.footerContent}>
         <div className={styles.footerBrandRow}>
-          <Link to="/" className={styles.footerLogo} aria-label="C-Job Sparks home">
+          <Link to="/" className={styles.footerLogo} aria-label={`C-Job Sparks · ${t('nav.home')}`}>
             <BrandLockup compact />
           </Link>
           <p className={styles.footerTagline}>

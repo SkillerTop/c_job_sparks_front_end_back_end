@@ -1,10 +1,11 @@
-import { AnimatePresence } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { AlertTriangle, RefreshCcw, Sparkles } from 'lucide-react';
 import {
   COMPANY_ACHIEVEMENT_ROLES,
   MEMBER_WORKSPACE_ROLES,
+  PERSONAL_ECONOMY_ROLES,
+  PERSONAL_LEDGER_ROLES,
   PEER_RECOGNITION_ROLES,
   PERFORMANCE_ROLES,
   SHOP_ROLES,
@@ -16,7 +17,8 @@ import { AsyncBoundary } from '@/views/components/common/AsyncBoundary';
 import { RouteGuard } from './RouteGuard';
 import { GuestOnly, RequireAuth } from './AuthGuard';
 import { RouteMetadata } from './RouteMetadata';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 const DashboardPage = lazy(() => import('@/views/pages/DashboardPage').then((module) => ({ default: module.DashboardPage })));
 const ProfilePage = lazy(() => import('@/views/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })));
@@ -44,25 +46,61 @@ const RegistrationStatusPage = lazy(() =>
 );
 
 function RouteLoading() {
+  const { pathname } = useLocation();
+  const routeKind = pathname.startsWith('/profile')
+    ? 'profile'
+    : pathname.startsWith('/shop') || pathname.startsWith('/inventory')
+      ? 'catalog'
+      : pathname.startsWith('/admin')
+        ? 'admin'
+        : ['/recognition', '/award', '/convert', '/disenchant'].some((path) => pathname.startsWith(path))
+          ? 'form'
+          : 'overview';
   return (
-    <div className={styles.emptyState} role="status" aria-live="polite">
-      Loading workspace section…
+    <div
+      className={styles.routeSkeleton}
+      data-route-kind={routeKind}
+      role="status"
+      aria-live="polite"
+    >
+      <span className={styles.srOnly}><LocalizedText>Loading workspace section…</LocalizedText></span>
+      <div className={styles.routeSkeletonHeading}><span /><span /></div>
+      <div className={styles.routeSkeletonGrid}><span /><span /><span /></div>
+      <div className={styles.routeSkeletonBody}><span /><span /></div>
     </div>
   );
 }
 
 function WorkspaceLayout() {
   const location = useLocation();
-  const { currentUserId } = useSpark();
+  const { currentUserId, snapshot, loading, sectionLoading, error, refresh } = useSpark();
+  if (error)
+    return (
+      <div className={styles.fullState} role="alert">
+        <AlertTriangle size={34} />
+        <h1><LocalizedText>Workspace unavailable</LocalizedText></h1>
+        <p><LocalizedText>{error}</LocalizedText></p>
+        <button className={styles.primaryButton} onClick={() => void refresh()} type="button">
+          <RefreshCcw size={16} /> <LocalizedText>Try again
+        </LocalizedText></button>
+      </div>
+    );
+  if (loading || !snapshot)
+    return (
+      <div className={styles.loadingScreen} role="status" aria-live="polite">
+        <span className={styles.loadingMark}><Sparkles size={24} /></span>
+        <strong><LocalizedText>Loading workspace</LocalizedText></strong>
+        <p><LocalizedText>Balances, permissions and company data are being refreshed.</LocalizedText></p>
+        <div className={styles.loadingLine}><span /></div>
+      </div>
+    );
   return (
     <AsyncBoundary>
       <AppShell key={currentUserId}>
         <Suspense fallback={<RouteLoading />}>
-          <AnimatePresence mode="wait" initial={false}>
-            <div key={location.pathname}>
-              <Outlet />
-            </div>
-          </AnimatePresence>
+          <div key={location.pathname}>
+            {sectionLoading ? <RouteLoading /> : <Outlet />}
+          </div>
         </Suspense>
       </AppShell>
     </AsyncBoundary>
@@ -82,8 +120,8 @@ export function AppRouter() {
     return (
       <div className={styles.loadingScreen} role="status" aria-live="polite">
         <span className={styles.loadingMark}><Sparkles size={24} /></span>
-        <strong>Preparing demo access</strong>
-        <p>Account status and permissions are loading.</p>
+        <strong><LocalizedText>Preparing access</LocalizedText></strong>
+        <p><LocalizedText>Account status and permissions are loading.</LocalizedText></p>
         <div className={styles.loadingLine}><span /></div>
       </div>
     );
@@ -91,11 +129,11 @@ export function AppRouter() {
     return (
       <div className={styles.fullState} role="alert">
         <AlertTriangle size={34} />
-        <h1>Sign-in unavailable</h1>
-        <p>{error}</p>
+        <h1><LocalizedText>Sign-in unavailable</LocalizedText></h1>
+        <p><LocalizedText>{error}</LocalizedText></p>
         <button className={styles.primaryButton} onClick={() => void refreshAuth()} type="button">
-          <RefreshCcw size={16} /> Try again
-        </button>
+          <RefreshCcw size={16} /> <LocalizedText>Try again
+        </LocalizedText></button>
       </div>
     );
 
@@ -116,7 +154,7 @@ export function AppRouter() {
           <Route
             path="sparks"
             element={
-              <RouteGuard roles={MEMBER_WORKSPACE_ROLES}>
+              <RouteGuard roles={PERSONAL_LEDGER_ROLES}>
                 <MySparksPage />
               </RouteGuard>
             }
@@ -140,7 +178,7 @@ export function AppRouter() {
           <Route
             path="achievements"
             element={
-              <RouteGuard roles={MEMBER_WORKSPACE_ROLES}>
+              <RouteGuard roles={PERSONAL_LEDGER_ROLES}>
                 <AchievementsPage />
               </RouteGuard>
             }
@@ -164,7 +202,7 @@ export function AppRouter() {
           <Route
             path="inventory"
             element={
-              <RouteGuard roles={MEMBER_WORKSPACE_ROLES}>
+              <RouteGuard roles={PERSONAL_ECONOMY_ROLES}>
                 <InventoryPage />
               </RouteGuard>
             }
@@ -172,7 +210,7 @@ export function AppRouter() {
           <Route
             path="convert"
             element={
-              <RouteGuard roles={MEMBER_WORKSPACE_ROLES}>
+              <RouteGuard roles={PERSONAL_ECONOMY_ROLES}>
                 <ConversionPage />
               </RouteGuard>
             }
@@ -180,7 +218,7 @@ export function AppRouter() {
           <Route
             path="disenchant"
             element={
-              <RouteGuard roles={MEMBER_WORKSPACE_ROLES}>
+              <RouteGuard roles={PERSONAL_ECONOMY_ROLES}>
                 <DisenchantPage />
               </RouteGuard>
             }

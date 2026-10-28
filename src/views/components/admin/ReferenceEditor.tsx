@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react';
-import { Save } from 'lucide-react';
+import { Save, Trash2 } from 'lucide-react';
 import { ALL_ROLES } from '@/constants/app';
 import { Modal } from '@/views/components/common/Modal';
 import { Feedback } from '@/views/components/common/Feedback';
 import { SelectField } from '@/views/components/ui/SelectField';
 import { useAuth } from '@/controllers/AuthContext';
 import type { AppSnapshot, Department, Employee, ReferenceDraft, SparkCategory } from '@/models';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 type ReferenceFields = Employee & Department & SparkCategory;
 
@@ -14,16 +15,19 @@ export function ReferenceEditor({
   initialDraft,
   snapshot,
   onSave,
+  onDelete,
   onClose,
 }: {
   initialDraft: ReferenceDraft;
   snapshot: AppSnapshot;
   onSave: (draft: ReferenceDraft) => Promise<void>;
+  onDelete?: () => Promise<void>;
   onClose: () => void;
 }) {
   const { accounts } = useAuth();
   const [draft, setDraft] = useState(() => structuredClone(initialDraft));
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const emailLocked =
     draft.kind === 'employees' &&
@@ -46,19 +50,34 @@ export function ReferenceEditor({
       setSaving(false);
     }
   };
+  const remove = async () => {
+    if (!onDelete || deleting || !window.confirm(
+      `Delete ${draft.data.name} from Employee Directory? Access will be disabled. Ledger and audit history will be preserved. This cannot be undone.`,
+    )) return;
+    setDeleting(true);
+    setError('');
+    try {
+      await onDelete();
+      onClose();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not delete this employee.');
+    } finally {
+      setDeleting(false);
+    }
+  };
   return (
     <Modal
       open
       title={`${draft.data.id ? 'Edit' : 'Add'} ${draft.kind === 'categories' ? 'category' : draft.kind.slice(0, -1)}`}
       description="Changes apply to future operations. Existing Ledger and audit records are preserved."
-      onClose={() => !saving && onClose()}
+      onClose={() => !saving && !deleting && onClose()}
     >
       <form onSubmit={(event) => void save(event)}>
         {error && <Feedback tone="error">{error}</Feedback>}
         <div className={styles.fieldGrid}>
           <label className={`${styles.formField} ${styles.fieldFull}`}>
             <span>
-              Name <b>*</b>
+              <LocalizedText>Name </LocalizedText><b>*</b>
             </span>
             <input
               value={draft.data.name}
@@ -72,7 +91,7 @@ export function ReferenceEditor({
             <>
               <label className={styles.formField}>
                 <span>
-                  Job title <b>*</b>
+                  <LocalizedText>Job title </LocalizedText><b>*</b>
                 </span>
                 <input
                   value={draft.data.title}
@@ -83,7 +102,7 @@ export function ReferenceEditor({
               </label>
               <label className={styles.formField}>
                 <span>
-                  Email <b>*</b>
+                  <LocalizedText>Email </LocalizedText><b>*</b>
                 </span>
                 <input
                   type="email"
@@ -96,13 +115,13 @@ export function ReferenceEditor({
                 />
                 {emailLocked && (
                   <small id="employee-email-lock-note">
-                    Locked because this employee has a local access account. Identity changes require a real account recovery flow.
-                  </small>
+                    <LocalizedText>Locked because this employee has a local access account. Identity changes require a real account recovery flow.
+                  </LocalizedText></small>
                 )}
               </label>
               <label className={styles.formField}>
                 <span>
-                  Department <b>*</b>
+                  <LocalizedText>Department </LocalizedText><b>*</b>
                 </span>
                 <SelectField
                   value={draft.data.departmentId}
@@ -119,7 +138,7 @@ export function ReferenceEditor({
                 />
               </label>
               <label className={styles.formField}>
-                <span>Business role</span>
+                <span><LocalizedText>Business role</LocalizedText></span>
                 <SelectField
                   value={draft.data.role}
                   onChange={(value) => update('role', value as Employee['role'])}
@@ -128,7 +147,7 @@ export function ReferenceEditor({
                 />
               </label>
               <label className={`${styles.formField} ${styles.fieldFull}`}>
-                <span>Reports to</span>
+                <span><LocalizedText>Reports to</LocalizedText></span>
                 <SelectField
                   value={draft.data.managerId ?? ''}
                   onChange={(value) => update('managerId', value)}
@@ -147,13 +166,13 @@ export function ReferenceEditor({
                   checked={draft.data.hasCoordinationExperience}
                   onChange={(event) => update('hasCoordinationExperience', event.target.checked)}
                 />
-                <span>Has previous coordination experience</span>
+                <span><LocalizedText>Has previous coordination experience</LocalizedText></span>
               </label>
             </>
           )}
           {draft.kind === 'departments' && (
             <label className={`${styles.formField} ${styles.fieldFull}`}>
-              <span>Department head</span>
+              <span><LocalizedText>Department head</LocalizedText></span>
               <SelectField
                 value={draft.data.headId}
                 onChange={(value) => update('headId', value)}
@@ -170,16 +189,43 @@ export function ReferenceEditor({
                 ]}
                 ariaLabel="Department head"
               />
-              <small>Create the department, assign a Head employee to it, then select them here.</small>
+              <small><LocalizedText>Create the department, assign a Head employee to it, then select them here.</LocalizedText></small>
             </label>
           )}
           {draft.kind === 'categories' && (
             <>
               <label className={styles.formField}>
-                <span>Spark type</span>
+                <span><LocalizedText>Used by</LocalizedText></span>
+                <SelectField
+                  value={draft.data.usageType}
+                  disabled={Boolean(draft.data.id)}
+                  onChange={(value) => {
+                    const usageType = value as SparkCategory['usageType'];
+                    setDraft((current) => ({
+                      ...current,
+                      data: {
+                        ...current.data,
+                        usageType,
+                        ...(usageType === 'PeerRecognition'
+                          ? { sparkType: 'White', amount: 1, period: 'Unrestricted' }
+                          : {}),
+                      },
+                    }) as ReferenceDraft);
+                  }}
+                  options={[
+                    { value: 'PeerRecognition', label: 'Peer Recognition' },
+                    { value: 'Award', label: 'Award a Spark' },
+                    { value: 'Performance', label: 'Performance' },
+                    { value: 'Administrative', label: 'Administrative adjustment' },
+                  ]}
+                  ariaLabel="Category usage"
+                />
+              </label>
+              <label className={styles.formField}>
+                <span><LocalizedText>Spark type</LocalizedText></span>
                 <SelectField
                   value={draft.data.sparkType}
-                  disabled={Boolean(draft.data.id)}
+                  disabled={Boolean(draft.data.id) || draft.data.usageType === 'PeerRecognition'}
                   onChange={(value) => {
                     const sparkType = value as SparkCategory['sparkType'];
                     setDraft(
@@ -208,7 +254,7 @@ export function ReferenceEditor({
                 />
               </label>
               <label className={styles.formField}>
-                <span>Sparks awarded</span>
+                <span><LocalizedText>Sparks awarded</LocalizedText></span>
                 <input
                   type="number"
                   min={1}
@@ -218,13 +264,13 @@ export function ReferenceEditor({
                   value={draft.data.amount}
                   onChange={(event) => update('amount', Number(event.target.value))}
                 />
-                <small>White, Yellow and Blue amounts apply to future Award a Spark operations. Peer Recognition remains 1 White.</small>
+                <small><LocalizedText>The amount applies only to future rewards. Existing Ledger entries keep their original value.</LocalizedText></small>
               </label>
               <label className={`${styles.formField} ${styles.fieldFull}`}>
-                <span>Category limit period</span>
+                <span><LocalizedText>Category limit period</LocalizedText></span>
                 <SelectField
                   value={draft.data.period}
-                  disabled={draft.data.sparkType !== 'Blue' || draft.data.id === 'blue-0'}
+                  disabled={draft.data.usageType === 'PeerRecognition' || draft.data.sparkType !== 'Blue' || draft.data.id === 'blue-0'}
                   onChange={(value) => update('period', value as SparkCategory['period'])}
                   options={(draft.data.sparkType === 'Blue'
                     ? ['Quarterly', 'Yearly', 'One-time']
@@ -232,10 +278,10 @@ export function ReferenceEditor({
                   ).map((period) => ({ value: period, label: period }))}
                   ariaLabel="Category limit period"
                 />
-                <small>Employee of the Year always uses the annual department quota.</small>
+                <small><LocalizedText>Employee of the Year always uses the annual department quota.</LocalizedText></small>
               </label>
               <label className={`${styles.formField} ${styles.fieldFull}`}>
-                <span>Description</span>
+                <span><LocalizedText>Description</LocalizedText></span>
                 <textarea
                   rows={3}
                   value={draft.data.description}
@@ -245,24 +291,32 @@ export function ReferenceEditor({
               </label>
             </>
           )}
-          <label className={`${styles.checkField} ${styles.fieldFull}`}>
-            <input
-              type="checkbox"
-              checked={draft.data.active}
-              onChange={(event) => update('active', event.target.checked)}
-            />
-            <span>
-              Active record<small>Inactive records stay in historical references.</small>
-            </span>
-          </label>
+          {draft.kind !== 'employees' && (
+            <label className={`${styles.checkField} ${styles.fieldFull}`}>
+              <input
+                type="checkbox"
+                checked={draft.data.active}
+                onChange={(event) => update('active', event.target.checked)}
+              />
+              <span>
+                <LocalizedText>Active record</LocalizedText><small><LocalizedText>Inactive records stay in historical references.</LocalizedText></small>
+              </span>
+            </label>
+          )}
         </div>
         <div className={styles.modalActions}>
-          <button type="button" className={styles.secondaryButton} onClick={onClose} disabled={saving}>
-            Cancel
-          </button>
-          <button type="submit" className={styles.primaryButton} disabled={saving}>
+          {onDelete && (
+            <button type="button" className={styles.rejectButton} onClick={() => void remove()} disabled={saving || deleting}>
+              {deleting ? <span className={styles.spinner} /> : <Trash2 size={16} />}
+              <LocalizedText>{deleting ? 'Deleting…' : 'Delete employee'}</LocalizedText>
+            </button>
+          )}
+          <button type="button" className={styles.secondaryButton} onClick={onClose} disabled={saving || deleting}>
+            <LocalizedText>Cancel
+          </LocalizedText></button>
+          <button type="submit" className={styles.primaryButton} disabled={saving || deleting}>
             {saving ? <span className={styles.spinner} /> : <Save size={16} />}
-            {saving ? 'Saving…' : 'Save record'}
+            <LocalizedText>{saving ? 'Saving…' : 'Save record'}</LocalizedText>
           </button>
         </div>
       </form>

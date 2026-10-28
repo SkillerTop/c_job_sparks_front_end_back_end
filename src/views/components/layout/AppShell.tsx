@@ -24,12 +24,13 @@ import type { TranslationKey } from '@/constants/translations';
 import {
   COMPANY_ACHIEVEMENT_ROLES,
   MEMBER_WORKSPACE_ROLES,
+  PERSONAL_ECONOMY_ROLES,
+  PERSONAL_LEDGER_ROLES,
   PEER_RECOGNITION_ROLES,
   SHOP_ROLES,
 } from '@/constants/app';
 import { useAuth } from '@/controllers/AuthContext';
 import { useSpark } from '@/controllers/SparkContext';
-import { useShop } from '@/controllers/ShopContext';
 import type { Role } from '@/models';
 import { selectPendingDepartmentDisenchantRequests, selectPendingRequests } from '@/models/selectors';
 import { useDialogFocus } from '@/hooks/useDialogFocus';
@@ -43,13 +44,14 @@ import { AccountMenu } from './AccountMenu';
 import { BackToTop } from './BackToTop';
 import { CompactBalanceMenu } from './CompactBalanceMenu';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
+import { calculateBalances } from '@/utils/sparkRules';
 import styles from '@/views/styles/app.module.css';
 
 type NavItem = { labelKey: TranslationKey; path: string; icon: typeof Home; roles?: Role[]; badge?: number };
 
 const baseItems: NavItem[] = [
   { labelKey: 'nav.home', path: '/', icon: Home, roles: MEMBER_WORKSPACE_ROLES },
-  { labelKey: 'nav.mySparks', path: '/sparks', icon: WalletCards, roles: MEMBER_WORKSPACE_ROLES },
+  { labelKey: 'nav.mySparks', path: '/sparks', icon: WalletCards, roles: PERSONAL_LEDGER_ROLES },
   {
     labelKey: 'nav.peerRecognition',
     path: '/recognition',
@@ -60,27 +62,26 @@ const baseItems: NavItem[] = [
     labelKey: 'nav.achievements',
     path: '/achievements',
     icon: Award,
-    roles: MEMBER_WORKSPACE_ROLES,
+    roles: PERSONAL_LEDGER_ROLES,
   },
   { labelKey: 'nav.shop', path: '/shop', icon: ShoppingBag, roles: SHOP_ROLES },
-  { labelKey: 'nav.inventory', path: '/inventory', icon: PackageCheck, roles: MEMBER_WORKSPACE_ROLES },
+  { labelKey: 'nav.inventory', path: '/inventory', icon: PackageCheck, roles: PERSONAL_ECONOMY_ROLES },
   {
     labelKey: 'nav.convert',
     path: '/convert',
     icon: RefreshCcw,
-    roles: MEMBER_WORKSPACE_ROLES,
+    roles: PERSONAL_ECONOMY_ROLES,
   },
   {
     labelKey: 'nav.disenchant',
     path: '/disenchant',
     icon: Flame,
-    roles: MEMBER_WORKSPACE_ROLES,
+    roles: PERSONAL_ECONOMY_ROLES,
   },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { snapshot, currentUserId, activeRole } = useSpark();
-  const { balances: shopBalances, loading: shopLoading } = useShop();
   const { accounts, logout } = useAuth();
   const { preferences, t } = useUserPreferences();
   const [open, setOpen] = useState(false);
@@ -100,6 +101,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => desktop.removeEventListener('change', closeDrawer);
   }, []);
   const user = snapshot!.employees.find((employee) => employee.id === currentUserId)!;
+  const ledgerBalances = snapshot!.shell?.balances ?? calculateBalances(snapshot!.transactions, currentUserId);
+  const spendableBalances = {
+    White: ledgerBalances.White,
+    Yellow: ledgerBalances.Yellow,
+    Blue: ledgerBalances.Blue,
+  };
   const department = snapshot!.departments.find((item) => item.id === user.departmentId)!;
   const pendingRequests = selectPendingRequests(snapshot!, currentUserId, activeRole);
   const pendingDisenchantRequests = selectPendingDepartmentDisenchantRequests(
@@ -111,8 +118,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     activeRole === 'Administrator'
       ? accounts.filter((account) => account.source === 'Registration' && account.status === 'Pending')
       : [];
-  const pendingApprovals = pendingRequests.recognitions.length + pendingRequests.awards.length;
-  const pending = pendingApprovals + pendingDisenchantRequests.length + pendingRegistrations.length;
+  const pendingApprovals = snapshot!.shell?.pendingApprovals ??
+    pendingRequests.recognitions.length + pendingRequests.awards.length;
+  const pendingDisenchantCount = snapshot!.shell?.pendingDisenchant ?? pendingDisenchantRequests.length;
+  const pending = pendingApprovals + pendingDisenchantCount + pendingRegistrations.length;
   const roleItems = useMemo<NavItem[]>(() => {
     if (activeRole === 'Administrator')
       return [
@@ -130,7 +139,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               : 'nav.departmentWorkspace',
         path: '/team',
         icon: Users,
-        badge: activeRole === 'Head' ? pendingDisenchantRequests.length : undefined,
+        badge: activeRole === 'Head' ? pendingDisenchantCount : undefined,
       });
     if (['Coordinator', 'GPM', 'Head', 'Top Management'].includes(activeRole))
       items.push({
@@ -143,12 +152,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (COMPANY_ACHIEVEMENT_ROLES.includes(activeRole))
       items.push({ labelKey: 'nav.companyAchievements', path: '/company-achievements', icon: Trophy });
     return items;
-  }, [activeRole, pendingApprovals, pendingDisenchantRequests.length, pendingRegistrations.length]);
+  }, [activeRole, pendingApprovals, pendingDisenchantCount, pendingRegistrations.length]);
   const visibleBase = baseItems.filter((item) => !item.roles || item.roles.includes(activeRole));
 
   const navigation = (
     <>
-      <NavLink className={styles.brand} to="/" aria-label="C-Job Sparks home" onClick={() => setOpen(false)}>
+      <NavLink className={styles.brand} to="/" aria-label={`C-Job Sparks · ${t('nav.home')}`} onClick={() => setOpen(false)}>
         <BrandLockup />
         <span className={styles.brandProduct}>{t('shell.brandPurpose')}</span>
       </NavLink>
@@ -254,8 +263,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span>{t(`roleDescription.${activeRole}` as TranslationKey)}</span>
           </div>
           <div className={styles.topbarRight}>
-            {MEMBER_WORKSPACE_ROLES.includes(activeRole) && (
-              <CompactBalanceMenu balances={shopBalances} loading={shopLoading} />
+            {PERSONAL_LEDGER_ROLES.includes(activeRole) && (
+              <CompactBalanceMenu balances={spendableBalances} loading={false} />
             )}
             <button
               className={`${styles.iconButton} ${pending > 0 ? styles.notificationButtonActive : ''}`}

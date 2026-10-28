@@ -9,11 +9,14 @@ import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { StatusBadge } from '@/views/components/common/StatusBadge';
 import { SelectField } from '@/views/components/ui/SelectField';
 import { useLedgerController } from '@/controllers/useLedgerController';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import type { SparkTransaction, SparkType } from '@/models';
 import { formatDateTime } from '@/utils/formatters';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function MySparksPage() {
+  const { localize } = useUserPreferences();
   const controller = useLedgerController();
   const [selected, setSelected] = useState<SparkTransaction | null>(null);
   return (
@@ -21,33 +24,35 @@ export function MySparksPage() {
       <PageHeader
         eyebrow="Personal ledger"
         title="My Sparks"
-        description="Every credit and debit remains visible. Your balance is calculated from this immutable history."
+        description={controller.radiantOnly
+          ? 'This role keeps a Radiant-only personal ledger. Radiant awards are permanent and read-only.'
+          : 'Every credit and debit remains visible. Your balance is calculated from this immutable history.'}
       />
       <div className={styles.balanceGridCompact}>
-        {(['White', 'Yellow', 'Blue', 'Radiant'] as SparkType[]).map((type, index) => (
+        {controller.visibleTypes.map((type, index) => (
           <BalanceCard key={type} type={type} value={controller.balances[type]} index={index} />
         ))}
       </div>
       <section className={styles.panel} aria-labelledby="ledger-title">
         <div className={styles.panelHeaderStack}>
           <div>
-            <p className={styles.eyebrow}>Transaction history</p>
-            <h2 id="ledger-title">Spark Ledger</h2>
+            <p className={styles.eyebrow}><LocalizedText>Transaction history</LocalizedText></p>
+            <h2 id="ledger-title"><LocalizedText>Spark Ledger</LocalizedText></h2>
           </div>
           <div className={styles.filters}>
             <label className={styles.searchField}>
-              <span className={styles.srOnly}>Search ledger</span>
+              <span className={styles.srOnly}><LocalizedText>Search ledger</LocalizedText></span>
               <Search size={16} />
               <input
                 value={controller.query}
                 onChange={(event) => controller.setQuery(event.target.value)}
-                placeholder="Search source or category"
+                placeholder={localize('Search source or category')}
               />
             </label>
             <SelectField
               value={controller.type}
               onChange={(value) => controller.setType(value as 'All' | SparkType)}
-              options={['All', 'White', 'Yellow', 'Blue', 'Radiant'].map((value) => ({
+              options={['All', ...controller.visibleTypes].map((value) => ({
                 value: value as 'All' | SparkType,
                 label: value,
               }))}
@@ -75,24 +80,24 @@ export function MySparksPage() {
         ) : (
           <>
             <p className={styles.mobileScrollHint}>
-              <MoveHorizontal size={16} aria-hidden="true" /> Swipe sideways to view all transaction details.
-            </p>
+              <MoveHorizontal size={16} aria-hidden="true" /> <LocalizedText>Swipe sideways to view all transaction details.
+            </LocalizedText></p>
             <div
               className={`${styles.tableScroller} ${styles.ledgerScroller}`}
               tabIndex={0}
-              aria-label="Scrollable Spark transaction table"
+              aria-label={localize('Scrollable Spark transaction table')}
             >
               <table className={styles.dataTable}>
-                <caption className={styles.srOnly}>All Spark transactions for the current employee</caption>
+                <caption className={styles.srOnly}><LocalizedText>All Spark transactions for the current employee</LocalizedText></caption>
                 <thead>
                   <tr>
-                    <th scope="col">Date</th>
-                    <th scope="col">Activity</th>
-                    <th scope="col">Source</th>
-                    <th scope="col">Amount</th>
-                    <th scope="col">Status</th>
+                    <th scope="col"><LocalizedText>Date</LocalizedText></th>
+                    <th scope="col"><LocalizedText>Activity</LocalizedText></th>
+                    <th scope="col"><LocalizedText>Source</LocalizedText></th>
+                    <th scope="col"><LocalizedText>Amount</LocalizedText></th>
+                    <th scope="col"><LocalizedText>Status</LocalizedText></th>
                     <th scope="col">
-                      <span className={styles.srOnly}>Details</span>
+                      <span className={styles.srOnly}><LocalizedText>Details</LocalizedText></span>
                     </th>
                   </tr>
                 </thead>
@@ -113,8 +118,8 @@ export function MySparksPage() {
                       </td>
                       <td>
                         <button className={styles.rowButton} type="button" onClick={() => setSelected(item)}>
-                          Details
-                        </button>
+                          <LocalizedText>Details
+                        </LocalizedText></button>
                       </td>
                     </tr>
                   ))}
@@ -133,64 +138,64 @@ export function MySparksPage() {
         {selected && (
           <dl className={styles.detailGrid}>
             <div>
-              <dt>Transaction ID</dt>
+              <dt><LocalizedText>Transaction ID</LocalizedText></dt>
               <dd>{selected.id}</dd>
             </div>
             <div>
-              <dt>Date / time</dt>
+              <dt><LocalizedText>Date / time</LocalizedText></dt>
               <dd>{formatDateTime(selected.dateTime)}</dd>
             </div>
             <div>
-              <dt>Spark type</dt>
+              <dt><LocalizedText>Spark type</LocalizedText></dt>
               <dd>
                 <SparkBadge type={selected.sparkType} />
               </dd>
             </div>
             <div>
-              <dt>Amount</dt>
+              <dt><LocalizedText>Amount</LocalizedText></dt>
               <dd>
                 {selected.amount > 0 ? '+' : ''}
                 {selected.amount}
               </dd>
             </div>
             <div>
-              <dt>Transaction type</dt>
+              <dt><LocalizedText>Transaction type</LocalizedText></dt>
               <dd>{selected.transactionType}</dd>
             </div>
             <div>
-              <dt>Source</dt>
+              <dt><LocalizedText>Source</LocalizedText></dt>
               <dd>{selected.source}</dd>
             </div>
             <div>
-              <dt>Category</dt>
+              <dt><LocalizedText>Category</LocalizedText></dt>
               <dd>{selected.category}</dd>
             </div>
             <div>
-              <dt>Quarter</dt>
+              <dt><LocalizedText>Quarter</LocalizedText></dt>
               <dd>{selected.quarter}</dd>
             </div>
             <div className={styles.detailWide}>
-              <dt>Description</dt>
+              <dt><LocalizedText>Description</LocalizedText></dt>
               <dd>{selected.description}</dd>
             </div>
             <div>
-              <dt>Employee</dt>
+              <dt><LocalizedText>Employee</LocalizedText></dt>
               <dd>{controller.employeeLabel(selected.employeeId)}</dd>
             </div>
             <div>
-              <dt>Awarded by</dt>
+              <dt><LocalizedText>Awarded by</LocalizedText></dt>
               <dd>{controller.employeeLabel(selected.awardedBy)}</dd>
             </div>
             <div>
-              <dt>Approved by</dt>
+              <dt><LocalizedText>Approved by</LocalizedText></dt>
               <dd>{controller.employeeLabel(selected.approvedBy)}</dd>
             </div>
             <div>
-              <dt>Related request</dt>
-              <dd>{selected.relatedRequestId ?? 'No linked request'}</dd>
+              <dt><LocalizedText>Related request</LocalizedText></dt>
+              <dd><LocalizedText>{selected.relatedRequestId ?? 'No linked request'}</LocalizedText></dd>
             </div>
             <div>
-              <dt>Status</dt>
+              <dt><LocalizedText>Status</LocalizedText></dt>
               <dd>
                 <StatusBadge status={selected.status} />
               </dd>

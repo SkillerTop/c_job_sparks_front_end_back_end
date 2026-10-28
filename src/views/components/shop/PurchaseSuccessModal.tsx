@@ -2,10 +2,11 @@ import { Check, PackageCheck, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Modal } from '@/views/components/common/Modal';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
-import { SHOP_TEXT } from '@/constants/shop';
+
 import type { ShopProduct, SpendableSparkBalances } from '@/models/shop';
 import { SparkAmount } from './SparkAmount';
-import styles from '@/views/styles/shop.module.css';
+import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
+
 
 export function PurchaseSuccessModal({
   product,
@@ -16,11 +17,12 @@ export function PurchaseSuccessModal({
   balances: SpendableSparkBalances;
   onClose: () => void;
 }) {
+  const shopText = useLocalizedShopText();
   return (
     <Modal
       open={Boolean(product)}
-      title={SHOP_TEXT.purchase.successTitle}
-      description={SHOP_TEXT.purchase.successDescription}
+      title={shopText.purchase.successTitle}
+      description={shopText.purchase.successDescription}
       onClose={onClose}
     >
       {product && (
@@ -32,13 +34,13 @@ export function PurchaseSuccessModal({
             <strong><Check /></strong>
           </div>
           <h3>{product.name}</h3>
-          <p>{SHOP_TEXT.purchase.newBalance}: <SparkAmount amount={balances[product.priceSparkType]} sparkType={product.priceSparkType} /></p>
+          <p>{shopText.purchase.newBalance}: <SparkAmount amount={balances[product.priceSparkType]} sparkType={product.priceSparkType} /></p>
           <div className={styles.shopModalActions}>
             <button className={styles.shopSecondaryButton} type="button" onClick={onClose}>
-              {SHOP_TEXT.purchase.continueShopping}
+              {shopText.purchase.continueShopping}
             </button>
             <Link className={styles.shopPrimaryLink} to="/inventory" onClick={onClose}>
-              <PackageCheck size={16} aria-hidden="true" /> {SHOP_TEXT.purchase.openInventory}
+              <PackageCheck size={16} aria-hidden="true" /> {shopText.purchase.openInventory}
             </Link>
           </div>
         </div>

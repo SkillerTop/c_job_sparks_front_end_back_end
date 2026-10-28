@@ -1,4 +1,4 @@
-import { ChevronDown, Coins, Search, ShieldAlert, Star } from 'lucide-react';
+import { ChevronDown, Download, Search, ShieldAlert, Star } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -9,19 +9,26 @@ import { PageTransition } from '@/views/components/common/PageTransition';
 import { QualityGateDialog } from '@/views/components/common/QualityGateDialog';
 import { StatusBadge } from '@/views/components/common/StatusBadge';
 import { useSpark } from '@/controllers/SparkContext';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import type { Employee } from '@/models';
 import { selectTeamMembers } from '@/models/selectors';
-import { calculateBalances, formatMoney, isQualityGateActive } from '@/utils/sparkRules';
+import { formatMoney, isQualityGateActive } from '@/utils/sparkRules';
 import { formatDate } from '@/utils/formatters';
 import { todayIso } from '@/utils/quarter';
-import styles from '@/views/styles/app.module.css';
+import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+
 
 export function TeamPage() {
-  const { snapshot, activeRole, currentUserId, toggleQualityGate } = useSpark();
+  const { localize } = useUserPreferences();
+  const { snapshot, activeRole, currentUserId, toggleQualityGate, createMonthlyDisenchantReport } = useSpark();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Employee | null>(null);
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [reportError, setReportError] = useState('');
+  const [creatingReport, setCreatingReport] = useState(false);
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const [reportMonth, setReportMonth] = useState(currentMonth);
   const reducedMotion = useReducedMotion();
   const canPeerRecognize = activeRole !== 'Head';
   const current = snapshot!.employees.find((item) => item.id === currentUserId)!;
@@ -41,6 +48,28 @@ export function TeamPage() {
   const accounting = snapshot!.disenchantRequests.filter(
     (request) => request.departmentId === current.departmentId,
   ).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const selectedMonthReport = snapshot!.disenchantReports.find((report) => report.reportMonth === reportMonth);
+  const reportableCount = accounting.filter(
+    (request) => request.status !== 'Cancelled' && request.createdAt.slice(0, 7) === reportMonth,
+  ).length;
+  const createMonthlyReport = async () => {
+    setCreatingReport(true);
+    setReportError('');
+    try {
+      const report = await createMonthlyDisenchantReport(reportMonth);
+      const url = URL.createObjectURL(new Blob([report.csv], { type: 'text/csv;charset=utf-8' }));
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = report.fileName;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setMessage(`Report for ${report.reportMonth} exported: ${report.itemCount} request(s) included.`);
+    } catch (caught) {
+      setReportError(caught instanceof Error ? caught.message : 'Could not create the monthly report.');
+    } finally {
+      setCreatingReport(false);
+    }
+  };
   const departmentGates = snapshot!.qualityGates
     .filter((gate) =>
       snapshot!.employees.some(
@@ -59,16 +88,14 @@ export function TeamPage() {
       <PageHeader
         eyebrow={`${activeRole} scope`}
         title={pageTitle}
-        description={
-          activeRole === 'Head'
+        description={activeRole === 'Head'
             ? 'Department balances, Quality Gates and accounting requests, with a complete audit trail.'
             : activeRole === 'GPM'
               ? 'Find any active colleague across C-Job. Spark balances remain private.'
-              : 'Work with active colleagues in your department. Spark balances remain private.'
-        }
+              : 'Work with active colleagues in your department. Spark balances remain private.'}
         action={
           <label className={styles.searchField}>
-            <span className={styles.srOnly}>Search people</span>
+            <span className={styles.srOnly}><LocalizedText>Search people</LocalizedText></span>
             <Search size={16} />
             <input
               value={query}
@@ -76,19 +103,25 @@ export function TeamPage() {
                 setQuery(event.target.value);
                 setExpandedMemberId(null);
               }}
-              placeholder="Search people"
+              placeholder={localize('Search people')}
             />
           </label>
         }
       />
       {message && <Feedback tone="success">{message}</Feedback>}
+      {reportError && <Feedback tone="error">{reportError}</Feedback>}
       {members.length === 0 ? (
         <EmptyState title="No people found" description="Try a different search term." />
       ) : (
         <div className={styles.peopleGrid}>
           {members.map((member) => {
             const gate = gateFor(member.id);
-            const balances = calculateBalances(snapshot!.transactions, member.id);
+            const balances = snapshot!.departmentBalances[member.id] ?? {
+              White: 0,
+              Yellow: 0,
+              Blue: 0,
+              Radiant: 0,
+            };
             const activeGate = isQualityGateActive(member.id, snapshot!.qualityGates);
             const expanded = canPeerRecognize && expandedMemberId === member.id;
             const recognitionActionId = `recognize-${member.id}`;
@@ -119,7 +152,7 @@ export function TeamPage() {
                         type="button"
                         aria-expanded={expanded}
                         aria-controls={expanded ? recognitionActionId : undefined}
-                        aria-label={`${expanded ? 'Hide' : 'Show'} recognition action for ${member.name}`}
+                        aria-label={localize(`${expanded ? 'Hide' : 'Show'} recognition action for ${member.name}`)}
                         onClick={toggleMember}
                       >
                         <ChevronDown size={17} aria-hidden="true" />
@@ -139,12 +172,12 @@ export function TeamPage() {
                 ) : (
                   <p className={styles.privateNote}>
                     <ShieldAlert size={15} />
-                    Spark balance stays private for this role.
-                  </p>
+                    <LocalizedText>Spark balance stays private for this role.
+                  </LocalizedText></p>
                 )}
                 <footer>
                   <span className={styles.gateMeta}>
-                    {gate ? `Gate until ${formatDate(gate.endDate)}` : 'No active Quality Gate'}
+                    <LocalizedText>{gate ? `Gate until ${formatDate(gate.endDate)}` : 'No active Quality Gate'}</LocalizedText>
                   </span>
                   <div className={styles.personActions}>
                     <AnimatePresence initial={false}>
@@ -163,8 +196,8 @@ export function TeamPage() {
                             aria-label={`Recognize ${member.name}`}
                           >
                             <Star size={15} aria-hidden="true" />
-                            Recognize a colleague
-                          </Link>
+                            <LocalizedText>Recognize a colleague
+                          </LocalizedText></Link>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -175,7 +208,7 @@ export function TeamPage() {
                         onClick={() => setSelected(member)}
                       >
                         <ShieldAlert size={15} />
-                        {gate ? 'Cancel gate' : 'Set gate'}
+                        <LocalizedText>{gate ? 'Cancel gate' : 'Set gate'}</LocalizedText>
                       </button>
                     )}
                   </div>
@@ -190,8 +223,8 @@ export function TeamPage() {
           <section className={`${styles.panel} ${styles.accountingPanel}`}>
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.eyebrow}>Department quality history</p>
-                <h2>Quality Gates</h2>
+                <p className={styles.eyebrow}><LocalizedText>Department quality history</LocalizedText></p>
+                <h2><LocalizedText>Quality Gates</LocalizedText></h2>
               </div>
               <ShieldAlert size={20} />
             </div>
@@ -201,15 +234,15 @@ export function TeamPage() {
                 description="Set a gate from an employee card when a documented remediation period is needed."
               />
             ) : (
-              <div className={styles.tableScroller} tabIndex={0} aria-label="Scrollable Quality Gate history">
+              <div className={styles.tableScroller} tabIndex={0} aria-label={localize('Scrollable Quality Gate history')}>
                 <table className={styles.dataTable}>
-                  <caption className={styles.srOnly}>Department Quality Gate history</caption>
+                  <caption className={styles.srOnly}><LocalizedText>Department Quality Gate history</LocalizedText></caption>
                   <thead>
                     <tr>
-                      <th>Employee</th>
-                      <th>Period</th>
-                      <th>Reason</th>
-                      <th>Status</th>
+                      <th><LocalizedText>Employee</LocalizedText></th>
+                      <th><LocalizedText>Period</LocalizedText></th>
+                      <th><LocalizedText>Reason</LocalizedText></th>
+                      <th><LocalizedText>Status</LocalizedText></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -222,15 +255,13 @@ export function TeamPage() {
                         <td>{gate.reason}</td>
                         <td>
                           <StatusBadge
-                            status={
-                              gate.status === 'Cancelled'
+                            status={gate.status === 'Cancelled'
                                 ? 'Cancelled'
                                 : gate.endDate < todayIso()
                                   ? 'Expired'
                                   : gate.startDate > todayIso()
                                     ? 'Scheduled'
-                                    : 'Active'
-                            }
+                                    : 'Active'}
                           />
                         </td>
                       </tr>
@@ -247,39 +278,87 @@ export function TeamPage() {
             <div className={styles.panelHeader}>
               <div>
                 <p className={styles.eyebrow}>
-                  Monthly accounting ·{' '}
+                  <LocalizedText>Monthly accounting ·</LocalizedText>{' '}
                   {snapshot!.departments.find((item) => item.id === current.departmentId)?.name}
                 </p>
-                <h2>Disenchant requests</h2>
+                <h2><LocalizedText>Disenchant requests</LocalizedText></h2>
               </div>
-              <Coins size={20} />
+              <div className={styles.reportControls}>
+                <label>
+                  <span><LocalizedText>Report month</LocalizedText></span>
+                  <input
+                    type="month"
+                    value={reportMonth}
+                    max={currentMonth}
+                    onChange={(event) => {
+                      setReportMonth(event.target.value);
+                      setReportError('');
+                      setMessage('');
+                    }}
+                  />
+                </label>
+                <button
+                  className={styles.primaryButton}
+                  type="button"
+                  disabled={creatingReport || !reportMonth || reportableCount === 0}
+                  onClick={() => void createMonthlyReport()}
+                >
+                  <Download size={16} />
+                  <LocalizedText>{creatingReport ? 'Exporting…' : selectedMonthReport ? 'Export again' : 'Export monthly report'}</LocalizedText>
+                </button>
+              </div>
             </div>
+            <p className={styles.mutedCopy}>
+              <LocalizedText>Includes all non-cancelled requests from </LocalizedText><LocalizedText>{reportMonth || 'the selected month'}</LocalizedText> <LocalizedText>for this department only.
+              </LocalizedText>{' '}<LocalizedText>You can export the month again at any time; newly created requests are included automatically.
+              </LocalizedText>{' '}{reportableCount} <LocalizedText>request(s) will be exported.
+            </LocalizedText></p>
+            {snapshot!.disenchantReports.length > 0 && (
+              <div className={styles.tableScroller} tabIndex={0} aria-label={localize('Monthly Disenchant report history')}>
+                <table className={styles.dataTable}>
+                  <thead><tr><th><LocalizedText>Month</LocalizedText></th><th><LocalizedText>Requests</LocalizedText></th><th><LocalizedText>Total</LocalizedText></th><th><LocalizedText>Created</LocalizedText></th><th><LocalizedText>Status</LocalizedText></th></tr></thead>
+                  <tbody>{snapshot!.disenchantReports.map((report) => (
+                    <tr key={report.id}>
+                      <td>{report.reportMonth}</td>
+                      <td>{report.itemCount}</td>
+                      <td>{formatMoney(report.moneyTotal, snapshot!.settings.currency)}</td>
+                      <td>{formatDate(report.createdAt)}</td>
+                      <td><StatusBadge status={report.status} /></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            )}
             {accounting.length === 0 ? (
               <EmptyState
                 title="No accounting requests yet"
                 description="Disenchant requests from employees in this department will appear here. This frontend does not send payments."
               />
             ) : (
-              <div className={styles.tableScroller} tabIndex={0} aria-label="Scrollable accounting requests">
+              <div className={styles.tableScroller} tabIndex={0} aria-label={localize('Scrollable accounting requests')}>
                 <table className={styles.dataTable}>
-                  <caption className={styles.srOnly}>Department disenchant requests for accounting</caption>
+                  <caption className={styles.srOnly}><LocalizedText>Department disenchant requests for accounting</LocalizedText></caption>
                   <thead>
                     <tr>
-                      <th>Request</th>
-                      <th>Employee</th>
-                      <th>Sparks</th>
-                      <th>Rate</th>
-                      <th>Money value</th>
-                      <th>Period</th>
-                      <th>Date</th>
-                      <th>Status</th>
+                      <th><LocalizedText>Request</LocalizedText></th>
+                      <th><LocalizedText>Employee</LocalizedText></th>
+                      <th><LocalizedText>Sparks</LocalizedText></th>
+                      <th><LocalizedText>Rate</LocalizedText></th>
+                      <th><LocalizedText>Money value</LocalizedText></th>
+                      <th><LocalizedText>Period</LocalizedText></th>
+                      <th><LocalizedText>Date</LocalizedText></th>
+                      <th><LocalizedText>Status</LocalizedText></th>
                     </tr>
                   </thead>
                   <tbody>
                     {accounting.map((request) => (
                       <tr key={request.id}>
                         <td>{request.id}</td>
-                        <td>{snapshot!.employees.find((item) => item.id === request.employeeId)?.name}</td>
+                        <td>
+                          <LocalizedText>{request.employeeName ??
+                            snapshot!.employees.find((item) => item.id === request.employeeId)?.name ??
+                            'Deleted employee'}</LocalizedText>
+                        </td>
                         <td>
                           {request.amount} {request.sparkType}
                         </td>

@@ -1,0 +1,46 @@
+.chartWrap {
+  width: 100%;
+  height: 18rem;
+  margin-top: 0.4rem;
+}
+
+.performanceOverview {
+  min-width: 0;
+  margin-bottom: 1.65rem;
+}
+
+.performanceExplanation {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem 1.2rem;
+  margin-bottom: 0.9rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.82rem;
+  background: var(--surface-soft);
+}
+
+.performanceExplanation p {
+  max-width: 62rem;
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.performanceExplanation .textLink {
+  flex: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 39.99rem) {
+  .performanceExplanation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .performanceExplanation .textLink {
+    white-space: normal;
+  }
+}

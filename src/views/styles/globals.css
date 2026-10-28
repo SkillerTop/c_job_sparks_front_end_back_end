@@ -274,6 +274,10 @@ select {
   cursor: pointer;
 }
 
+button {
+  min-block-size: 2.75rem;
+}
+
 button:disabled,
 input:disabled,
 select:disabled,

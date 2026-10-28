@@ -11,8 +11,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { ProductRarity, ShopProduct } from '@/models/shop';
-import { SHOP_TEXT } from '@/constants/shop';
-import styles from '@/views/styles/shop.module.css';
+
+import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
+
 
 const ICONS: Record<string, LucideIcon> = {
   zap: Zap,
@@ -30,9 +31,10 @@ export function ProductVisual({
   product,
   size = 'card',
 }: {
-  product: Pick<ShopProduct, 'name' | 'imageUrl' | 'icon' | 'rarity'>;
+  product: Pick<ShopProduct, 'name' | 'imageUrl' | 'imageSrcSet' | 'imageSizes' | 'icon' | 'rarity'>;
   size?: 'card' | 'modal' | 'inventory';
 }) {
+  const shopText = useLocalizedShopText();
   const Icon = ICONS[product.icon] ?? Gift;
   return (
     <div
@@ -42,7 +44,9 @@ export function ProductVisual({
       {product.imageUrl ? (
         <img
           src={product.imageUrl}
-          alt={SHOP_TEXT.product.imageAlt(product.name)}
+          srcSet={product.imageSrcSet ?? undefined}
+          sizes={product.imageSizes}
+          alt={shopText.product.imageAlt(product.name)}
           loading="lazy"
           decoding="async"
           width="960"

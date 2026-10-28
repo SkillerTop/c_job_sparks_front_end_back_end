@@ -1,0 +1,145 @@
+.adminPage {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.adminPage :global(section),
+.adminPage :global(aside),
+.adminPage :global(form),
+.adminPage :global(fieldset) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.categoryTextCell { min-width: 18rem; }
+.categoryTextButton {
+  display: block;
+  width: 100%;
+  max-width: 24rem;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.categoryTextButton strong,
+.categoryTextButton span { display: block; }
+.categoryTextButton span {
+  max-width: 18rem;
+  margin-top: 0.15rem;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.categoryTextButton:hover span,
+.categoryTextButton:focus-visible span {
+  max-width: 24rem;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.categoryTextButton:focus-visible {
+  border-radius: 0.25rem;
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+.categorySearch {
+  display: grid;
+  gap: 0.4rem;
+  margin: 1rem 0 1.25rem;
+  color: var(--muted-strong);
+  font-size: 0.8125rem;
+  font-weight: 750;
+}
+.categorySearch input {
+  min-height: 2.75rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--control-border);
+  border-radius: 0.75rem;
+  color: var(--ink);
+  background: var(--control-bg);
+  font: inherit;
+}
+.categoryEmpty { margin: 0.75rem 0; color: var(--muted); }
+.categoryAmountField { display: block; width: 5.75rem; }
+.categoryAmountField input {
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--control-border);
+  border-radius: 0.7rem;
+  color: var(--ink);
+  background: var(--control-bg);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.categoryAmountField input:focus-visible {
+  border-color: var(--focus);
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.categoryAmountField input[aria-invalid='true'] {
+  border-color: var(--danger-line);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
+@media (max-width: 39.99rem) {
+  .adminPage :global(input),
+  .adminPage :global(select),
+  .adminPage :global(textarea) {
+    max-width: 100%;
+  }
+  .categoryTableScroller { overflow: visible; border: 0; background: transparent; }
+  .categoryAdminTable,
+  .categoryAdminTable tbody,
+  .categoryAdminTable tr,
+  .categoryAdminTable td { display: block; width: 100%; min-width: 0; }
+  .categoryAdminTable thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .categoryAdminTable tr {
+    margin-bottom: 0.8rem;
+    padding: 0.35rem 0.75rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 0.82rem;
+    background: var(--surface-soft);
+  }
+  .categoryAdminTable td { padding: 0.45rem 0; border: 0; }
+  .categoryAdminTable td::before {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--muted);
+    content: attr(data-label);
+    font-size: 0.8125rem;
+    font-weight: 750;
+  }
+  .categoryAdminTable .categoryTextCell { min-width: 0; }
+  .categoryAdminTable .categoryTextButton { max-width: none; }
+  .categoryAdminTable .categoryTextButton span {
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+  .categoryActions {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+  .categoryActions > :last-child { grid-column: 1 / -1; }
+}

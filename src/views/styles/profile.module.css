@@ -2,7 +2,7 @@
 .sectionTitle p {
   margin: 0 0 0.2rem;
   color: var(--accent-green);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -17,7 +17,7 @@
   border-radius: 999px;
   color: var(--muted-strong);
   background: var(--surface);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 750;
 }
 
@@ -78,7 +78,7 @@
   color: var(--link);
   background: var(--surface-strong);
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   font-weight: 750;
   cursor: pointer;
 }
@@ -95,7 +95,7 @@
 }
 .photoHint {
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.8125rem;
   line-height: 1.35;
   text-align: center;
 }
@@ -139,7 +139,7 @@
   border-radius: 999px;
   color: var(--gold-text);
   background: var(--gold-soft);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   font-weight: 800;
 }
 
@@ -201,7 +201,7 @@
   gap: 0.4rem;
   margin-bottom: 0.32rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -253,12 +253,13 @@
 }
 
 .profileTabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   max-width: 100%;
   gap: 0.4rem;
   margin-bottom: 1rem;
   padding: 0.38rem;
-  overflow-x: auto;
+  overflow: visible;
   border: 1px solid var(--line);
   border-radius: 0.9rem;
   background: var(--surface-soft);
@@ -267,8 +268,8 @@
 
 .profileTab,
 .profileTabActive {
-  min-width: 8.5rem;
-  min-height: 2.65rem;
+  min-width: 0;
+  min-height: 2.75rem;
   padding: 0.55rem 0.8rem;
   border: 1px solid transparent;
   border-radius: 0.68rem;
@@ -356,7 +357,7 @@
 .field small,
 .fieldHint {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.45;
 }
@@ -517,7 +518,7 @@
 
 .switchRow small {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
 }
 
@@ -634,7 +635,7 @@
   margin: 0.18rem 0 0;
   overflow-wrap: anywhere;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
 }
 
@@ -643,7 +644,7 @@
   color: var(--success);
   border-color: color-mix(in srgb, var(--success), transparent 68%);
   background: color-mix(in srgb, var(--success), transparent 91%);
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
 }
 
 .sessionButton {

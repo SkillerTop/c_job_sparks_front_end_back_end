@@ -1,4 +1,5 @@
 import { CheckCircle2, Clock3, RotateCcw, ShieldAlert, XCircle } from 'lucide-react';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import styles from '@/views/styles/app.module.css';
 
 const iconMap = {
@@ -23,11 +24,12 @@ const iconMap = {
 };
 
 export function StatusBadge({ status }: { status: string }) {
+  const { localize } = useUserPreferences();
   const Icon = iconMap[status as keyof typeof iconMap] ?? Clock3;
   return (
     <span className={`${styles.statusBadge} ${styles[`status${status.replace(/\s/g, '')}`] ?? ''}`}>
       <Icon size={13} />
-      {status}
+      {localize(status)}
     </span>
   );
 }

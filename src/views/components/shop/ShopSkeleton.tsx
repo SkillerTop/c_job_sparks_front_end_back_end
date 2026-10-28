@@ -1,9 +1,11 @@
-import { SHOP_TEXT } from '@/constants/shop';
-import styles from '@/views/styles/shop.module.css';
+
+import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
+
 
 export function ShopSkeleton({ count = 8 }: { count?: number }) {
+  const shopText = useLocalizedShopText();
   return (
-    <div className={styles.productGrid} role="status" aria-live="polite" aria-label={SHOP_TEXT.status.loadingCatalog}>
+    <div className={styles.productGrid} role="status" aria-live="polite" aria-label={shopText.status.loadingCatalog}>
       {Array.from({ length: count }, (_, index) => (
         <div className={styles.skeletonCard} key={index} aria-hidden="true">
           <span className={styles.skeletonMedia} />
@@ -13,7 +15,7 @@ export function ShopSkeleton({ count = 8 }: { count?: number }) {
           <span className={styles.skeletonButton} />
         </div>
       ))}
-      <span className={styles.visuallyHidden}>{SHOP_TEXT.status.loadingProducts}</span>
+      <span className={styles.visuallyHidden}>{shopText.status.loadingProducts}</span>
     </div>
   );
 }

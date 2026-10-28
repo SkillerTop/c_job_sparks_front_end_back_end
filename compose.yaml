@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: c_job_sparks
+      POSTGRES_USER: c_job_sparks
+      POSTGRES_PASSWORD: local-development-only
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U c_job_sparks -d c_job_sparks"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - c_job_sparks_postgres:/var/lib/postgresql/data
+
+volumes:
+  c_job_sparks_postgres:
