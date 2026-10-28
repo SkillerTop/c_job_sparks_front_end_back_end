@@ -120,6 +120,7 @@ if (!sourceDatabaseUrl) {
         DATABASE_URL: testDatabaseUrl.toString(),
         COOKIE_SECRET: 'postgres-integration-cookie-secret-2026',
         CORS_ORIGINS: 'http://localhost:5173',
+        FRONTEND_ORIGIN: 'http://localhost:5173',
         LOG_LEVEL: 'silent',
         DB_POOL_MAX: '20',
         MIGRATIONS_DIR: migrationsDirectory,
