@@ -3,6 +3,7 @@ import { afterEach, beforeEach, mock, test } from 'node:test';
 import { sparkService } from '../src/services/sparkService.ts';
 import { BLUE_CATEGORIES, RECOGNITION_CATEGORIES, YELLOW_CATEGORIES } from '../src/constants/app.ts';
 import { calculateBalances, calculateLifetimeEarnings, conversionRule, evaluationReward, isQualityGateActive, kpiReward, performanceThresholdValidationIssue, recognitionQuota } from '../src/utils/sparkRules.ts';
+import { selectAuthoritativeLedgerBalances } from '../src/utils/ledgerBalances.ts';
 import { isValidIsoDate, quarterForDate, quarterOrder } from '../src/utils/quarter.ts';
 import { parseCsv } from '../src/utils/parseCsv.ts';
 import { selectAwardTargets, selectPendingDepartmentDisenchantRequests, selectPendingRequests, selectTeamMembers } from '../src/models/selectors.ts';
@@ -128,6 +129,26 @@ test('Seed balances use signed completed Ledger transactions', async () => {
   const state = await snapshot();
   assert.deepEqual(calculateBalances(state.transactions, 'emp-alex'), { White: 18, Yellow: 7, Blue: 2, Radiant: 1 });
   assert.deepEqual(state.departmentBalances['emp-alex'], { White: 18, Yellow: 7, Blue: 2, Radiant: 1 });
+});
+test('My Sparks uses the authoritative server balance instead of the paged Ledger rows', () => {
+  const transactions = Array.from({ length: 500 }, () => ({
+    employeeId: 'employee-with-large-ledger',
+    sparkType: 'White',
+    amount: 1,
+    status: 'Completed',
+  }));
+  const serverBalances = { White: 610, Yellow: 20, Blue: 5, Radiant: 0 };
+  assert.deepEqual(
+    selectAuthoritativeLedgerBalances({
+      shell: { balances: serverBalances, pendingApprovals: 0, pendingDisenchant: 0 },
+      transactions,
+    }, 'employee-with-large-ledger'),
+    serverBalances,
+  );
+  assert.equal(
+    selectAuthoritativeLedgerBalances({ transactions }, 'employee-with-large-ledger').White,
+    500,
+  );
 });
 test('Reward Shop debits sync into the existing Spark ledger exactly once', async () => {
   const transaction = {
