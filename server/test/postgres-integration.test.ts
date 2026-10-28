@@ -275,6 +275,10 @@ if (!sourceDatabaseUrl) {
     });
 
     test('Recognition persists audit, outbox and approval notification', async () => {
+      const beforeLayoutResponse = await authenticated('Head', 'GET', '/api/v1/workspace/layout');
+      assert.equal(beforeLayoutResponse.statusCode, 200, beforeLayoutResponse.body);
+      const beforePending = beforeLayoutResponse.json<{ shell: { pendingApprovals: number } }>()
+        .shell.pendingApprovals;
       const response = await authenticated('Employee', 'POST', '/api/v1/recognitions', {
         recipientId: employeeIds.coordinator,
         categoryId: categoryIds.peer,
@@ -287,12 +291,24 @@ if (!sourceDatabaseUrl) {
       assert.equal(await count(`SELECT count(*) FROM app.audit_events WHERE entity_type='Recognition' AND entity_id=$1`, [recognition.id]), 1);
       assert.equal(await count(`SELECT count(*) FROM app.outbox_events WHERE aggregate_type='Recognition' AND aggregate_id=$1`, [recognition.id]), 1);
       assert.equal(await count(`SELECT count(*) FROM app.notifications WHERE object_type='Recognition' AND object_id=$1`, [recognition.id]), 1);
+      const pendingLayoutResponse = await authenticated('Head', 'GET', '/api/v1/workspace/layout');
+      assert.equal(pendingLayoutResponse.statusCode, 200, pendingLayoutResponse.body);
+      assert.equal(
+        pendingLayoutResponse.json<{ shell: { pendingApprovals: number } }>().shell.pendingApprovals,
+        beforePending + 1,
+      );
       const decision = await authenticated('Head', 'POST', `/api/v1/recognitions/${recognition.id}/decision`, {
         decision: 'Approved', reason: '',
       }, `recognition-decision-${randomUUID()}`);
       assert.equal(decision.statusCode, 200, decision.body);
       assert.equal(await count(`SELECT count(*) FROM app.spark_ledger_entries
         WHERE source_type='Recognition' AND source_id=$1 AND amount=2`, [recognition.id]), 1);
+      const approvedLayoutResponse = await authenticated('Head', 'GET', '/api/v1/workspace/layout');
+      assert.equal(approvedLayoutResponse.statusCode, 200, approvedLayoutResponse.body);
+      assert.equal(
+        approvedLayoutResponse.json<{ shell: { pendingApprovals: number } }>().shell.pendingApprovals,
+        beforePending,
+      );
     });
 
     test('Award supports Coordinator, GPM, Head and Top Management scenarios', async () => {

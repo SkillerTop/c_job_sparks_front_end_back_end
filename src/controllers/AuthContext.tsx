@@ -39,6 +39,8 @@ interface AuthContextValue extends AuthAccessState {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const AUTH_REVALIDATION_STALE_MS = 5 * 60_000;
+const AUTH_REVALIDATION_DEDUP_MS = 1_000;
 
 const sameUser = (current: AuthUser | null, next: AuthUser | null) =>
   current === next || Boolean(current && next &&
@@ -60,6 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const refreshGeneration = useRef(0);
   const authenticatedUserRef = useRef<AuthUser | null>(null);
+  const lastSuccessfulRefreshAt = useRef(0);
+  const lastBackgroundRevalidationAt = useRef(0);
 
   const refreshAuth = useCallback(async () => {
     const requestId = ++refreshGeneration.current;
@@ -81,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessState(nextAccess);
       setRegistrationAccount(nextRegistration);
       setError(null);
+      lastSuccessfulRefreshAt.current = Date.now();
     } catch (caught) {
       if (requestId !== refreshGeneration.current) return;
       // A temporary network failure during focus/visibility revalidation must
@@ -110,18 +115,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const authenticatedAccountId = user?.accountId ?? null;
   useEffect(() => {
     if (!authenticatedAccountId) return;
-    const revalidate = () => void refreshAuth();
+    const revalidateIfStale = () => {
+      const now = Date.now();
+      if (now - lastSuccessfulRefreshAt.current < AUTH_REVALIDATION_STALE_MS) return;
+      if (now - lastBackgroundRevalidationAt.current < AUTH_REVALIDATION_DEDUP_MS) return;
+      lastBackgroundRevalidationAt.current = now;
+      void refreshAuth();
+    };
     const expiry = authService.getSessionExpiry();
     const delay = sessionRevalidationDelay(expiry);
-    const timeout = delay === null ? undefined : window.setTimeout(revalidate, delay);
+    const timeout = delay === null ? undefined : window.setTimeout(() => void refreshAuth(), delay);
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') revalidate();
+      if (document.visibilityState === 'visible') revalidateIfStale();
     };
-    window.addEventListener('focus', revalidate);
+    window.addEventListener('focus', revalidateIfStale);
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       if (timeout !== undefined) window.clearTimeout(timeout);
-      window.removeEventListener('focus', revalidate);
+      window.removeEventListener('focus', revalidateIfStale);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [authenticatedAccountId, refreshAuth]);
@@ -141,6 +152,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     refreshGeneration.current += 1;
     authenticatedUserRef.current = null;
+    lastSuccessfulRefreshAt.current = 0;
+    lastBackgroundRevalidationAt.current = 0;
     authService.logout();
     setUser(null);
     setAccessState({ accounts: [], auditEvents: [] });
