@@ -21,9 +21,14 @@ async function choose(page: Page, label: string, option: RegExp) {
 }
 
 async function approveCard(card: Locator) {
+  const page = card.page();
+  const approvalBadge = page.locator('a[href="/approvals"] small');
+  const before = Number((await approvalBadge.textContent())?.trim() ?? 0);
   await expect(card).toBeVisible();
   await card.getByRole('button', { name: 'Approve', exact: true }).click();
   await expect(card).toHaveCount(0);
+  if (before <= 1) await expect(approvalBadge).toHaveCount(0);
+  else await expect(approvalBadge).toHaveText(String(before - 1));
 }
 
 test.describe.configure({ mode: 'serial' });

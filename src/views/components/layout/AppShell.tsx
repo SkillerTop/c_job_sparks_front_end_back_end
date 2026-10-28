@@ -118,8 +118,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     activeRole === 'Administrator'
       ? accounts.filter((account) => account.source === 'Registration' && account.status === 'Pending')
       : [];
-  const pendingApprovals = snapshot!.shell?.pendingApprovals ??
-    pendingRequests.recognitions.length + pendingRequests.awards.length;
+  const visibleApprovalQueueCount = pendingRequests.recognitions.length + pendingRequests.awards.length;
+  const pendingApprovals = activeRole === 'Head' && location.pathname.startsWith('/approvals')
+    ? visibleApprovalQueueCount
+    : snapshot!.shell?.pendingApprovals ?? visibleApprovalQueueCount;
   const pendingDisenchantCount = snapshot!.shell?.pendingDisenchant ?? pendingDisenchantRequests.length;
   const pending = pendingApprovals + pendingDisenchantCount + pendingRegistrations.length;
   const roleItems = useMemo<NavItem[]>(() => {
