@@ -50,7 +50,7 @@ export function AwardPage() {
     setForm({ employeeId: '', sparkType: allowedTypes[0], category: '', description: '',
       fulfillmentContactId: '', radiantRewardKind: 'RadiantAcrylic', valuablePrizeDescription: '' });
     setErrors({});
-    setMessage(null);
+    setMessage((current) => current?.tone === 'success' ? current : null);
   }, [allowedTypes]);
   const categories = snapshot!.categories.filter(
     (category) =>
@@ -117,7 +117,7 @@ export function AwardPage() {
   const update = (field: keyof AwardInput, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: '' }));
-    setMessage(null);
+    setMessage((current) => current?.tone === 'success' ? current : null);
   };
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -225,7 +225,7 @@ export function AwardPage() {
                     category: '',
                   }));
                   setErrors({});
-                  setMessage(null);
+                  setMessage((current) => current?.tone === 'success' ? current : null);
                 }}
                 options={allowedTypes.map((type) => ({ value: type, label: type }))}
                 ariaLabel="Spark type"

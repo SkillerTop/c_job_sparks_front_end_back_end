@@ -12,7 +12,7 @@ export const SHOP_TEXT = {
   shop: {
     eyebrow: 'Rewards marketplace',
     title: 'Reward Shop',
-    description: 'Spend your existing White, Yellow and Blue Sparks on abilities and exclusive rewards.',
+    description: 'Spend your existing White, Yellow and Blue Sparks on merch, subscriptions, certificates, tools and services.',
     balanceLabel: 'Your spendable Sparks',
     balanceSource: 'Synced with My Sparks · Radiant remains permanent',
     retry: 'Try again',
@@ -97,6 +97,8 @@ export const SHOP_TEXT = {
     remaining: (stock: number) => `${stock} remaining`,
     balanceCoverage: (percentage: number) => `Your balance covers ${percentage} percent of the item price`,
     imageAlt: (name: string) => `${name} reward artwork`,
+    showFullDescription: 'Show full description',
+    showLessDescription: 'Show less description',
   },
   aria: {
     filters: 'Catalog filters',
@@ -220,11 +222,12 @@ export const PRODUCT_ICON_OPTIONS = [
 
 export const SHOP_CATEGORIES: Array<{ value: ShopCategoryFilter; label: string }> = [
   { value: 'All', label: 'All items' },
-  { value: 'Popular', label: 'Popular' },
-  { value: 'Boosters', label: 'Boosters' },
-  { value: 'Customization', label: 'Customization' },
-  { value: 'Features', label: 'Abilities' },
-  { value: 'Exclusive', label: 'Exclusive' },
+  { value: 'Merch', label: 'Merch' },
+  { value: 'Subscription', label: 'Subscription' },
+  { value: 'Certificate', label: 'Certificate' },
+  { value: 'Tool', label: 'Tool' },
+  { value: 'Service', label: 'Service' },
+  { value: 'Other', label: 'Other' },
 ];
 
 export const SHOP_SORTS: Array<{ value: ShopSort; label: string }> = [

@@ -141,10 +141,11 @@ export const seedDevelopmentData = async (db: PoolClient) => {
     }
   }
 
-  const shopCategory = '99999999-0001-4000-8000-000000000001';
+  const shopCategory = 'c1000000-0000-4000-8000-000000000005';
   const productId = '99999999-0002-4000-8000-000000000002';
   const productVersion = '99999999-0003-4000-8000-000000000003';
-  await db.query(`INSERT INTO app.shop_categories (id,code,name) VALUES ($1,'customization','Customization') ON CONFLICT (id) DO NOTHING`, [shopCategory]);
+  await db.query(`INSERT INTO app.shop_categories (id,code,name) VALUES ($1,'service','Service')
+    ON CONFLICT (id) DO UPDATE SET code=EXCLUDED.code,name=EXCLUDED.name,is_active=true`, [shopCategory]);
   await db.query(`INSERT INTO app.products (id,sku,category_id,created_by_user_id) VALUES ($1,'NEON-THEME',$2,$3) ON CONFLICT (id) DO NOTHING`, [productId, shopCategory, people[5][0]]);
   await db.query(
     `INSERT INTO app.product_versions

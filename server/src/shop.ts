@@ -12,7 +12,7 @@ export interface AdminProductInput {
   name: string;
   description: string;
   imageUrl?: string | null | undefined;
-  category: 'Popular' | 'Boosters' | 'Customization' | 'Features' | 'Exclusive';
+  category: 'Merch' | 'Subscription' | 'Certificate' | 'Tool' | 'Service' | 'Other';
   rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
   price: number;
   priceSparkType: SpendableSparkType;
@@ -355,7 +355,6 @@ const inferEffectCode = (input: AdminProductInput) => {
   const name = input.name.toLowerCase();
   if (name.includes('frame')) return 'profile_frame' as const;
   if (name.includes('badge')) return 'badge_unlock' as const;
-  if (input.category === 'Customization') return 'theme_unlock' as const;
   return 'focus_mode' as const;
 };
 

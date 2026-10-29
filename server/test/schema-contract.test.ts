@@ -34,6 +34,7 @@ test('the MVP schema is complete and ordered', async () => {
     '0016_graph_mail_delivery.sql',
     '0017_product_catalog_deletion.sql',
     '0018_content_spelling_cleanup.sql',
+    '0019_shop_category_catalog.sql',
   ]);
   for (const table of [
     'users', 'employees', 'departments', 'roles', 'role_assignments', 'projects', 'project_members',
@@ -82,4 +83,13 @@ test('catalog deletion preserves immutable shop history', async () => {
   assert.match(migration, /ADD COLUMN deleted_at timestamptz/);
   assert.match(migration, /ADD COLUMN deleted_by_user_id uuid/);
   assert.doesNotMatch(migration, /DELETE FROM app\.(purchase_items|inventory_items|spark_ledger_entries)/);
+});
+
+test('shop category migration publishes the configured catalog and remaps existing products', async () => {
+  const migration = await readFile(resolve(migrationsDirectory, '0019_shop_category_catalog.sql'), 'utf8');
+  for (const category of ['Merch', 'Subscription', 'Certificate', 'Tool', 'Service', 'Other'])
+    assert.match(migration, new RegExp(`'${category}'`));
+  assert.match(migration, /UPDATE app\.products AS product/);
+  assert.match(migration, /fulfillment_kind = 'Certificate' THEN 'certificate'/);
+  assert.match(migration, /code NOT IN \('merch', 'subscription', 'certificate', 'tool', 'service', 'other'\)/);
 });

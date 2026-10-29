@@ -23,6 +23,15 @@ test('Radiant prize validation connects its message to the textarea', async () =
   assert.match(source, /id="valuable-prize-error"/);
 });
 
+test('award form refreshes preserve a successful submission confirmation', async () => {
+  const source = await read('src/views/pages/AwardPage.tsx');
+  const preserveSuccessCalls = source.match(
+    /setMessage\(\(current\) => current\?\.tone === 'success' \? current : null\)/g,
+  ) ?? [];
+  assert.equal(preserveSuccessCalls.length, 3);
+  assert.doesNotMatch(source, /setMessage\(null\)/);
+});
+
 test('Admin sections implement the ARIA tab pattern', async () => {
   const source = await read('src/views/pages/AdminPage.tsx');
   assert.match(source, /role="tablist"/);
@@ -49,4 +58,17 @@ test('Rules uses configured Yellow limit and progressive category disclosure', a
 test('route loading announcements do not expose pathname strings', async () => {
   const source = await read('src/app/AppRouter.tsx');
   assert.doesNotMatch(source, /aria-label=\{`Loading \$\{pathname\}`\}/);
+});
+
+test('shop cards expose an accessible full-description toggle and square media', async () => {
+  const source = await read('src/views/components/shop/ProductCard.tsx');
+  const styles = await read('src/views/styles/shop.module.css');
+
+  assert.match(source, /aria-expanded=\{descriptionExpanded\}/);
+  assert.match(source, /aria-controls=\{descriptionId\}/);
+  assert.match(source, /showFullDescription/);
+  assert.match(source, /showLessDescription/);
+  assert.match(styles, /\.visualcard\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1;/s);
+  assert.match(styles, /\.productDescription\s*\{[^}]*-webkit-line-clamp:\s*4;/s);
+  assert.match(styles, /\.productDescriptionExpanded\s*\{[^}]*overflow:\s*visible;/s);
 });

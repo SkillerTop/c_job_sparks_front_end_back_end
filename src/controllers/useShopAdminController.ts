@@ -15,7 +15,7 @@ const EMPTY_PRODUCT: ProductDraft = {
   description: '',
   imageUrl: null,
   icon: 'gift',
-  category: 'Boosters',
+  category: 'Other',
   rarity: 'Common',
   price: 4,
   priceSparkType: 'White',

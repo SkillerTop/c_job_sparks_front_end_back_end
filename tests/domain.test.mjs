@@ -9,6 +9,7 @@ import {
 } from '../src/utils/personalBalances.ts';
 import { isValidIsoDate, quarterForDate, quarterOrder } from '../src/utils/quarter.ts';
 import { parseCsv } from '../src/utils/parseCsv.ts';
+import { normalizeConversionAmount, parseConversionAmount } from '../src/utils/conversionAmount.ts';
 import { selectAwardTargets, selectPendingDepartmentDisenchantRequests, selectPendingRequests, selectTeamMembers } from '../src/models/selectors.ts';
 
 const ADMIN = 'emp-ida';
@@ -16,6 +17,13 @@ const HEAD = 'emp-maya';
 const NOW = new Date('2026-08-31T12:00:00.000Z');
 const csv = (text) => ({ name: 'performance.csv', text: async () => text });
 const snapshot = () => sparkService.getSnapshot();
+
+test('conversion amount input can be cleared before the next value is entered', () => {
+  assert.equal(parseConversionAmount(''), 0);
+  assert.equal(parseConversionAmount('10'), 10);
+  assert.equal(normalizeConversionAmount('', 5), '5');
+  assert.equal(normalizeConversionAmount('010', 5), '10');
+});
 const award = (employeeId, sparkType, category) => ({ employeeId, sparkType, category, description: 'A verified contribution with measurable impact.' });
 const recognition = (recipientId = 'emp-nora') => ({ recipientId, category: RECOGNITION_CATEGORIES[0], description: 'Shared a useful engineering walkthrough.' });
 let employeeSequence = 0;

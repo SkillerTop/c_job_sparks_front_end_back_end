@@ -1,7 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { SHOP_CATEGORIES } from '../src/constants/shop.ts';
 import { demoShopService } from '../src/services/demoShopService.ts';
 import { ShopServiceError } from '../src/services/shopErrors.ts';
+
+const productCategories = ['Merch', 'Subscription', 'Certificate', 'Tool', 'Service', 'Other'];
+
+test('the shop exposes only the configured product categories', async () => {
+  assert.deepEqual(
+    SHOP_CATEGORIES.map((category) => category.value),
+    ['All', ...productCategories],
+  );
+
+  values.clear();
+  const snapshot = await demoShopService.getSnapshot(employee);
+  assert.ok(snapshot.products.length > 0);
+  assert.ok(snapshot.products.every((product) => productCategories.includes(product.category)));
+});
 
 const values = new Map();
 globalThis.localStorage = {

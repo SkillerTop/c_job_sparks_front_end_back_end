@@ -8,6 +8,7 @@ import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import type { SparkType } from '@/models';
+import { normalizeConversionAmount, parseConversionAmount } from '@/utils/conversionAmount';
 import { conversionRule } from '@/utils/sparkRules';
 import { selectAuthoritativeBalances } from '@/utils/personalBalances';
 import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
@@ -18,7 +19,8 @@ export function ConversionPage() {
   const { snapshot, currentUserId, convert } = useSpark();
   const [from, setFrom] = useState<SparkType>('White');
   const rule = conversionRule(from, snapshot!.settings)!;
-  const [amount, setAmount] = useState(rule.ratio);
+  const [amountInput, setAmountInput] = useState(String(rule.ratio));
+  const amount = parseConversionAmount(amountInput);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
@@ -33,7 +35,7 @@ export function ConversionPage() {
     const next = conversionRule(type, snapshot!.settings);
     if (!next) return;
     setFrom(type);
-    setAmount(next.ratio);
+    setAmountInput(String(next.ratio));
     setMessage(null);
   };
   const confirm = async () => {
@@ -91,11 +93,12 @@ export function ConversionPage() {
                   type="number"
                   min={rule.ratio}
                   step={rule.ratio}
-                  value={amount}
+                  value={amountInput}
                   onChange={(event) => {
-                    setAmount(Number(event.target.value));
+                    setAmountInput(event.target.value);
                     setMessage(null);
                   }}
+                  onBlur={() => setAmountInput((current) => normalizeConversionAmount(current, rule.ratio))}
                 />
               </label>
               <small>{balances[from]} <LocalizedText>available</LocalizedText></small>

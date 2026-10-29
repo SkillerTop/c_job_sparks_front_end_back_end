@@ -44,7 +44,7 @@ interface StoredTransaction extends ShopSparkTransaction {
 }
 
 interface DemoShopState {
-  version: 1;
+  version: 2;
   products: ShopProduct[];
   balances: Record<string, SpendableSparkBalances>;
   purchases: StoredPurchase[];
@@ -60,7 +60,7 @@ const makeId = (prefix: string) =>
 const copy = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 const createInitialState = (): DemoShopState => ({
-  version: 1,
+  version: 2,
   products: copy(DEMO_SHOP_PRODUCTS) as ShopProduct[],
   balances: Object.fromEntries(DEMO_IDENTITIES.map(({ id, balances }) => [id, { ...balances }])),
   purchases: [],
@@ -74,7 +74,7 @@ const loadState = (): DemoShopState => {
     const stored = globalThis.localStorage.getItem(STORAGE_KEY);
     if (!stored) return createInitialState();
     const parsed = JSON.parse(stored) as DemoShopState;
-    if (parsed.version !== 1 || !Array.isArray(parsed.products)) return createInitialState();
+    if (parsed.version !== 2 || !Array.isArray(parsed.products)) return createInitialState();
     return parsed;
   } catch {
     return createInitialState();

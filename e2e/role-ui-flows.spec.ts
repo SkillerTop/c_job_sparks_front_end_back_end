@@ -61,7 +61,11 @@ test('GPM submits a scoped Yellow award through the form', async ({ page }) => {
   await choose(page, 'Award category', /Successful employee referral/);
   await page.getByLabel(/^Description/).fill(gpmAwardDescription);
   await page.getByRole('button', { name: 'Submit request' }).click();
-  await expect(page.getByText('Award request sent to the Head for approval.')).toBeVisible();
+  const success = page.getByText('Award request sent to the Head for approval.');
+  await expect(success).toBeVisible();
+  const pendingRequest = page.locator('tr').filter({ hasText: gpmAwardDescription });
+  await expect(pendingRequest).toContainText('Pending');
+  await expect(success).toBeVisible();
 });
 
 test('Head approves the three pending UI requests', async ({ page }) => {

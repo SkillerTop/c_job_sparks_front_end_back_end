@@ -2,7 +2,7 @@ import type { SparkType } from '@/models';
 
 export type SpendableSparkType = Exclude<SparkType, 'Radiant'>;
 export type SpendableSparkBalances = Record<SpendableSparkType, number>;
-export type ShopCategory = 'Popular' | 'Boosters' | 'Customization' | 'Features' | 'Exclusive';
+export type ShopCategory = 'Merch' | 'Subscription' | 'Certificate' | 'Tool' | 'Service' | 'Other';
 export type ShopCategoryFilter = 'All' | ShopCategory;
 export type ProductRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary';
 export type ProductType = 'Consumable' | 'Activatable' | 'Permanent';

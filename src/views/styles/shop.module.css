@@ -346,7 +346,7 @@
     linear-gradient(145deg, var(--surface-soft), var(--surface-hover));
 }
 
-.visualcard { height: 9.5rem; }
+.visualcard { width: 100%; height: auto; aspect-ratio: 1 / 1; }
 .visualmodal { width: 8.5rem; height: 7.2rem; flex: none; }
 .visualinventory { width: 5.5rem; height: 5.5rem; flex: none; }
 
@@ -438,12 +438,45 @@
   line-height: 1.35;
 }
 
-.productDescription {
+.productDescriptionBlock {
   flex: 1;
+  margin-bottom: 0.8rem;
+}
+
+.productDescription {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 0 0 0.8rem;
   color: var(--muted-strong);
   font-size: 0.8125rem;
   line-height: 1.58;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.productDescriptionExpanded {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
+.productDescriptionToggle {
+  min-height: 2.75rem;
+  padding: 0.35rem 0;
+  color: var(--accent-blue);
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+.productDescriptionToggle:hover {
+  color: var(--ink);
 }
 
 .productMeta {

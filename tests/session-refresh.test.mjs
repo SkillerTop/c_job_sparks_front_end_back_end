@@ -70,3 +70,10 @@ test('conversion and disenchant refresh the authoritative balance after mutation
   assert.match(convert, /workspaceWithFreshBalances\(\)/);
   assert.match(disenchant, /workspaceWithFreshBalances\(\)/);
 });
+
+test('conversion amount keeps a temporary empty string while the user edits it', async () => {
+  const source = await readFile(new URL('../src/views/pages/ConversionPage.tsx', import.meta.url), 'utf8');
+  assert.match(source, /setAmountInput\(event\.target\.value\)/);
+  assert.match(source, /normalizeConversionAmount\(current, rule\.ratio\)/);
+  assert.doesNotMatch(source, /setAmount\(Number\(event\.target\.value\)\)/);
+});

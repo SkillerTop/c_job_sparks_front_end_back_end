@@ -1,5 +1,6 @@
 import { Check, Clock3, Eye, LockKeyhole, ShoppingBag } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { SHOP_CATEGORIES } from '@/constants/shop';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
@@ -37,6 +38,10 @@ export function ProductCard({
   } as const;
   const reduced = useReducedMotion();
   const { t, localize } = useUserPreferences();
+  const descriptionId = useId();
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [descriptionCanExpand, setDescriptionCanExpand] = useState(false);
   const action = getProductAction(product, balances, inventory);
   const actionLabel = readOnly ? t('shop.viewOnly') : actionLabels[action];
   const disabled = readOnly || loading || ['purchased', 'activated', 'sold-out', 'soon'].includes(action);
@@ -52,6 +57,24 @@ export function ProductCard({
       : isProductNew(product)
         ? shopText.labels.new
         : null;
+  useEffect(() => {
+    setDescriptionExpanded(false);
+    setDescriptionCanExpand(false);
+  }, [product.id, product.description]);
+  useLayoutEffect(() => {
+    if (descriptionExpanded) return;
+    const description = descriptionRef.current;
+    if (!description) return;
+    const measure = () => setDescriptionCanExpand(description.scrollHeight > description.clientHeight + 1);
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(description);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [descriptionExpanded, product.description]);
   return (
     <motion.article
       className={`${styles.productCard} ${rarityClass(product.rarity)}`}
@@ -65,7 +88,28 @@ export function ProductCard({
       </div>
       <div className={styles.productBody}>
         <h3>{product.name}</h3>
-        <p className={styles.productDescription}>{product.description}</p>
+        <div className={styles.productDescriptionBlock}>
+          <p
+            id={descriptionId}
+            ref={descriptionRef}
+            className={`${styles.productDescription} ${descriptionExpanded ? styles.productDescriptionExpanded : ''}`}
+          >
+            {product.description}
+          </p>
+          {(descriptionCanExpand || descriptionExpanded) && (
+            <button
+              className={styles.productDescriptionToggle}
+              type="button"
+              aria-expanded={descriptionExpanded}
+              aria-controls={descriptionId}
+              onClick={() => setDescriptionExpanded((current) => !current)}
+            >
+              {descriptionExpanded
+                ? shopText.product.showLessDescription
+                : shopText.product.showFullDescription}
+            </button>
+          )}
+        </div>
         <div className={styles.productMeta}>
           <span>{category}</span>
           {product.durationHours && (

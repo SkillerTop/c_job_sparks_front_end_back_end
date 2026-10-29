@@ -36,7 +36,6 @@ export const filterAndSortProducts = (
 ) => {
   const filtered = products.filter((product) => {
     if (category === 'All') return true;
-    if (category === 'Popular') return product.isFeatured || product.category === 'Popular';
     return product.category === category;
   });
   return [...filtered].sort((a, b) => {

@@ -295,7 +295,7 @@ export function ShopAdminPanel() {
               </label>
               <label className={styles.editorWide}>
                 <span>{shopText.admin.description}</span>
-                <textarea required maxLength={260} value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} />
+                <textarea required maxLength={4000} rows={8} value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} />
               </label>
               <label>
                 <span>{shopText.admin.price}</span>

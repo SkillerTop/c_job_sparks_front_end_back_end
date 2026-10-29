@@ -1068,7 +1068,7 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       const productInput = z.object({
         id: idSchema.optional(), name: z.string().min(1).max(200), description: z.string().max(4000).default(''),
         imageUrl: z.string().max(2000).nullable().optional(), icon: z.string().max(100).optional(),
-        category: z.enum(['Popular','Boosters','Customization','Features','Exclusive']),
+        category: z.enum(['Merch','Subscription','Certificate','Tool','Service','Other']),
         rarity: z.enum(['Common','Rare','Epic','Legendary']), price: z.number().int().positive(),
         priceSparkType: z.enum(['White','Yellow','Blue']), productType: z.enum(['Consumable','Activatable','Permanent']),
         durationHours: z.number().positive().nullable(), stock: z.number().int().nonnegative().nullable(),
