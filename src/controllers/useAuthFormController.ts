@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Employee } from '@/models';
 import {
   MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
   normalizeEmail,
   validatePassword,
   authService,
@@ -72,6 +73,7 @@ export function useAuthFormController() {
     moreDemoAccounts,
     registrationDemos,
     maxPasswordLength: MAX_PASSWORD_LENGTH,
+    minPasswordLength: MIN_PASSWORD_LENGTH,
     normalizeEmail,
     validatePassword,
     isInvalidCredentialsError: (error: unknown) =>

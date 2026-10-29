@@ -100,7 +100,7 @@ const uk: PhraseMap = {
   'Show passwords': 'Показати паролі', 'Hide passwords': 'Приховати паролі', 'Please wait…': 'Зачекайте…',
   'Submit for approval': 'Надіслати на погодження', 'Already approved?': 'Доступ уже погоджено?',
   'Try the approval flow': 'Спробувати процес погодження', 'Password requirements': 'Вимоги до пароля',
-  '8+ characters': 'Щонайменше 8 символів', 'Upper & lowercase': 'Великі й малі літери',
+  '10+ characters': 'Щонайменше 10 символів', 'Upper & lowercase': 'Великі й малі літери',
   'At least one number': 'Щонайменше одна цифра', 'Met': 'Виконано', 'Not met': 'Не виконано',
   'Employee': 'Працівник', 'Coordinator': 'Координатор', 'Head': 'Керівник',
   'Top Management': 'Топменеджмент', 'Administrator': 'Адміністратор',
@@ -193,7 +193,7 @@ const ru: PhraseMap = {
   'Show passwords': 'Показать пароли', 'Hide passwords': 'Скрыть пароли', 'Please wait…': 'Подождите…',
   'Submit for approval': 'Отправить на согласование', 'Already approved?': 'Доступ уже подтверждён?',
   'Try the approval flow': 'Попробовать процесс согласования', 'Password requirements': 'Требования к паролю',
-  '8+ characters': 'Не менее 8 символов', 'Upper & lowercase': 'Прописные и строчные буквы',
+  '10+ characters': 'Не менее 10 символов', 'Upper & lowercase': 'Прописные и строчные буквы',
   'At least one number': 'Хотя бы одна цифра', 'Met': 'Выполнено', 'Not met': 'Не выполнено',
   'Employee': 'Сотрудник', 'Coordinator': 'Координатор', 'Head': 'Руководитель',
   'Top Management': 'Топ-менеджмент', 'Administrator': 'Администратор',
@@ -1891,13 +1891,13 @@ const dynamic = (language: Exclude<InterfaceLanguage, 'en'>, value: string) => {
       : (language === 'uk' ? 'Показати' : 'Показать');
     return `${verb} ${language === 'uk' ? 'дію визнання для' : 'действие признания для'} ${recognitionAction[2]}`;
   }
-  const passwordRequirement = value.match(/^(Met|Not met): (8 or more characters|upper and lowercase letters|at least one number)$/);
+  const passwordRequirement = value.match(/^(Met|Not met): (10 or more characters|upper and lowercase letters|at least one number)$/);
   if (passwordRequirement) {
     const state = passwordRequirement[1] === 'Met'
       ? (language === 'uk' ? 'Виконано' : 'Выполнено')
       : (language === 'uk' ? 'Не виконано' : 'Не выполнено');
     const requirement = ({
-      '8 or more characters': language === 'uk' ? 'щонайменше 8 символів' : 'не менее 8 символов',
+      '10 or more characters': language === 'uk' ? 'щонайменше 10 символів' : 'не менее 10 символов',
       'upper and lowercase letters': language === 'uk' ? 'великі та малі літери' : 'прописные и строчные буквы',
       'at least one number': language === 'uk' ? 'щонайменше одна цифра' : 'не менее одной цифры',
     } as Record<string, string>)[passwordRequirement[2]];

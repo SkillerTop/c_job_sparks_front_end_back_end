@@ -86,7 +86,7 @@ export const UK_TRANSLATIONS: Dictionary = {
   'notifications.saved': 'Налаштування сповіщень збережено.', 'notifications.error': 'Не вдалося зберегти сповіщення.',
   'notifications.save': 'Зберегти сповіщення', 'notifications.saving': 'Збереження…',
   'password.eyebrow': 'Безпека', 'password.title': 'Змінити пароль', 'password.current': 'Поточний пароль', 'password.new': 'Новий пароль',
-  'password.confirm': 'Підтвердьте новий пароль', 'password.hint': 'Щонайменше 8 символів, великі й малі літери та цифра.',
+  'password.confirm': 'Підтвердьте новий пароль', 'password.hint': 'Щонайменше 10 символів, великі й малі літери та цифра.',
   'password.show': 'Показати паролі', 'password.hide': 'Приховати паролі', 'password.mismatch': 'Нові паролі не збігаються.',
   'password.success': 'Пароль успішно змінено.', 'password.error': 'Не вдалося змінити пароль.', 'password.update': 'Оновити пароль', 'password.updating': 'Оновлення…',
   'sessions.eyebrow': 'Безпека', 'sessions.title': 'Активні сеанси', 'sessions.signOutAll': 'Вийти на всіх пристроях',

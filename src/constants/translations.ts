@@ -181,7 +181,7 @@ const en = {
   'password.current': 'Current password',
   'password.new': 'New password',
   'password.confirm': 'Confirm new password',
-  'password.hint': 'At least 8 characters with uppercase, lowercase and a number.',
+  'password.hint': 'At least 10 characters with uppercase, lowercase and a number.',
   'password.show': 'Show passwords',
   'password.hide': 'Hide passwords',
   'password.mismatch': 'New passwords do not match.',

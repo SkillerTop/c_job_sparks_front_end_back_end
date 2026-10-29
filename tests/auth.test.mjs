@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 import { DEMO_PASSWORD } from '../src/data/mockAuthData.ts';
-import { AuthServiceError, authService, normalizeEmail, validatePassword } from '../src/services/authService.ts';
+import {
+  AuthServiceError,
+  MIN_PASSWORD_LENGTH,
+  authService,
+  normalizeEmail,
+  validatePassword,
+} from '../src/services/authService.ts';
 import { sparkService } from '../src/services/sparkService.ts';
 
 const ADMIN_EMAIL = 'ida.novak@c-job.test';
@@ -14,6 +20,9 @@ beforeEach(() => {
 test('email normalization and password rules are deterministic', () => {
   assert.equal(normalizeEmail('  Nora.Ibrahim@C-JOB.TEST '), 'nora.ibrahim@c-job.test');
   assert.equal(validatePassword('weak').valid, false);
+  assert.equal(MIN_PASSWORD_LENGTH, 10);
+  assert.deepEqual(validatePassword('Aa123456').issues, ['Use at least 10 characters.']);
+  assert.deepEqual(validatePassword('Aa1234567').issues, ['Use at least 10 characters.']);
   assert.equal(validatePassword('Strong2026').valid, true);
   assert.equal(validatePassword(`Aa1${'x'.repeat(126)}`).valid, false);
 });

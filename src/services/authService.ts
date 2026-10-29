@@ -13,6 +13,9 @@ import type {
 import { sparkService } from '@/services/sparkService';
 import { apiAuthService } from '@/services/apiAuthService';
 import { isApiMode } from '@/services/apiClient';
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '@/constants/security';
+
+export { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '@/constants/security';
 
 const AUTH_STATE_KEY = 'c-job-auth-state-v1';
 const AUTH_SESSION_KEY = 'c-job-auth-session-v1';
@@ -21,7 +24,6 @@ const AUTH_WRITE_LOCK = 'c-job-auth-write-v1';
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 export const AUTH_CHANGE_EVENT = 'c-job-auth-change';
 export const AUTH_STATE_STORAGE_KEY = AUTH_STATE_KEY;
-export const MAX_PASSWORD_LENGTH = 128;
 
 type AuthErrorCode =
   | 'ACCOUNT_EXISTS'
@@ -156,7 +158,7 @@ export const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
 export const validatePassword = (password: string) => {
   const issues: string[] = [];
-  if (password.length < 8) issues.push('Use at least 8 characters.');
+  if (password.length < MIN_PASSWORD_LENGTH) issues.push(`Use at least ${MIN_PASSWORD_LENGTH} characters.`);
   if (password.length > MAX_PASSWORD_LENGTH) issues.push(`Use no more than ${MAX_PASSWORD_LENGTH} characters.`);
   if (!/[a-z]/.test(password)) issues.push('Add a lowercase letter.');
   if (!/[A-Z]/.test(password)) issues.push('Add an uppercase letter.');

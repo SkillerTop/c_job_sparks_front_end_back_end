@@ -27,6 +27,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     primaryDemoAccounts,
     moreDemoAccounts,
     registrationDemos,
+    minPasswordLength,
     maxPasswordLength,
     normalizeEmail,
     validatePassword,
@@ -238,6 +239,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
               type={showPassword ? 'text' : 'password'}
               autoComplete={isRegister ? 'new-password' : 'current-password'}
               value={password}
+              minLength={isRegister ? minPasswordLength : undefined}
               maxLength={maxPasswordLength}
               disabled={submitting}
               aria-invalid={Boolean(errors.password)}
@@ -282,10 +284,10 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
               aria-live="polite"
             >
               <li
-                data-met={password.length >= 8}
-                aria-label={localize(`${password.length >= 8 ? 'Met' : 'Not met'}: 8 or more characters`)}
+                data-met={password.length >= minPasswordLength}
+                aria-label={localize(`${password.length >= minPasswordLength ? 'Met' : 'Not met'}: ${minPasswordLength} or more characters`)}
               >
-                <LocalizedText>8+ characters
+                <LocalizedText>10+ characters
               </LocalizedText></li>
               <li
                 data-met={/[a-z]/.test(password) && /[A-Z]/.test(password)}
@@ -311,6 +313,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   value={confirmPassword}
+                  minLength={minPasswordLength}
                   maxLength={maxPasswordLength}
                   disabled={submitting}
                   aria-invalid={Boolean(errors.confirmPassword)}

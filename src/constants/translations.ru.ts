@@ -86,7 +86,7 @@ export const RU_TRANSLATIONS: Dictionary = {
   'notifications.saved': 'Настройки уведомлений сохранены.', 'notifications.error': 'Не удалось сохранить уведомления.',
   'notifications.save': 'Сохранить уведомления', 'notifications.saving': 'Сохранение…',
   'password.eyebrow': 'Безопасность', 'password.title': 'Изменить пароль', 'password.current': 'Текущий пароль', 'password.new': 'Новый пароль',
-  'password.confirm': 'Подтвердите новый пароль', 'password.hint': 'Не менее 8 символов, заглавные и строчные буквы и цифра.',
+  'password.confirm': 'Подтвердите новый пароль', 'password.hint': 'Не менее 10 символов, заглавные и строчные буквы и цифра.',
   'password.show': 'Показать пароли', 'password.hide': 'Скрыть пароли', 'password.mismatch': 'Новые пароли не совпадают.',
   'password.success': 'Пароль успешно изменён.', 'password.error': 'Не удалось изменить пароль.', 'password.update': 'Обновить пароль', 'password.updating': 'Обновление…',
   'sessions.eyebrow': 'Безопасность', 'sessions.title': 'Активные сеансы', 'sessions.signOutAll': 'Выйти на всех устройствах',

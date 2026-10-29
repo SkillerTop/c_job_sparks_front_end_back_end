@@ -1,6 +1,9 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import argon2 from 'argon2';
 
+export const MIN_PASSWORD_LENGTH = 10;
+export const MAX_PASSWORD_LENGTH = 128;
+
 export const hashPassword = (password: string) =>
   argon2.hash(password, {
     type: argon2.argon2id,
@@ -19,8 +22,8 @@ export const verifyPassword = async (passwordHash: string, password: string) => 
 
 export const validatePassword = (password: string) => {
   const issues: string[] = [];
-  if (password.length < 10) issues.push('Use at least 10 characters.');
-  if (password.length > 128) issues.push('Use no more than 128 characters.');
+  if (password.length < MIN_PASSWORD_LENGTH) issues.push(`Use at least ${MIN_PASSWORD_LENGTH} characters.`);
+  if (password.length > MAX_PASSWORD_LENGTH) issues.push(`Use no more than ${MAX_PASSWORD_LENGTH} characters.`);
   if (!/[a-z]/.test(password)) issues.push('Add a lowercase letter.');
   if (!/[A-Z]/.test(password)) issues.push('Add an uppercase letter.');
   if (!/\d/.test(password)) issues.push('Add a number.');

@@ -4,6 +4,7 @@ import type { PasswordChangeInput } from '@/models/profile';
 import { Feedback } from '@/views/components/common/Feedback';
 import styles from '@/views/styles/profile.module.css';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '@/constants/security';
 
 const emptyPassword: PasswordChangeInput = { currentPassword: '', newPassword: '', confirmPassword: '' };
 
@@ -56,12 +57,12 @@ export function PasswordSettings({
         </label>
         <label className={styles.field} htmlFor={nextId}>
           <span>{t('password.new')}</span>
-          <input id={nextId} type={show ? 'text' : 'password'} autoComplete="new-password" minLength={8} maxLength={128} value={values.newPassword} onChange={(event) => update('newPassword', event.target.value)} aria-describedby={`${nextId}-hint`} required />
+          <input id={nextId} type={show ? 'text' : 'password'} autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} maxLength={MAX_PASSWORD_LENGTH} value={values.newPassword} onChange={(event) => update('newPassword', event.target.value)} aria-describedby={`${nextId}-hint`} required />
           <small id={`${nextId}-hint`}>{t('password.hint')}</small>
         </label>
         <label className={styles.field} htmlFor={confirmId}>
           <span>{t('password.confirm')}</span>
-          <input id={confirmId} type={show ? 'text' : 'password'} autoComplete="new-password" minLength={8} maxLength={128} value={values.confirmPassword} onChange={(event) => update('confirmPassword', event.target.value)} required />
+          <input id={confirmId} type={show ? 'text' : 'password'} autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} maxLength={MAX_PASSWORD_LENGTH} value={values.confirmPassword} onChange={(event) => update('confirmPassword', event.target.value)} required />
         </label>
         <button className={styles.passwordVisibility} type="button" onClick={() => setShow((current) => !current)} aria-pressed={show}>
           {show ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}

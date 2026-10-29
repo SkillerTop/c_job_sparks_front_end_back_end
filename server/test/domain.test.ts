@@ -14,7 +14,7 @@ import {
   validateRuleSet,
   type EffectiveRuleSet,
 } from '../src/domain.js';
-import { hashPassword, tokenHash, validatePassword, verifyPassword } from '../src/security.js';
+import { MIN_PASSWORD_LENGTH, hashPassword, tokenHash, validatePassword, verifyPassword } from '../src/security.js';
 import {
   DEFAULT_PERFORMANCE_THRESHOLDS,
   performanceRewardFor,
@@ -130,6 +130,9 @@ test('the server catalog contains every configured recognition and award categor
 
 test('passwords use Argon2id and tokens are stored as digests', async () => {
   const password = 'SparkDemo2026!';
+  assert.equal(MIN_PASSWORD_LENGTH, 10);
+  assert.deepEqual(validatePassword('Aa123456').issues, ['Use at least 10 characters.']);
+  assert.deepEqual(validatePassword('Aa1234567').issues, ['Use at least 10 characters.']);
   assert.equal(validatePassword(password).valid, true);
   const digest = await hashPassword(password);
   assert.match(digest, /^\$argon2id\$/);
