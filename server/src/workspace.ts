@@ -122,21 +122,21 @@ export type WorkspaceSection = 'all' | 'dashboard' | 'profile' | 'sparks' | 'rec
 
 type WorkspaceDataset = 'categories' | 'directory' | 'projects' | 'transactions' | 'departmentBalances' |
   'recognitions' | 'awards' | 'gates' | 'performance' | 'achievements' | 'disenchant' | 'audit' |
-  'fulfillment' | 'reports' | 'effects';
+  'fulfillment' | 'reports' | 'effects' | 'lifetimeEarnings' | 'yellowAwardUsage';
 
 const sectionDatasets: Record<Exclude<WorkspaceSection, 'all'>, readonly WorkspaceDataset[]> = {
   dashboard: ['directory','transactions','recognitions','awards','performance','achievements','effects'],
   profile: ['directory','effects'],
   sparks: ['directory','transactions','effects'],
   recognition: ['categories','directory','projects','recognitions','effects'],
-  achievements: ['directory','transactions','performance','achievements','effects'],
+  achievements: ['directory','transactions','performance','achievements','lifetimeEarnings','effects'],
   'company-achievements': ['directory','achievements','effects'],
   shop: ['directory','effects'],
   inventory: ['directory','effects'],
   convert: ['directory','transactions','effects'],
   disenchant: ['directory','transactions','disenchant','reports','effects'],
   team: ['directory','projects','departmentBalances','recognitions','awards','gates','disenchant','effects'],
-  award: ['categories','directory','projects','awards','fulfillment','effects'],
+  award: ['categories','directory','projects','awards','yellowAwardUsage','fulfillment','effects'],
   approvals: ['directory','recognitions','awards','gates','disenchant','effects'],
   admin: ['categories','directory','projects','transactions','recognitions','awards','gates','performance',
     'achievements','disenchant','audit','fulfillment','reports','effects'],
@@ -152,7 +152,8 @@ export const buildWorkspace = async (
     sectionDatasets[section].includes(dataset);
   const wideDirectory = section === 'all' || ['recognition','company-achievements','team','award','approvals','admin']
     .includes(section);
-  const [categoriesRaw, employeesRaw, departmentsRaw, projectsRaw, transactionsRaw, departmentBalancesRaw,
+  const [categoriesRaw, employeesRaw, departmentsRaw, projectsRaw, transactionsRaw, lifetimeEarningsRaw,
+    yellowAwardUsageRaw, departmentBalancesRaw,
     recognitionsRaw, awardsRaw,
     gatesRaw, performanceRaw, achievementsRaw, disenchantRaw, auditRaw, rule, fulfillmentContactsRaw,
     disenchantReportsRaw, activeEffectsRaw] = await inSequence([
@@ -212,6 +213,28 @@ export const buildWorkspace = async (
        WHERE sa.employee_id=$1 AND ($2 OR sa.spark_type='Radiant')
        ORDER BY le.occurred_at DESC, le.id DESC LIMIT 500`,
       [principal.employeeId, hasFullPersonalLedger(principal.role)]) : Promise.resolve([]),
+    () => include('lifetimeEarnings') ? rows<any>(db, `
+      SELECT achievement.spark_type,COALESCE(sum(achievement.spark_amount),0) AS amount
+        FROM app.achievements achievement
+       WHERE achievement.employee_id=$1
+         AND achievement.spark_type IS NOT NULL
+         AND achievement.spark_amount IS NOT NULL
+         AND (
+           achievement.source_type<>'PerformanceRecord'
+           OR EXISTS (
+             SELECT 1 FROM app.performance_records current_performance
+              WHERE current_performance.id=achievement.source_id
+                AND current_performance.status<>'Superseded'
+           )
+         )
+       GROUP BY achievement.spark_type`, [principal.employeeId]) : Promise.resolve([]),
+    () => include('yellowAwardUsage') ? rows<any>(db, `
+      SELECT owner_employee_id,COALESCE(sum(amount),0) AS amount
+        FROM app.quota_reservations
+       WHERE spark_type='Yellow'
+         AND CURRENT_DATE BETWEEN period_start AND period_end
+         AND status IN ('Reserved','Consumed')
+       GROUP BY owner_employee_id`) : Promise.resolve([]),
     () => include('departmentBalances') && principal.role === 'Head'
       ? rows<any>(db, `
           SELECT employee.id AS employee_id, spark_type.value AS spark_type, COALESCE(account.balance,0) AS balance
@@ -361,6 +384,18 @@ export const buildWorkspace = async (
       relatedRequestId: row.source_id,
       status: row.status === 'Reversed' ? 'Reversed' : 'Completed',
     })),
+    lifetimeEarnings: include('lifetimeEarnings')
+      ? lifetimeEarningsRaw.reduce<Record<string, number>>((earnings, row) => {
+          earnings[row.spark_type] = Math.max(0, Number(row.amount ?? 0));
+          return earnings;
+        }, { White: 0, Yellow: 0, Blue: 0, Radiant: 0 })
+      : undefined,
+    yellowAwardUsage: include('yellowAwardUsage')
+      ? yellowAwardUsageRaw.reduce<Record<string, number>>((usage, row) => {
+          usage[row.owner_employee_id] = Number(row.amount ?? 0);
+          return usage;
+        }, {})
+      : undefined,
     departmentBalances: departmentBalancesRaw.reduce<Record<string, Record<string, number>>>((balances, row) => {
       balances[row.employee_id] ??= { White: 0, Yellow: 0, Blue: 0, Radiant: 0 };
       balances[row.employee_id]![row.spark_type] = Number(row.balance ?? 0);

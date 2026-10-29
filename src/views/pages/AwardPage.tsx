@@ -106,6 +106,9 @@ export function AwardPage() {
         .reduce((sum, item) => sum + item.amount, 0),
     [snapshot, form.employeeId],
   );
+  const yellowUsage = snapshot!.yellowAwardUsage
+    ? (snapshot!.yellowAwardUsage[form.employeeId] ?? 0)
+    : directYellow + reservedYellow;
   const whiteBlocked = Boolean(
     form.employeeId &&
       form.sparkType === 'White' &&
@@ -262,7 +265,7 @@ export function AwardPage() {
                       const unavailable =
                         form.sparkType === 'Yellow' &&
                         Boolean(form.employeeId) &&
-                        directYellow + reservedYellow + category.amount >
+                        yellowUsage + category.amount >
                           snapshot!.settings.yellowQuarterlyLimit;
                       return {
                         value: category.name,
@@ -434,7 +437,7 @@ export function AwardPage() {
                 <div>
                   <span><LocalizedText>Awarded or reserved</LocalizedText></span>
                   <strong>
-                    {directYellow + reservedYellow} / {snapshot!.settings.yellowQuarterlyLimit}
+                    {yellowUsage} / {snapshot!.settings.yellowQuarterlyLimit}
                   </strong>
                 </div>
                 <div className={styles.progressTrack}>
@@ -442,7 +445,7 @@ export function AwardPage() {
                     style={{
                       width: `${Math.min(
                         100,
-                        ((directYellow + reservedYellow) / snapshot!.settings.yellowQuarterlyLimit) * 100,
+                        (yellowUsage / snapshot!.settings.yellowQuarterlyLimit) * 100,
                       )}%`,
                     }}
                   />

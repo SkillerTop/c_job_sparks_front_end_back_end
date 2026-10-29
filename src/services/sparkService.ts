@@ -10,7 +10,7 @@ import type {
   Role,
   SparkType,
 } from '@/models';
-import type { ShopSparkTransaction } from '@/models/shop';
+import type { ShopSparkTransaction, SpendableSparkBalances } from '@/models/shop';
 import { apiSparkService } from '@/services/apiSparkService';
 import { isApiMode } from '@/services/apiClient';
 import { selectAwardTargets, selectGpmControlledCoordinators } from '@/models/selectors';
@@ -281,7 +281,11 @@ const demoSparkService = {
     return clone();
   },
 
-  async syncShopTransactions(employeeId: string, shopTransactions: ShopSparkTransaction[]) {
+  async syncShopTransactions(
+    employeeId: string,
+    shopTransactions: ShopSparkTransaction[],
+    _authoritativeBalances?: SpendableSparkBalances,
+  ) {
     requireActor(employeeId, ['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management', 'Administrator']);
     return atomic(() => {
       for (const item of [...shopTransactions].reverse()) {

@@ -9,9 +9,10 @@ import type {
   RecognitionInput,
   ReferenceDraft,
   Role,
+  SparkBalances,
   SparkType,
 } from '@/models';
-import type { ShopSparkTransaction } from '@/models/shop';
+import type { ShopSparkTransaction, SpendableSparkBalances } from '@/models/shop';
 import { apiRequest, createIdempotencyKey } from './apiClient';
 
 let currentWorkspace: AppSnapshot | null = null;
@@ -19,7 +20,26 @@ let currentSection = 'dashboard';
 
 const workspace = async (section = currentSection) => {
   currentSection = section;
-  currentWorkspace = await apiRequest<AppSnapshot>(`/api/v1/workspace?section=${encodeURIComponent(section)}`);
+  const previousShell = currentWorkspace?.shell;
+  const next = await apiRequest<AppSnapshot>(`/api/v1/workspace?section=${encodeURIComponent(section)}`);
+  currentWorkspace = next.shell || !previousShell ? next : { ...next, shell: previousShell };
+  return currentWorkspace;
+};
+
+const workspaceWithFreshBalances = async () => {
+  const previousShell = currentWorkspace?.shell;
+  const [next, balances] = await Promise.all([
+    apiRequest<AppSnapshot>(`/api/v1/workspace?section=${encodeURIComponent(currentSection)}`),
+    apiRequest<SparkBalances>('/api/v1/me/spark-balances'),
+  ]);
+  currentWorkspace = {
+    ...next,
+    shell: {
+      balances,
+      pendingApprovals: previousShell?.pendingApprovals ?? 0,
+      pendingDisenchant: previousShell?.pendingDisenchant ?? 0,
+    },
+  };
   return currentWorkspace;
 };
 
@@ -45,8 +65,12 @@ export const apiSparkService = {
     return apiRequest<AppSnapshot>('/api/v1/workspace/layout');
   },
 
-  async syncShopTransactions(employeeId: string, shopTransactions: ShopSparkTransaction[]) {
-    if (!currentWorkspace) return workspace();
+  async syncShopTransactions(
+    employeeId: string,
+    shopTransactions: ShopSparkTransaction[],
+    authoritativeBalances?: SpendableSparkBalances,
+  ) {
+    if (!currentWorkspace) return workspaceWithFreshBalances();
     const employee = currentWorkspace.employees.find((item) => item.id === employeeId);
     const replacementIds = new Set(shopTransactions.map((item) => item.id));
     const converted = shopTransactions.map((item) => ({
@@ -70,6 +94,18 @@ export const apiSparkService = {
         ...converted,
         ...currentWorkspace.transactions.filter((item) => !replacementIds.has(item.id)),
       ].sort((left, right) => right.dateTime.localeCompare(left.dateTime)),
+      ...(authoritativeBalances
+        ? {
+            shell: {
+              balances: {
+                ...authoritativeBalances,
+                Radiant: currentWorkspace.shell?.balances.Radiant ?? 0,
+              },
+              pendingApprovals: currentWorkspace.shell?.pendingApprovals ?? 0,
+              pendingDisenchant: currentWorkspace.shell?.pendingDisenchant ?? 0,
+            },
+          }
+        : {}),
     };
     return structuredClone(currentWorkspace);
   },
@@ -116,7 +152,7 @@ export const apiSparkService = {
       fee: number;
       totalDebited: number;
     }>('/api/v1/conversions', { from, amount });
-    return { ...result, snapshot: await workspace() };
+    return { ...result, snapshot: await workspaceWithFreshBalances() };
   },
 
   async disenchant(_employeeId: string, sparkType: Exclude<SparkType, 'Radiant'>, amount: number) {
@@ -124,7 +160,7 @@ export const apiSparkService = {
       sparkType,
       amount,
     });
-    return { request, snapshot: await workspace() };
+    return { request, snapshot: await workspaceWithFreshBalances() };
   },
 
   async exportDisenchantRequests(_actorId: string, requestIds: string[], exportReference: string) {

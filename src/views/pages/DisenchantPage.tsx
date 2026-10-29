@@ -9,7 +9,8 @@ import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import type { SparkType } from '@/models';
-import { calculateBalances, formatMoney } from '@/utils/sparkRules';
+import { formatMoney } from '@/utils/sparkRules';
+import { selectAuthoritativeBalances } from '@/utils/personalBalances';
 import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
 
 
@@ -31,7 +32,7 @@ export function DisenchantPage() {
     return () => window.clearTimeout(timer);
   }, [celebrate, reduced]);
   const balances = useMemo(
-    () => calculateBalances(snapshot!.transactions, currentUserId),
+    () => selectAuthoritativeBalances(snapshot!, currentUserId),
     [snapshot, currentUserId],
   );
   const availableForType = balances[type];

@@ -46,3 +46,27 @@ test('Head approval badge uses the live queue while the Approval Center is activ
   assert.match(source, /\? visibleApprovalQueueCount/);
   assert.match(source, /pendingRequests\.recognitions\.length \+ pendingRequests\.awards\.length/);
 });
+
+test('personal economy pages never derive an authoritative balance from paged Ledger rows', async () => {
+  const files = [
+    '../src/views/pages/ConversionPage.tsx',
+    '../src/views/pages/DisenchantPage.tsx',
+    '../src/controllers/useLedgerController.ts',
+    '../src/controllers/useDashboardController.ts',
+    '../src/views/components/layout/AppShell.tsx',
+  ];
+  for (const file of files) {
+    const source = await readFile(new URL(file, import.meta.url), 'utf8');
+    assert.match(source, /selectAuthoritativeBalances/);
+    assert.doesNotMatch(source, /calculateBalances/);
+  }
+});
+
+test('conversion and disenchant refresh the authoritative balance after mutation', async () => {
+  const source = await readFile(new URL('../src/services/apiSparkService.ts', import.meta.url), 'utf8');
+  assert.match(source, /apiRequest<SparkBalances>\('\/api\/v1\/me\/spark-balances'\)/);
+  const convert = source.slice(source.indexOf('async convert('), source.indexOf('async disenchant('));
+  const disenchant = source.slice(source.indexOf('async disenchant('), source.indexOf('async exportDisenchantRequests('));
+  assert.match(convert, /workspaceWithFreshBalances\(\)/);
+  assert.match(disenchant, /workspaceWithFreshBalances\(\)/);
+});

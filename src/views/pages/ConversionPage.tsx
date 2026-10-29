@@ -8,7 +8,8 @@ import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import type { SparkType } from '@/models';
-import { calculateBalances, conversionRule } from '@/utils/sparkRules';
+import { conversionRule } from '@/utils/sparkRules';
+import { selectAuthoritativeBalances } from '@/utils/personalBalances';
 import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
 
 
@@ -21,7 +22,7 @@ export function ConversionPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
-  const balances = calculateBalances(snapshot!.transactions, currentUserId);
+  const balances = selectAuthoritativeBalances(snapshot!, currentUserId);
   const output = useMemo(
     () => (amount > 0 && amount % rule.ratio === 0 ? amount / rule.ratio : 0),
     [amount, rule.ratio],

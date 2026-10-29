@@ -106,7 +106,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     try {
       const next = await shopService.getSnapshot(clientIdentity);
       if (requestId !== generation.current) return;
-      await syncShopTransactions(next.transactions);
+      await syncShopTransactions(next.transactions, next.balances);
       if (requestId !== generation.current) return;
       hasSnapshot.current = true;
       lastRefreshAt.current = Date.now();
@@ -154,7 +154,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     setPurchasingId(productId);
     try {
       const result = await shopService.purchase(productId, clientIdentity, undefined, fulfillment);
-      await syncShopTransactions(result.transactions);
+      await syncShopTransactions(result.transactions, result.balances);
       const { purchase: _purchase, inventoryItem: _item, ...nextSnapshot } = result;
       setSnapshot(nextSnapshot);
       setError(null);
@@ -172,7 +172,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     setActivatingId(inventoryId);
     try {
       const next = await shopService.activate(inventoryId, clientIdentity);
-      await syncShopTransactions(next.transactions);
+      await syncShopTransactions(next.transactions, next.balances);
       setSnapshot(next);
       setError(null);
     } finally {

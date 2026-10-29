@@ -11,7 +11,7 @@ import { useSpark } from '@/controllers/SparkContext';
 import { PERFORMANCE_ROLES } from '@/constants/app';
 import type { SparkType } from '@/models';
 import { formatDate } from '@/utils/formatters';
-import { calculateLifetimeEarnings } from '@/utils/sparkRules';
+import { selectAuthoritativeLifetimeEarnings } from '@/utils/personalBalances';
 import { PerformanceOverview } from '@/views/components/achievements/PerformanceOverview';
 import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
 
@@ -24,7 +24,7 @@ export function AchievementsPage() {
     .filter((item) => item.employeeId === currentUserId && (filter === 'All' || item.sparkType === filter))
     .sort((a, b) => b.date.localeCompare(a.date));
   const visibleItems = expanded ? items : items.slice(0, 3);
-  const lifetime = calculateLifetimeEarnings(snapshot!.transactions, currentUserId);
+  const lifetime = selectAuthoritativeLifetimeEarnings(snapshot!, currentUserId);
   const personName = (id: string) => snapshot!.employees.find((item) => item.id === id)?.name ?? 'C-Job';
   return (
     <PageTransition>

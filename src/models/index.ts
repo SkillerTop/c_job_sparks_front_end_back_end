@@ -255,6 +255,8 @@ export interface AppSnapshot {
   departments: Department[];
   projectTeams: ProjectTeam[];
   transactions: SparkTransaction[];
+  lifetimeEarnings?: SparkBalances;
+  yellowAwardUsage?: Record<string, number>;
   departmentBalances: Record<string, SparkBalances>;
   recognitions: PeerRecognition[];
   awardRequests: AwardRequest[];

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useSpark } from '@/controllers/SparkContext';
-import { calculateBalances } from '@/utils/sparkRules';
+import { selectAuthoritativeBalances } from '@/utils/personalBalances';
 import { selectPendingRequests } from '@/models/selectors';
 import { quarterForDate, quarterOrder } from '@/utils/quarter';
 
@@ -10,7 +10,7 @@ export function useDashboardController() {
     if (!snapshot) return null;
     const user = snapshot.employees.find((employee) => employee.id === currentUserId)!;
     const department = snapshot.departments.find((item) => item.id === user.departmentId)!;
-    const balances = snapshot.shell?.balances ?? calculateBalances(snapshot.transactions, currentUserId);
+    const balances = selectAuthoritativeBalances(snapshot, currentUserId);
     const recentTransactions = snapshot.transactions
       .filter((item) => item.employeeId === currentUserId)
       .sort((a, b) => b.dateTime.localeCompare(a.dateTime))

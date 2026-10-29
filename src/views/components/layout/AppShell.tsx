@@ -44,7 +44,7 @@ import { AccountMenu } from './AccountMenu';
 import { BackToTop } from './BackToTop';
 import { CompactBalanceMenu } from './CompactBalanceMenu';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
-import { calculateBalances } from '@/utils/sparkRules';
+import { selectAuthoritativeBalances } from '@/utils/personalBalances';
 import styles from '@/views/styles/app.module.css';
 
 type NavItem = { labelKey: TranslationKey; path: string; icon: typeof Home; roles?: Role[]; badge?: number };
@@ -101,7 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => desktop.removeEventListener('change', closeDrawer);
   }, []);
   const user = snapshot!.employees.find((employee) => employee.id === currentUserId)!;
-  const ledgerBalances = snapshot!.shell?.balances ?? calculateBalances(snapshot!.transactions, currentUserId);
+  const ledgerBalances = selectAuthoritativeBalances(snapshot!, currentUserId);
   const spendableBalances = {
     White: ledgerBalances.White,
     Yellow: ledgerBalances.Yellow,

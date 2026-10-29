@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SparkType } from '@/models';
 import { useSpark } from '@/controllers/SparkContext';
-import { selectAuthoritativeLedgerBalances } from '@/utils/ledgerBalances';
+import { selectAuthoritativeBalances } from '@/utils/personalBalances';
 
 export function useLedgerController() {
   const { snapshot, currentUserId, activeRole } = useSpark();
@@ -27,7 +27,7 @@ export function useLedgerController() {
         return !search || `${item.category} ${item.description} ${item.source}`.toLowerCase().includes(search);
       })
       .sort((a, b) => b.dateTime.localeCompare(a.dateTime));
-    return { transactions, balances: selectAuthoritativeLedgerBalances(snapshot, currentUserId) };
+    return { transactions, balances: selectAuthoritativeBalances(snapshot, currentUserId) };
   }, [snapshot, currentUserId, type, direction, query, radiantOnly]);
 
   const employeeLabel = (id?: string) =>

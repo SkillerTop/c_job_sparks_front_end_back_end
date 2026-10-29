@@ -10,7 +10,7 @@ import type {
   Role,
   SparkType,
 } from '@/models';
-import type { ShopSparkTransaction } from '@/models/shop';
+import type { ShopSparkTransaction, SpendableSparkBalances } from '@/models/shop';
 import { sparkService } from '@/services/sparkService';
 import { authService } from '@/services/authService';
 import { useMutationLock } from '@/hooks/useMutationLock';
@@ -50,7 +50,10 @@ interface SparkContextValue {
   saveReference: (draft: ReferenceDraft) => Promise<void>;
   deleteCategory: (categoryId: string) => Promise<void>;
   deleteEmployee: (employeeId: string) => Promise<void>;
-  syncShopTransactions: (transactions: ShopSparkTransaction[]) => Promise<void>;
+  syncShopTransactions: (
+    transactions: ShopSparkTransaction[],
+    balances?: SpendableSparkBalances,
+  ) => Promise<void>;
   resetDemo: () => Promise<boolean>;
 }
 
@@ -115,9 +118,12 @@ export function SparkProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const next = await sparkService.getSnapshot(section);
+      const [layout, next] = await Promise.all([
+        sparkService.getLayoutSnapshot(),
+        sparkService.getSnapshot(section),
+      ]);
       if (generation === workspaceGeneration.current) {
-        setSnapshot((current) => ({ ...next, shell: next.shell ?? current?.shell }));
+        setSnapshot((current) => ({ ...next, shell: layout.shell ?? next.shell ?? current?.shell }));
         lastSectionRefreshAt.current = Date.now();
       }
     } catch (caught) {
@@ -182,9 +188,12 @@ export function SparkProvider({ children }: { children: ReactNode }) {
       if (Date.now() - lastSectionRefreshAt.current < 5 * 60_000) return;
       const generation = ++workspaceGeneration.current;
       try {
-        const next = await sparkService.getSnapshot(section);
+        const [layout, next] = await Promise.all([
+          sparkService.getLayoutSnapshot(),
+          sparkService.getSnapshot(section),
+        ]);
         if (generation === workspaceGeneration.current) {
-          setSnapshot((current) => ({ ...next, shell: next.shell ?? current?.shell }));
+          setSnapshot((current) => ({ ...next, shell: layout.shell ?? next.shell ?? current?.shell }));
           lastSectionRefreshAt.current = Date.now();
           setError(null);
         }
@@ -295,10 +304,13 @@ export function SparkProvider({ children }: { children: ReactNode }) {
       updateSnapshot(next);
       await refreshAuth();
     });
-  const syncShopTransactions = useCallback(async (transactions: ShopSparkTransaction[]) => {
+  const syncShopTransactions = useCallback(async (
+    transactions: ShopSparkTransaction[],
+    balances?: SpendableSparkBalances,
+  ) => {
     if (!currentUserId) return;
     await authService.assertActiveSession(currentUserId);
-    updateSnapshot(await sparkService.syncShopTransactions(currentUserId, transactions));
+    updateSnapshot(await sparkService.syncShopTransactions(currentUserId, transactions, balances));
   }, [currentUserId]);
   const resetDemo = async () => {
     if (isLocked()) return false;
