@@ -11,12 +11,14 @@ export function Modal({
   title,
   description,
   onClose,
+  dismissible = true,
   children,
 }: {
   open: boolean;
   title: string;
   description?: string;
   onClose: () => void;
+  dismissible?: boolean;
   children: ReactNode;
 }) {
   const { localize } = useUserPreferences();
@@ -31,14 +33,14 @@ export function Modal({
       if (root) root.inert = previous;
     };
   }, [open]);
-  useDialogFocus(open, dialog, onClose);
+  useDialogFocus(open, dialog, dismissible ? onClose : () => undefined);
   return createPortal(
     <>
       {open ? (
         <div
           className={styles.modalBackdrop}
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) onClose();
+            if (dismissible && event.target === event.currentTarget) onClose();
           }}
         >
           <section
@@ -56,9 +58,11 @@ export function Modal({
                 <h2 id={`${id}-title`}>{localize(title)}</h2>
                 {description && <p id={`${id}-description`}>{localize(description)}</p>}
               </div>
-              <button className={styles.iconButton} type="button" onClick={onClose} aria-label={localize('Close dialog')}>
-                <X size={18} />
-              </button>
+              {dismissible && (
+                <button className={styles.iconButton} type="button" onClick={onClose} aria-label={localize('Close dialog')}>
+                  <X size={18} />
+                </button>
+              )}
             </div>
             {children}
           </section>

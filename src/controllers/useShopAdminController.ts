@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { SHOP_TEXT } from '@/constants/shop';
+import { SHOP_LOCATIONS, SHOP_TEXT } from '@/constants/shop';
 import { useAuth } from '@/controllers/AuthContext';
 import { useShop } from '@/controllers/ShopContext';
 import type {
@@ -13,6 +13,7 @@ import { shopService } from '@/services/shopService';
 const EMPTY_PRODUCT: ProductDraft = {
   name: '',
   description: '',
+  availableLocations: SHOP_LOCATIONS.map((item) => item.value),
   imageUrl: null,
   icon: 'gift',
   category: 'Other',
@@ -98,6 +99,7 @@ export function useShopAdminController() {
             id: product.id,
             name: product.name,
             description: product.description,
+            availableLocations: [...product.availableLocations],
             imageUrl: product.imageUrl,
             icon: product.icon,
             category: product.category,
@@ -121,6 +123,10 @@ export function useShopAdminController() {
 
   const saveProduct = async () => {
     if (!editing || saving) return;
+    if (!editing.availableLocations.length) {
+      setMessage({ tone: 'error', text: 'Select at least one available location.' });
+      return;
+    }
     if (editing.fulfillmentKind !== 'Virtual' && !editing.fulfillmentContactId) {
       setMessage({ tone: 'error', text: 'Choose who is responsible for fulfilling this reward.' });
       return;

@@ -3,6 +3,7 @@ import type {
   PurchaseFulfillmentChoice,
   PurchaseResult,
   ShopAdminState,
+  ShopLocation,
   ShopSnapshot,
   SpendableSparkType,
 } from '@/models/shop';
@@ -29,12 +30,13 @@ const request = async <T>(
 };
 
 export const apiShopService = {
-  getSnapshot: (_identity?: ShopClientIdentity) => request<ShopSnapshot>('/api/shop'),
-  purchase: (productId: string, _identity?: ShopClientIdentity, requestId = createIdempotencyKey(), fulfillment?: PurchaseFulfillmentChoice) =>
+  getSnapshot: (_identity?: ShopClientIdentity, location?: ShopLocation) =>
+    request<ShopSnapshot>(`/api/shop${location ? `?location=${encodeURIComponent(location)}` : ''}`),
+  purchase: (productId: string, _identity?: ShopClientIdentity, requestId = createIdempotencyKey(), fulfillment?: PurchaseFulfillmentChoice, location?: ShopLocation) =>
     request<PurchaseResult>('/api/shop/purchase', {
       method: 'POST',
       idempotencyKey: requestId,
-      body: JSON.stringify({ productId, requestId, fulfillment }),
+      body: JSON.stringify({ productId, requestId, fulfillment, location }),
     }),
   activate: (inventoryId: string, _identity?: ShopClientIdentity) =>
     request<ShopSnapshot>(`/api/shop/inventory/${encodeURIComponent(inventoryId)}/activate`, {

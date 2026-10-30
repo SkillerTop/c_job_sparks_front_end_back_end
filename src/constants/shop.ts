@@ -1,6 +1,7 @@
 import type {
   ProductRarity,
   ShopCategoryFilter,
+  ShopLocation,
   ShopSort,
 } from '@/models/shop';
 
@@ -19,6 +20,10 @@ export const SHOP_TEXT = {
     emptyTitle: 'No rewards match these filters',
     emptyDescription: 'Choose another category or sorting option to discover more rewards.',
     resetFilters: 'Show all items',
+    locationLabel: 'Shopping location',
+    locationDialogTitle: 'Choose your shop location',
+    locationDialogDescription: 'Products and fulfillment options depend on your location. You can change it later in the shop.',
+    locationDialogHint: 'Choose the country where you will receive the reward.',
   },
   inventory: {
     eyebrow: 'Personal collection',
@@ -181,6 +186,7 @@ export const SHOP_TEXT = {
     durationPlaceholder: 'No time limit',
     availableFrom: 'Offer starts',
     availableUntil: 'Offer ends',
+    availableLocations: 'Available locations',
     state: 'Item state',
     featured: 'Featured',
     limited: 'Limited',
@@ -194,6 +200,12 @@ export const SHOP_TEXT = {
     balanceSaved: 'The Spark balance was updated and the transaction was added to the ledger.',
   },
 } as const;
+
+export const SHOP_LOCATIONS: ReadonlyArray<{ value: ShopLocation; label: string }> = [
+  { value: 'Ukraine', label: 'Ukraine' },
+  { value: 'Poland', label: 'Poland' },
+  { value: 'Bulgaria', label: 'Bulgaria' },
+];
 
 export const PRODUCT_TYPE_OPTIONS = [
   { value: 'Consumable', label: 'Consumable' },

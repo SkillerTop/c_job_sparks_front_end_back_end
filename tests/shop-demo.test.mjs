@@ -3,6 +3,7 @@ import test from 'node:test';
 import { SHOP_CATEGORIES } from '../src/constants/shop.ts';
 import { demoShopService } from '../src/services/demoShopService.ts';
 import { ShopServiceError } from '../src/services/shopErrors.ts';
+import { readShopLocation, writeShopLocation } from '../src/utils/shopLocation.ts';
 
 const productCategories = ['Merch', 'Subscription', 'Certificate', 'Tool', 'Service', 'Other'];
 
@@ -51,12 +52,12 @@ test('the standalone shop purchases and activates an item exactly once', async (
     ],
   );
 
-  const first = await demoShopService.purchase('task-reroll', employee, 'request-1');
+  const first = await demoShopService.purchase('task-reroll', employee, 'request-1', undefined, 'Ukraine');
   assert.equal(first.balances.White, 14);
   assert.equal(first.purchase.pricePaid, 4);
   assert.equal(first.inventoryItem.status, 'Owned');
 
-  const repeated = await demoShopService.purchase('task-reroll', employee, 'request-1');
+  const repeated = await demoShopService.purchase('task-reroll', employee, 'request-1', undefined, 'Ukraine');
   assert.equal(repeated.purchase.id, first.purchase.id);
   assert.equal(repeated.balances.White, 14);
 
@@ -67,7 +68,7 @@ test('the standalone shop purchases and activates an item exactly once', async (
 test('role restrictions and balance adjustments use the API-compatible error model', async () => {
   values.clear();
   await assert.rejects(
-    demoShopService.purchase('task-reroll', topManagement, 'request-top'),
+    demoShopService.purchase('task-reroll', topManagement, 'request-top', undefined, 'Ukraine'),
     (error) => error instanceof ShopServiceError && error.code === 'FORBIDDEN',
   );
 
@@ -75,14 +76,14 @@ test('role restrictions and balance adjustments use the API-compatible error mod
   assert.equal(adjusted.balances.find((entry) => entry.userId === 'emp-alex')?.balances.Yellow, 9);
 
   await assert.rejects(
-    demoShopService.purchase('gold-profile-frame', { ...employee, id: 'unknown-user' }, 'request-poor'),
+    demoShopService.purchase('gold-profile-frame', { ...employee, id: 'unknown-user' }, 'request-poor', undefined, 'Ukraine'),
     (error) => error instanceof ShopServiceError && error.code === 'INSUFFICIENT_SPARKS',
   );
 });
 
 test('an administrator can remove a product while purchase history stays intact', async () => {
   values.clear();
-  const purchased = await demoShopService.purchase('task-reroll', employee, 'delete-history-request');
+  const purchased = await demoShopService.purchase('task-reroll', employee, 'delete-history-request', undefined, 'Ukraine');
   const before = await demoShopService.getAdminState(administrator);
   assert.ok(before.products.some((product) => product.id === 'task-reroll'));
 
@@ -93,5 +94,26 @@ test('an administrator can remove a product while purchase history stays intact'
   await assert.rejects(
     demoShopService.deleteProduct('gold-profile-frame', employee),
     (error) => error instanceof ShopServiceError && error.code === 'FORBIDDEN',
+  );
+});
+
+test('shop location is remembered per account and filters the catalog', async () => {
+  values.clear();
+  assert.equal(readShopLocation(employee.id), null);
+  writeShopLocation(employee.id, 'Poland');
+  assert.equal(readShopLocation(employee.id), 'Poland');
+  assert.equal(readShopLocation(topManagement.id), null);
+
+  const bulgaria = await demoShopService.getSnapshot(employee, 'Bulgaria');
+  assert.ok(bulgaria.products.every((product) => product.availableLocations.includes('Bulgaria')));
+  assert.ok(bulgaria.products.some((product) => product.id === 'captains-mystery-crate'));
+
+  const poland = await demoShopService.getSnapshot(employee, 'Poland');
+  assert.ok(poland.products.every((product) => product.availableLocations.includes('Poland')));
+  assert.ok(poland.products.every((product) => product.id !== 'captains-mystery-crate'));
+
+  await assert.rejects(
+    demoShopService.purchase('captains-mystery-crate', employee, 'wrong-location', undefined, 'Poland'),
+    (error) => error instanceof ShopServiceError && error.code === 'PRODUCT_LOCATION_UNAVAILABLE',
   );
 });

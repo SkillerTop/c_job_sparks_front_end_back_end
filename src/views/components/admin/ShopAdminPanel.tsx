@@ -17,10 +17,10 @@ import { SparkAmount } from '@/views/components/shop/SparkAmount';
 import { ShopSkeleton } from '@/views/components/shop/ShopSkeleton';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
 import { SelectField } from '@/views/components/ui/SelectField';
-import { FULFILLMENT_KIND_OPTIONS, PRODUCT_ICON_OPTIONS, PRODUCT_TYPE_OPTIONS, SHOP_CATEGORIES, RARITY_LABELS } from '@/constants/shop';
+import { FULFILLMENT_KIND_OPTIONS, PRODUCT_ICON_OPTIONS, PRODUCT_TYPE_OPTIONS, SHOP_CATEGORIES, SHOP_LOCATIONS, RARITY_LABELS } from '@/constants/shop';
 import { useShopAdminController } from '@/controllers/useShopAdminController';
 import { FULFILLMENT_ROLE_LABELS } from '@/constants/fulfillment';
-import type { ProductRarity, ProductType, ShopCategory, ShopProduct } from '@/models/shop';
+import type { ProductRarity, ProductType, ShopCategory, ShopLocation, ShopProduct } from '@/models/shop';
 import { formatDateTime } from '@/utils/formatters';
 import { SPENDABLE_SPARK_TYPES } from '@/utils/shop';
 import styles from '@/views/styles/shop.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
@@ -108,6 +108,11 @@ export function ShopAdminPanel() {
                 <RarityBadge rarity={product.rarity} />
                 <h3>{product.name}</h3>
                 <p><SparkAmount amount={product.price} sparkType={product.priceSparkType} /> · <LocalizedText>{product.stock === null ? shopText.admin.unlimited : `${product.stock} ${shopText.admin.units}`}</LocalizedText></p>
+                <small>
+                  {product.availableLocations.map((location, index) => (
+                    <span key={location}>{index > 0 ? ' · ' : ''}<LocalizedText>{location}</LocalizedText></span>
+                  ))}
+                </small>
                 {product.fulfillmentKind !== 'Virtual' && (
                   <small>
                     <LocalizedText>Responsible: </LocalizedText><LocalizedText>{state.fulfillmentContacts.find((contact) => contact.id === product.fulfillmentContactId)?.name ?? 'Not assigned'}</LocalizedText>
@@ -372,6 +377,24 @@ export function ShopAdminPanel() {
                 <input type="datetime-local" value={toDateTimeLocal(editing.availableUntil)} onChange={(event) => setEditing({ ...editing, availableUntil: event.target.value || null })} />
               </label>
             </div>
+            <fieldset className={styles.editorChecks}>
+              <legend>{shopText.admin.availableLocations} *</legend>
+              {SHOP_LOCATIONS.map((item) => (
+                <label key={item.value}>
+                  <input
+                    type="checkbox"
+                    checked={editing.availableLocations.includes(item.value)}
+                    onChange={(event) => {
+                      const availableLocations = event.target.checked
+                        ? [...editing.availableLocations, item.value]
+                        : editing.availableLocations.filter((value: ShopLocation) => value !== item.value);
+                      setEditing({ ...editing, availableLocations });
+                    }}
+                  />
+                  <LocalizedText>{item.label}</LocalizedText>
+                </label>
+              ))}
+            </fieldset>
             <fieldset className={styles.editorChecks}>
               <legend>{shopText.admin.state}</legend>
               <label><input type="checkbox" checked={editing.isActive} onChange={(event) => setEditing({ ...editing, isActive: event.target.checked })} /> {shopText.admin.active}</label>

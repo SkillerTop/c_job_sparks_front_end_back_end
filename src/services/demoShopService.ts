@@ -6,6 +6,7 @@ import type {
   PurchaseResult,
   ShopAdminState,
   ShopInventoryItem,
+  ShopLocation,
   ShopProduct,
   ShopPurchase,
   ShopSnapshot,
@@ -44,7 +45,7 @@ interface StoredTransaction extends ShopSparkTransaction {
 }
 
 interface DemoShopState {
-  version: 2;
+  version: 3;
   products: ShopProduct[];
   balances: Record<string, SpendableSparkBalances>;
   purchases: StoredPurchase[];
@@ -60,7 +61,7 @@ const makeId = (prefix: string) =>
 const copy = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 const createInitialState = (): DemoShopState => ({
-  version: 2,
+  version: 3,
   products: copy(DEMO_SHOP_PRODUCTS) as ShopProduct[],
   balances: Object.fromEntries(DEMO_IDENTITIES.map(({ id, balances }) => [id, { ...balances }])),
   purchases: [],
@@ -74,7 +75,7 @@ const loadState = (): DemoShopState => {
     const stored = globalThis.localStorage.getItem(STORAGE_KEY);
     if (!stored) return createInitialState();
     const parsed = JSON.parse(stored) as DemoShopState;
-    if (parsed.version !== 2 || !Array.isArray(parsed.products)) return createInitialState();
+    if (parsed.version !== 3 || !Array.isArray(parsed.products)) return createInitialState();
     return parsed;
   } catch {
     return createInitialState();
@@ -114,11 +115,13 @@ const publicInventory = ({ userId: _userId, ...item }: StoredInventoryItem): Sho
 const publicTransaction = ({ userId: _userId, ...transaction }: StoredTransaction): ShopSparkTransaction => transaction;
 const demoFulfillmentContacts = REWARD_FULFILLMENT_CONTACTS.map((contact) => ({ ...contact }));
 
-const snapshotFor = (state: DemoShopState, identity: ShopClientIdentity): ShopSnapshot => {
+const snapshotFor = (state: DemoShopState, identity: ShopClientIdentity, location?: ShopLocation): ShopSnapshot => {
   ensureUser(state, identity);
   expireInventory(state);
   return {
-    products: copy(state.products),
+    products: copy(location
+      ? state.products.filter((product) => product.availableLocations.includes(location))
+      : state.products),
     balances: { ...state.balances[identity.id] },
     inventory: state.inventory.filter((item) => item.userId === identity.id).map(publicInventory),
     transactions: state.transactions.filter((item) => item.userId === identity.id).map(publicTransaction),
@@ -153,19 +156,20 @@ const asDataUrl = (file: File) =>
   });
 
 export const demoShopService = {
-  async getSnapshot(identity?: ShopClientIdentity): Promise<ShopSnapshot> {
+  async getSnapshot(identity?: ShopClientIdentity, location?: ShopLocation): Promise<ShopSnapshot> {
     const current = requireIdentity(identity);
     const state = loadState();
-    const snapshot = snapshotFor(state, current);
+    const snapshot = snapshotFor(state, current, location);
     saveState(state);
     return snapshot;
   },
 
-  async purchase(productId: string, identity?: ShopClientIdentity, requestId = makeId('request'), _fulfillment?: unknown): Promise<PurchaseResult> {
+  async purchase(productId: string, identity?: ShopClientIdentity, requestId = makeId('request'), _fulfillment?: unknown, location?: ShopLocation): Promise<PurchaseResult> {
     const current = requireIdentity(identity);
     if (current.role === 'Administrator' || current.role === 'Top Management') {
       throw new ShopServiceError('Your role can browse the Reward Shop but cannot make purchases.', 'FORBIDDEN', 403);
     }
+    if (!location) throw new ShopServiceError('Choose your shop location.', 'SHOP_LOCATION_REQUIRED', 400);
 
     const state = loadState();
     ensureUser(state, current);
@@ -177,11 +181,13 @@ export const demoShopService = {
         throw new ShopServiceError('This purchase request was already used for another item.', 'REQUEST_REUSED', 409);
       const item = state.inventory.find((entry) => entry.purchaseId === repeated.id && entry.userId === current.id);
       if (!item) throw new Error('The purchased item could not be found.');
-      return { ...snapshotFor(state, current), purchase: publicPurchase(repeated), inventoryItem: publicInventory(item), fulfillment: null };
+      return { ...snapshotFor(state, current, location), purchase: publicPurchase(repeated), inventoryItem: publicInventory(item), fulfillment: null };
     }
 
     const product = state.products.find((entry) => entry.id === productId);
     if (!product) throw new ShopServiceError('The selected item no longer exists.', 'PRODUCT_NOT_FOUND', 404);
+    if (!product.availableLocations.includes(location))
+      throw new ShopServiceError('This item is not available in your selected location.', 'PRODUCT_LOCATION_UNAVAILABLE', 409);
     assertProductAvailable(product);
 
     const owned = state.inventory.some(
@@ -240,7 +246,7 @@ export const demoShopService = {
     saveState(state);
 
     return {
-      ...snapshotFor(state, current),
+      ...snapshotFor(state, current, location),
       purchase: publicPurchase(purchase),
       inventoryItem: publicInventory(inventoryItem),
       fulfillment: null,
@@ -287,6 +293,7 @@ export const demoShopService = {
     requireAdmin(identity);
     if (!draft.name.trim() || !draft.description.trim()) throw new Error('Name and description are required.');
     if (!Number.isInteger(draft.price) || draft.price < 1) throw new Error('Price must be a positive whole number.');
+    if (!draft.availableLocations.length) throw new Error('Select at least one available location.');
     if (draft.fulfillmentKind !== 'Virtual' && !draft.fulfillmentContactId)
       throw new Error('Choose who is responsible for fulfilling this reward.');
 

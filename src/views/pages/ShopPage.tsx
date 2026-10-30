@@ -8,6 +8,7 @@ import { ProductGrid } from '@/views/components/shop/ProductGrid';
 import { PurchaseModal } from '@/views/components/shop/PurchaseModal';
 import { PurchaseSuccessModal } from '@/views/components/shop/PurchaseSuccessModal';
 import { ShopHeader } from '@/views/components/shop/ShopHeader';
+import { ShopLocationDialog } from '@/views/components/shop/ShopLocationDialog';
 import { ShopSkeleton } from '@/views/components/shop/ShopSkeleton';
 import { Feedback } from '@/views/components/common/Feedback';
 import { PageTransition } from '@/views/components/common/PageTransition';
@@ -15,7 +16,7 @@ import { SHOP_CATEGORIES, SHOP_SORTS } from '@/constants/shop';
 import { isInsufficientSparksError, useShop } from '@/controllers/ShopContext';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
-import type { PurchaseFulfillmentChoice, ShopCategoryFilter, ShopProduct, ShopSort } from '@/models/shop';
+import type { PurchaseFulfillmentChoice, ShopCategoryFilter, ShopLocation, ShopProduct, ShopSort } from '@/models/shop';
 import { emptySpendableBalances, filterAndSortProducts, type ProductAction } from '@/utils/shop';
 import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
 
@@ -24,7 +25,7 @@ export function ShopPage() {
   const shopText = useLocalizedShopText();
   const { activeRole } = useSpark();
   const { t } = useUserPreferences();
-  const { snapshot, balances, loading, error, purchasingId, refresh, purchase } = useShop();
+  const { snapshot, balances, loading, error, purchasingId, refresh, purchase, shopLocation, setShopLocation } = useShop();
   const readOnly = activeRole === 'Top Management';
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get('category');
@@ -83,10 +84,18 @@ export function ShopPage() {
     }
   };
 
+  const changeLocation = (nextLocation: ShopLocation) => {
+    setSelected(null);
+    setInsufficient(null);
+    setSuccessful(null);
+    setPurchaseError(null);
+    setShopLocation(nextLocation);
+  };
+
   return (
     <PageTransition>
       <div className={styles.shopPage}>
-        <ShopHeader balances={balances} loading={loading} />
+        <ShopHeader balances={balances} loading={loading} location={shopLocation} onLocationChange={changeLocation} />
         {readOnly && <Feedback tone="info">{t('shop.readOnly')}</Feedback>}
         {error && (
           <div className={styles.shopFeedback}>
@@ -121,6 +130,8 @@ export function ShopPage() {
           }} />
         ) : null}
       </div>
+
+      <ShopLocationDialog open={!shopLocation} onSelect={changeLocation} />
 
       <PurchaseModal
         product={selected}

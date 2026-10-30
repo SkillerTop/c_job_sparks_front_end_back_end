@@ -39,6 +39,7 @@ import {
   deleteAdminProduct,
   purchaseProduct,
   saveAdminProduct,
+  SHOP_LOCATIONS,
   shopAdminSnapshot,
   shopSnapshot,
 } from './shop.js';
@@ -906,8 +907,11 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       return sendIdempotent(reply, result);
     });
 
-    const shopGet = async (request: FastifyRequest) =>
-      withTransaction(app.db, (db) => shopSnapshot(db, principalOf(request)), { readOnly: true });
+    const shopLocationSchema = z.enum(SHOP_LOCATIONS);
+    const shopGet = async (request: FastifyRequest) => {
+      const query = z.object({ location: shopLocationSchema.optional() }).parse(request.query);
+      return withTransaction(app.db, (db) => shopSnapshot(db, principalOf(request), query.location), { readOnly: true });
+    };
     protectedApp.get('/api/v1/shop', shopGet);
     protectedApp.get('/api/shop', shopGet);
     protectedApp.get('/api/v1/shop/products', async (request) => (await shopGet(request)).products);
@@ -915,6 +919,7 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       const principal = principalOf(request);
       const input = jsonBody(z.object({
         productId: idSchema,
+        location: shopLocationSchema,
         requestId: z.string().optional(),
         fulfillment: z.object({
           deliveryMethod: z.enum(['OfficePickup','EmployeePaidDelivery','WorkEmail','InternalCoordination']),
@@ -922,9 +927,10 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
         }).optional(),
       }), request);
       const key = idempotencyKey(request) ?? input.requestId;
-      const result = await withIdempotency(app.db, principal.userId, 'shop:purchase', key, { productId: input.productId }, 201,
+      const result = await withIdempotency(app.db, principal.userId, 'shop:purchase', key,
+        { productId: input.productId, location: input.location }, 201,
         async (db) => {
-          const purchase = await purchaseProduct(db, principal, input.productId, request.id);
+          const purchase = await purchaseProduct(db, principal, input.productId, request.id, input.location);
           const product = purchase.inventoryItem.product;
           const fulfillment = await createShopFulfillment(db, principal, purchase.purchase.id,
             purchase.purchase.productName, product.fulfillmentKind, product.fulfillmentContactId, input.fulfillment);
@@ -932,10 +938,10 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
             `Your purchase of ${purchase.purchase.productName} is complete.`, 'Purchase', purchase.purchase.id);
           await enqueueOutbox(db, 'PurchaseCompleted', 'Purchase', purchase.purchase.id, purchase.purchase);
           await writeAudit(db, { actorUserId: principal.userId, action: 'PURCHASE_COMPLETED', objectType: 'Purchase',
-            objectId: purchase.purchase.id, after: { productId: input.productId, pricePaid: purchase.purchase.pricePaid,
+            objectId: purchase.purchase.id, after: { productId: input.productId, location: input.location, pricePaid: purchase.purchase.pricePaid,
               sparkType: purchase.purchase.sparkTypePaid }, requestId: request.id, ip: request.ip,
             userAgent: request.headers['user-agent'] });
-          return { ...(await shopSnapshot(db, principal)), ...purchase, fulfillment };
+          return { ...(await shopSnapshot(db, principal, input.location)), ...purchase, fulfillment };
         });
       return sendIdempotent(reply, result);
     };
@@ -1069,6 +1075,9 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
         id: idSchema.optional(), name: z.string().min(1).max(200), description: z.string().max(4000).default(''),
         imageUrl: z.string().max(2000).nullable().optional(), icon: z.string().max(100).optional(),
         category: z.enum(['Merch','Subscription','Certificate','Tool','Service','Other']),
+        availableLocations: z.array(shopLocationSchema).min(1).max(SHOP_LOCATIONS.length)
+          .refine((values) => new Set(values).size === values.length, 'Locations must be unique.')
+          .default([...SHOP_LOCATIONS]),
         rarity: z.enum(['Common','Rare','Epic','Legendary']), price: z.number().int().positive(),
         priceSparkType: z.enum(['White','Yellow','Blue']), productType: z.enum(['Consumable','Activatable','Permanent']),
         durationHours: z.number().positive().nullable(), stock: z.number().int().nonnegative().nullable(),

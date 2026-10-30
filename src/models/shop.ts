@@ -3,6 +3,7 @@ import type { SparkType } from '@/models';
 export type SpendableSparkType = Exclude<SparkType, 'Radiant'>;
 export type SpendableSparkBalances = Record<SpendableSparkType, number>;
 export type ShopCategory = 'Merch' | 'Subscription' | 'Certificate' | 'Tool' | 'Service' | 'Other';
+export type ShopLocation = 'Ukraine' | 'Poland' | 'Bulgaria';
 export type ShopCategoryFilter = 'All' | ShopCategory;
 export type ProductRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary';
 export type ProductType = 'Consumable' | 'Activatable' | 'Permanent';
@@ -17,6 +18,7 @@ export interface ShopProduct {
   id: string;
   name: string;
   description: string;
+  availableLocations: ShopLocation[];
   imageUrl: string | null;
   imageSrcSet?: string | null;
   imageSizes?: string;

@@ -14,6 +14,7 @@ import {
   type PurchaseFulfillmentChoice,
   type PurchaseResult,
   type ShopEffects,
+  type ShopLocation,
   type ShopSnapshot,
   type SpendableSparkBalances,
 } from '@/models/shop';
@@ -22,6 +23,7 @@ import { SHOP_ROLES } from '@/constants/app';
 import { ShopServiceError, shopService } from '@/services/shopService';
 import { useAuth } from '@/controllers/AuthContext';
 import { useSpark } from '@/controllers/SparkContext';
+import { readShopLocation, writeShopLocation } from '@/utils/shopLocation';
 
 interface ShopContextValue {
   snapshot: ShopSnapshot | null;
@@ -31,6 +33,8 @@ interface ShopContextValue {
   purchasingId: string | null;
   activatingId: string | null;
   effects: ShopEffects;
+  shopLocation: ShopLocation | null;
+  setShopLocation: (location: ShopLocation) => void;
   refresh: () => Promise<void>;
   purchase: (productId: string, fulfillment?: PurchaseFulfillmentChoice) => Promise<PurchaseResult>;
   activate: (inventoryId: string) => Promise<void>;
@@ -39,7 +43,7 @@ interface ShopContextValue {
 const ShopContext = createContext<ShopContextValue | null>(null);
 
 export function ShopProvider({ children }: { children: ReactNode }) {
-  const location = useLocation();
+  const routeLocation = useLocation();
   const { user } = useAuth();
   const { snapshot: sparkSnapshot, syncShopTransactions } = useSpark();
   const [snapshot, setSnapshot] = useState<ShopSnapshot | null>(null);
@@ -47,15 +51,27 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [locationSelection, setLocationSelection] = useState<{
+    accountId: string;
+    value: ShopLocation;
+  } | null>(null);
   const generation = useRef(0);
   const mutationLock = useRef(false);
   const hasSnapshot = useRef(false);
   const lastRefreshAt = useRef(0);
   const accountId = user?.accountId;
+  const shopLocation = useMemo(
+    () => accountId
+      ? (locationSelection?.accountId === accountId ? locationSelection.value : readShopLocation(accountId))
+      : null,
+    [accountId, locationSelection],
+  );
+  const isShopRoute = routeLocation.pathname === '/shop';
   const shouldLoadShop =
-    location.pathname === '/shop' ||
-    location.pathname === '/inventory' ||
-    (location.pathname === '/admin' && new URLSearchParams(location.search).get('tab') === 'shop');
+    (isShopRoute && Boolean(shopLocation)) ||
+    routeLocation.pathname === '/inventory' ||
+    (routeLocation.pathname === '/admin' && new URLSearchParams(routeLocation.search).get('tab') === 'shop');
+  const requestLocation = isShopRoute ? shopLocation ?? undefined : undefined;
   const clientIdentity = useMemo(
     () => user ? { id: user.employeeId, email: user.email, role: user.role } : undefined,
     [user],
@@ -104,7 +120,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     const requestId = ++generation.current;
     setLoading(!hasSnapshot.current);
     try {
-      const next = await shopService.getSnapshot(clientIdentity);
+      const next = await shopService.getSnapshot(clientIdentity, requestLocation);
       if (requestId !== generation.current) return;
       await syncShopTransactions(next.transactions, next.balances);
       if (requestId !== generation.current) return;
@@ -118,7 +134,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     } finally {
       if (requestId === generation.current) setLoading(false);
     }
-  }, [accountId, clientIdentity, shouldLoadShop, syncShopTransactions, user]);
+  }, [accountId, clientIdentity, requestLocation, shouldLoadShop, syncShopTransactions, user]);
 
   useEffect(() => {
     generation.current += 1;
@@ -150,10 +166,11 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const purchase = useCallback(async (productId: string, fulfillment?: PurchaseFulfillmentChoice) => {
     if (mutationLock.current) throw new ShopServiceError(SHOP_TEXT.errors.purchaseInProgress, 'PURCHASE_IN_PROGRESS');
     if (!clientIdentity) throw new ShopServiceError(SHOP_TEXT.status.identityRequired, 'IDENTITY_REQUIRED', 401);
+    if (!shopLocation) throw new ShopServiceError(SHOP_TEXT.shop.locationDialogTitle, 'SHOP_LOCATION_REQUIRED', 400);
     mutationLock.current = true;
     setPurchasingId(productId);
     try {
-      const result = await shopService.purchase(productId, clientIdentity, undefined, fulfillment);
+      const result = await shopService.purchase(productId, clientIdentity, undefined, fulfillment, shopLocation);
       await syncShopTransactions(result.transactions, result.balances);
       const { purchase: _purchase, inventoryItem: _item, ...nextSnapshot } = result;
       setSnapshot(nextSnapshot);
@@ -163,7 +180,15 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       mutationLock.current = false;
       setPurchasingId(null);
     }
-  }, [clientIdentity, syncShopTransactions]);
+  }, [clientIdentity, shopLocation, syncShopTransactions]);
+
+  const updateShopLocation = useCallback((nextLocation: ShopLocation) => {
+    if (!accountId) return;
+    writeShopLocation(accountId, nextLocation);
+    setLocationSelection({ accountId, value: nextLocation });
+    hasSnapshot.current = false;
+    setSnapshot(null);
+  }, [accountId]);
 
   const activate = useCallback(async (inventoryId: string) => {
     if (mutationLock.current) return;
@@ -192,11 +217,13 @@ export function ShopProvider({ children }: { children: ReactNode }) {
       purchasingId,
       activatingId,
       effects,
+      shopLocation,
+      setShopLocation: updateShopLocation,
       refresh,
       purchase,
       activate,
     }),
-    [snapshot, loading, error, purchasingId, activatingId, effects, refresh, purchase, activate],
+    [snapshot, loading, error, purchasingId, activatingId, effects, shopLocation, updateShopLocation, refresh, purchase, activate],
   );
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;

@@ -52,7 +52,7 @@ test('all six roles complete their real server-backed business scenarios', async
     expect(recognition.status).toBe('Pending');
     await api(page, 'POST', '/api/v1/conversions', { from: 'White', amount: 10 });
     await api(page, 'POST', '/api/v1/disenchant-requests', { sparkType: 'Yellow', amount: 1 });
-    await api(page, 'POST', '/api/v1/shop/purchases', { productId });
+    await api(page, 'POST', '/api/v1/shop/purchases', { productId, location: 'Ukraine' });
     await page.goto('/shop');
     await expect(page.locator('main')).toBeVisible();
   });

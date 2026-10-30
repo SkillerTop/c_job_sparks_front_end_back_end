@@ -508,6 +508,7 @@ if (!sourceDatabaseUrl) {
         imageUrl: null,
         icon: 'gift',
         category: 'Merch',
+        availableLocations: ['Ukraine'],
         rarity: 'Common',
         price: 1,
         priceSparkType: 'White',
@@ -532,6 +533,7 @@ if (!sourceDatabaseUrl) {
         imageUrl: null,
         icon: 'gift',
         category: 'Merch',
+        availableLocations: ['Ukraine'],
         rarity: 'Common',
         price: 1,
         priceSparkType: 'White',
@@ -548,12 +550,25 @@ if (!sourceDatabaseUrl) {
       }, `physical-product-${randomUUID()}`);
       assert.equal(productResponse.statusCode, 200, productResponse.body);
       const configuredProduct = productResponse.json<{
-        products: Array<{ id: string; name: string; fulfillmentContactId: string | null }>;
+        products: Array<{ id: string; name: string; fulfillmentContactId: string | null; availableLocations: string[] }>;
       }>().products.find((product) => product.name === physicalProductName)!;
       assert.equal(configuredProduct.fulfillmentContactId, 'd1000000-0000-4000-8000-000000000001');
+      assert.deepEqual(configuredProduct.availableLocations, ['Ukraine']);
       const physicalProductId = configuredProduct.id;
+      const ukraineCatalog = await authenticated('Employee', 'GET', '/api/v1/shop?location=Ukraine');
+      assert.ok(ukraineCatalog.json<{ products: Array<{ id: string }> }>().products
+        .some((product) => product.id === physicalProductId));
+      const polandCatalog = await authenticated('Employee', 'GET', '/api/v1/shop?location=Poland');
+      assert.ok(polandCatalog.json<{ products: Array<{ id: string }> }>().products
+        .every((product) => product.id !== physicalProductId));
+      const wrongLocation = await authenticated('Employee', 'POST', '/api/v1/shop/purchases', {
+        productId: physicalProductId,
+        location: 'Poland',
+        fulfillment: { deliveryMethod: 'OfficePickup', officeName: 'Main office' },
+      }, `purchase-wrong-location-${randomUUID()}`);
+      assert.equal(wrongLocation.statusCode, 404, wrongLocation.body);
       const response = await authenticated('Employee', 'POST', '/api/v1/shop/purchases',
-        { productId: physicalProductId, fulfillment: {
+        { productId: physicalProductId, location: 'Ukraine', fulfillment: {
           deliveryMethod: 'OfficePickup',
           officeName: 'Main office',
         } }, `purchase-${randomUUID()}`);
@@ -570,7 +585,7 @@ if (!sourceDatabaseUrl) {
 
       for (const role of ['GPM', 'Head'] as const) {
         const restricted = await authenticated(role, 'POST', '/api/v1/shop/purchases',
-          { productId }, `restricted-purchase-${role}-${randomUUID()}`);
+          { productId, location: 'Ukraine' }, `restricted-purchase-${role}-${randomUUID()}`);
         assert.equal(restricted.statusCode, 403, restricted.body);
       }
       const gpmShop = await authenticated('GPM', 'GET', '/api/v1/shop');
@@ -580,7 +595,7 @@ if (!sourceDatabaseUrl) {
       assert.deepEqual(topShop.json<{ balances: Record<string, number> }>().balances,
         { White: 0, Yellow: 0, Blue: 0 });
       const topPurchase = await authenticated('Top Management', 'POST', '/api/v1/shop/purchases',
-        { productId }, `restricted-purchase-top-${randomUUID()}`);
+        { productId, location: 'Ukraine' }, `restricted-purchase-top-${randomUUID()}`);
       assert.equal(topPurchase.statusCode, 403, topPurchase.body);
 
       const gpmBalances = await authenticated('GPM', 'GET', '/api/v1/me/spark-balances');
@@ -1167,7 +1182,7 @@ if (!sourceDatabaseUrl) {
 
       const purchaseKey = `parallel-purchase-${randomUUID()}`;
       const purchasesBefore = await count(`SELECT count(*) FROM app.purchases WHERE employee_id=$1`, [employeeIds.employee]);
-      await parallel('Employee', '/api/v1/shop/purchases', { productId }, purchaseKey);
+      await parallel('Employee', '/api/v1/shop/purchases', { productId, location: 'Ukraine' }, purchaseKey);
       assert.equal(await count(`SELECT count(*) FROM app.purchases WHERE employee_id=$1`, [employeeIds.employee]), purchasesBefore + 1);
 
       const conversionKey = `parallel-conversion-${randomUUID()}`;

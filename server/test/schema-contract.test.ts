@@ -35,6 +35,7 @@ test('the MVP schema is complete and ordered', async () => {
     '0017_product_catalog_deletion.sql',
     '0018_content_spelling_cleanup.sql',
     '0019_shop_category_catalog.sql',
+    '0020_shop_product_locations.sql',
   ]);
   for (const table of [
     'users', 'employees', 'departments', 'roles', 'role_assignments', 'projects', 'project_members',
@@ -92,4 +93,11 @@ test('shop category migration publishes the configured catalog and remaps existi
   assert.match(migration, /UPDATE app\.products AS product/);
   assert.match(migration, /fulfillment_kind = 'Certificate' THEN 'certificate'/);
   assert.match(migration, /code NOT IN \('merch', 'subscription', 'certificate', 'tool', 'service', 'other'\)/);
+});
+
+test('shop location migration gives existing products all supported locations', async () => {
+  const migration = await readFile(resolve(migrationsDirectory, '0020_shop_product_locations.sql'), 'utf8');
+  for (const location of ['Ukraine', 'Poland', 'Bulgaria']) assert.match(migration, new RegExp(`'${location}'`));
+  assert.match(migration, /ADD COLUMN available_locations text\[\] NOT NULL/);
+  assert.match(migration, /USING gin \(available_locations\)/);
 });

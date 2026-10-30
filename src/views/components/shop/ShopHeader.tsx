@@ -1,12 +1,21 @@
 import { motion, useReducedMotion } from 'framer-motion';
 
-import type { SpendableSparkBalances } from '@/models/shop';
+import { MapPin } from 'lucide-react';
+import type { ShopLocation, SpendableSparkBalances } from '@/models/shop';
+import { SHOP_LOCATIONS } from '@/constants/shop';
+import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { SparkWallet } from './SparkWallet';
 import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
 
 
-export function ShopHeader({ balances, loading }: { balances: SpendableSparkBalances | null; loading: boolean }) {
+export function ShopHeader({ balances, loading, location, onLocationChange }: {
+  balances: SpendableSparkBalances | null;
+  loading: boolean;
+  location: ShopLocation | null;
+  onLocationChange: (location: ShopLocation) => void;
+}) {
   const shopText = useLocalizedShopText();
+  const { localize } = useUserPreferences();
   const reduced = useReducedMotion();
   return (
     <header className={styles.shopHero}>
@@ -25,7 +34,20 @@ export function ShopHeader({ balances, loading }: { balances: SpendableSparkBala
         <h1>{shopText.shop.title}</h1>
         <p>{shopText.shop.description}</p>
       </div>
-      <SparkWallet balances={balances} loading={loading} />
+      <div className={styles.shopHeroAside}>
+        <label className={styles.shopLocationPicker}>
+          <span><MapPin size={15} aria-hidden="true" /> {shopText.shop.locationLabel}</span>
+          <select
+            value={location ?? ''}
+            onChange={(event) => onLocationChange(event.target.value as ShopLocation)}
+            aria-label={shopText.shop.locationLabel}
+          >
+            {!location && <option value="" disabled>{localize(shopText.shop.locationDialogTitle)}</option>}
+            {SHOP_LOCATIONS.map((item) => <option key={item.value} value={item.value}>{localize(item.label)}</option>)}
+          </select>
+        </label>
+        <SparkWallet balances={balances} loading={loading} />
+      </div>
     </header>
   );
 }
