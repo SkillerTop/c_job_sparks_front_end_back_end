@@ -44,7 +44,7 @@ interface ProductRow {
   rarity: string;
   price_spark_type: SpendableSparkType;
   price_amount: string | number;
-  effect_code: string;
+  effect_code: string | null;
   effect_configuration: Record<string, unknown>;
   fulfillment_kind: FulfillmentKind;
   fulfillment_contact_id: string | null;
@@ -84,6 +84,12 @@ const productSelect = `
 
 const iso = (value: Date | string | null) => (value ? new Date(value).toISOString() : null);
 
+const productTypeFrom = (product: ProductRow): AdminProductInput['productType'] => {
+  const configured = product.effect_configuration?.productType;
+  if (configured === 'Consumable' || configured === 'Activatable' || configured === 'Permanent') return configured;
+  return product.inventory_ttl_seconds ? 'Activatable' : 'Permanent';
+};
+
 const mapProduct = (product: ProductRow) => ({
   id: product.id,
   name: product.name,
@@ -99,7 +105,7 @@ const mapProduct = (product: ProductRow) => ({
   rarity: product.rarity,
   price: Number(product.price_amount),
   priceSparkType: product.price_spark_type,
-  productType: product.inventory_ttl_seconds ? 'Activatable' : 'Permanent',
+  productType: productTypeFrom(product),
   durationHours: product.inventory_ttl_seconds ? Number(product.inventory_ttl_seconds) / 3600 : null,
   stock: product.is_limited ? Number(product.available_quantity ?? 0) : null,
   isActive: true,
@@ -108,7 +114,7 @@ const mapProduct = (product: ProductRow) => ({
   availableFrom: iso(product.available_from),
   availableUntil: iso(product.available_to),
   createdAt: iso(product.created_at),
-  effectCode: product.effect_code,
+  effectCode: product.effect_code ?? undefined,
   fulfillmentKind: product.fulfillment_kind,
   fulfillmentContactId: product.fulfillment_contact_id,
 });
@@ -323,7 +329,7 @@ export const activateInventoryItem = async (
 ) => {
   const item = await one<{
     id: string;
-    effect_code: string;
+    effect_code: string | null;
     effect_configuration: Record<string, unknown>;
     status: string;
     inventory_ttl_seconds: string | number | null;
@@ -337,6 +343,7 @@ export const activateInventoryItem = async (
   ).catch(() => {
     throw notFound('Inventory item');
   });
+  if (!item.effect_code) throw conflict('PRODUCT_NOT_ACTIVATABLE', 'This product has no digital effect to activate.');
   if (item.status !== 'Available') throw conflict('INVENTORY_STATE', 'This item is not available for activation.');
   if (!['theme_unlock', 'profile_frame', 'badge_unlock', 'focus_mode'].includes(item.effect_code))
     throw conflict('EFFECT_NOT_SUPPORTED', 'This product effect is not enabled.');
@@ -361,11 +368,12 @@ export const activateInventoryItem = async (
 };
 
 const inferEffectCode = (input: AdminProductInput) => {
+  if (input.fulfillmentKind !== 'Virtual') return null;
   if (input.effectCode) return input.effectCode;
   const name = input.name.toLowerCase();
   if (name.includes('frame')) return 'profile_frame' as const;
   if (name.includes('badge')) return 'badge_unlock' as const;
-  return 'focus_mode' as const;
+  return null;
 };
 
 export const shopAdminSnapshot = async (db: PoolClient) => {
@@ -411,6 +419,78 @@ export const shopAdminSnapshot = async (db: PoolClient) => {
     fulfillments: await listRewardFulfillments(db) };
 };
 
+export type ShopAdminCollection = 'products' | 'purchases' | 'balances' | 'fulfillments';
+
+export const listShopAdminCollection = async (
+  db: PoolClient,
+  collection: ShopAdminCollection,
+  limit: number,
+  cursor: { value: string; id: string } | null,
+) => {
+  const pageSize = Math.min(201, Math.max(2, limit + 1));
+  if (collection === 'products') {
+    const values = await rows<ProductRow & { product_is_active: boolean }>(db, `
+      SELECT p.id,p.is_active AS product_is_active,pv.id AS version_id,pv.name,
+             COALESCE(pv.description,pv.short_description) AS description,sc.name AS category,
+             pv.available_locations,pv.rarity,pv.price_spark_type,pv.price_amount,pv.effect_code,
+             pv.effect_configuration,pv.fulfillment_kind,pv.fulfillment_contact_id,pv.is_featured,
+             pv.is_limited,pv.available_from,pv.available_to,pv.inventory_ttl_seconds,pv.created_at::text AS created_at,
+             CASE WHEN ma.id IS NULL THEN NULL ELSE '/api/v1/media/' || ma.id::text END AS image_url,
+             ps.available_quantity
+        FROM app.products p
+        JOIN app.shop_categories sc ON sc.id=p.category_id
+        JOIN LATERAL (SELECT value.* FROM app.product_versions value WHERE value.product_id=p.id
+          ORDER BY value.version DESC LIMIT 1) pv ON true
+        LEFT JOIN app.product_stock ps ON ps.product_id=p.id
+        LEFT JOIN LATERAL (SELECT asset.id FROM app.product_media media
+          JOIN app.media_assets asset ON asset.id=media.media_asset_id AND asset.status='Ready'
+          WHERE media.product_version_id=pv.id ORDER BY (media.purpose='Thumbnail') DESC,media.sort_order LIMIT 1) ma ON true
+       WHERE p.deleted_at IS NULL
+         AND ($1::timestamptz IS NULL OR (pv.created_at,p.id) < ($1::timestamptz,$2::uuid))
+       ORDER BY pv.created_at DESC,p.id DESC LIMIT $3`, [cursor?.value ?? null, cursor?.id ?? null, pageSize]);
+    return values.map((row) => ({ ...mapProduct(row), createdAt: String(row.created_at), isActive: row.product_is_active }));
+  }
+  if (collection === 'purchases') return rows<any>(db, `SELECT purchase.id,
+      purchase.employee_id AS "userId",item.product_id AS "productId",
+      item.product_name_snapshot AS "productName",purchase.total_price_amount::int AS "pricePaid",
+      purchase.total_price_spark_type AS "sparkTypePaid",purchase.status,purchase.purchased_at::text AS "createdAt"
+    FROM app.purchases purchase JOIN app.purchase_items item ON item.purchase_id=purchase.id
+   WHERE ($1::timestamptz IS NULL OR (purchase.purchased_at,purchase.id) < ($1::timestamptz,$2::uuid))
+   ORDER BY purchase.purchased_at DESC,purchase.id DESC LIMIT $3`, [cursor?.value ?? null, cursor?.id ?? null, pageSize]);
+  if (collection === 'balances') return rows<any>(db, `WITH balances AS (
+    SELECT employee.id,COALESCE(employee.contact_email,account_user.email)::text AS "displayEmail",
+      COALESCE(max(account.balance) FILTER (WHERE account.spark_type='White'),0)::int AS white,
+      COALESCE(max(account.balance) FILTER (WHERE account.spark_type='Yellow'),0)::int AS yellow,
+      COALESCE(max(account.balance) FILTER (WHERE account.spark_type='Blue'),0)::int AS blue,
+      GREATEST(employee.updated_at,COALESCE(max(account.updated_at),employee.updated_at)) AS updated_at
+    FROM app.employees employee LEFT JOIN app.users account_user ON account_user.id=employee.user_id
+    LEFT JOIN app.spark_accounts account ON account.employee_id=employee.id
+      AND account.spark_type IN ('White','Yellow','Blue')
+    GROUP BY employee.id,employee.contact_email,account_user.email,employee.updated_at)
+    SELECT id AS "userId","displayEmail",jsonb_build_object('White',white,'Yellow',yellow,'Blue',blue) AS balances,
+      updated_at::text AS "updatedAt" FROM balances
+    WHERE ($1::timestamptz IS NULL OR (updated_at,id) < ($1::timestamptz,$2::uuid))
+    ORDER BY updated_at DESC,id DESC LIMIT $3`, [cursor?.value ?? null, cursor?.id ?? null, pageSize]);
+  return (await rows<any>(db, `SELECT fulfillment.id,fulfillment.source_type,fulfillment.award_request_id,
+      fulfillment.purchase_id,fulfillment.recipient_employee_id,employee.display_name AS employee_name,
+      contact.display_name AS contact_name,contact.email::text AS contact_email,fulfillment.reward_kind,
+      fulfillment.delivery_method,fulfillment.office_name,fulfillment.valuable_prize_description,
+      fulfillment.status,fulfillment.requested_at::text AS requested_at,
+      fulfillment.updated_at::text AS updated_at,fulfillment.notes
+    FROM app.reward_fulfillments fulfillment
+    JOIN app.employees employee ON employee.id=fulfillment.recipient_employee_id
+    JOIN app.reward_fulfillment_contacts contact ON contact.id=fulfillment.assigned_contact_id
+    WHERE ($1::timestamptz IS NULL OR (fulfillment.requested_at,fulfillment.id) < ($1::timestamptz,$2::uuid))
+    ORDER BY fulfillment.requested_at DESC,fulfillment.id DESC LIMIT $3`,
+  [cursor?.value ?? null, cursor?.id ?? null, pageSize])).map((item) => ({
+    id: item.id, sourceType: item.source_type, awardId: item.award_request_id, purchaseId: item.purchase_id,
+    employeeId: item.recipient_employee_id, employeeName: item.employee_name, contactName: item.contact_name,
+    contactEmail: item.contact_email, rewardKind: item.reward_kind, deliveryMethod: item.delivery_method,
+    officeName: item.office_name, valuablePrizeDescription: item.valuable_prize_description,
+    status: item.status, requestedAt: String(item.requested_at), updatedAt: String(item.updated_at), notes: item.notes,
+  }));
+};
+
 export const saveAdminProduct = async (
   db: PoolClient,
   principal: AuthenticatedPrincipal,
@@ -440,7 +520,9 @@ export const saveAdminProduct = async (
     FROM app.product_versions WHERE product_id=$1`, [productId]);
   const versionId = randomUUID();
   const effectCode = inferEffectCode(input);
-  const supported = ['theme_unlock', 'profile_frame', 'badge_unlock', 'focus_mode'].includes(effectCode);
+  if (input.productType === 'Activatable' && !effectCode)
+    throw badRequest('PRODUCT_EFFECT_REQUIRED', 'Choose a digital effect for an activatable product.');
+  const supported = effectCode === null || ['theme_unlock', 'profile_frame', 'badge_unlock', 'focus_mode'].includes(effectCode);
   const availableFrom = input.availableFrom ? new Date(input.availableFrom) : new Date();
   const availableTo = input.availableUntil ? new Date(input.availableUntil) : null;
   const fulfillmentContactId = input.fulfillmentKind === 'Virtual' ? null : input.fulfillmentContactId;

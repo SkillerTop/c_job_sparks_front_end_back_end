@@ -531,7 +531,7 @@ const demoAuthService = {
     return publicAccount(account);
   },
 
-  logout() {
+  async logout() {
     removeValue('session', AUTH_SESSION_KEY);
     emitChange();
   },

@@ -1,4 +1,4 @@
-import { MapPin } from 'lucide-react';
+import { Info, MapPin } from 'lucide-react';
 import { SHOP_LOCATIONS } from '@/constants/shop';
 import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
 import type { ShopLocation } from '@/models/shop';
@@ -24,6 +24,10 @@ export function ShopLocationDialog({
       dismissible={false}
     >
       <div className={styles.shopLocationDialogBody}>
+        <aside className={styles.shopLocationDisclaimer} role="note">
+          <Info size={20} aria-hidden="true" />
+          <p>{shopText.shop.locationDisclaimer}</p>
+        </aside>
         <p>{localize(shopText.shop.locationDialogHint)}</p>
         <div className={styles.shopLocationOptions}>
           {SHOP_LOCATIONS.map((item) => (

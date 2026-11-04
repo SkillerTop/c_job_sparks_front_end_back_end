@@ -150,8 +150,9 @@ export const buildWorkspace = async (
 ) => {
   const include = (dataset: WorkspaceDataset) => dataset === 'directory' || section === 'all' ||
     sectionDatasets[section].includes(dataset);
-  const wideDirectory = section === 'all' || ['recognition','company-achievements','team','award','approvals','admin']
-    .includes(section);
+  const wideDirectory = principal.role === 'Administrator' ||
+    (['Coordinator','GPM','Head','Top Management'].includes(principal.role) &&
+      ['recognition','company-achievements','team','award','approvals'].includes(section));
   const [categoriesRaw, employeesRaw, departmentsRaw, projectsRaw, transactionsRaw, lifetimeEarningsRaw,
     yellowAwardUsageRaw, departmentBalancesRaw,
     recognitionsRaw, awardsRaw,

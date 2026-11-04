@@ -76,9 +76,9 @@ export const apiAuthService = {
     return response.account;
   },
 
-  logout() {
+  async logout() {
+    await apiRequest<void>('/api/v1/auth/logout', { method: 'POST', retries: 0 });
     cachedSession = undefined;
-    void apiRequest<void>('/api/v1/auth/logout', { method: 'POST' });
   },
 
   clearRegistrationView() {

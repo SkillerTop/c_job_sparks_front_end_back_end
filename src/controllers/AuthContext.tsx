@@ -27,7 +27,7 @@ interface AuthContextValue extends AuthAccessState {
   error: string | null;
   login: (input: LoginInput) => Promise<AuthAccountStatus>;
   register: (input: RegistrationInput) => Promise<AuthAccount>;
-  logout: () => void;
+  logout: () => Promise<void>;
   clearRegistrationView: () => void;
   reviewRegistration: (
     accountId: string,
@@ -149,15 +149,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return account;
   }, [refreshAuth]);
 
-  const logout = useCallback(() => {
-    refreshGeneration.current += 1;
-    authenticatedUserRef.current = null;
-    lastSuccessfulRefreshAt.current = 0;
-    lastBackgroundRevalidationAt.current = 0;
-    authService.logout();
-    setUser(null);
-    setAccessState({ accounts: [], auditEvents: [] });
-    setError(null);
+  const logout = useCallback(async () => {
+    try {
+      await authService.logout();
+      refreshGeneration.current += 1;
+      authenticatedUserRef.current = null;
+      lastSuccessfulRefreshAt.current = 0;
+      lastBackgroundRevalidationAt.current = 0;
+      setUser(null);
+      setAccessState({ accounts: [], auditEvents: [] });
+      setError(null);
+    } catch (caught) {
+      const message = caught instanceof Error
+        ? caught.message
+        : 'Could not end the session. Check your connection and try again.';
+      setError(message);
+      throw caught;
+    }
   }, []);
 
   const clearRegistrationView = useCallback(() => {

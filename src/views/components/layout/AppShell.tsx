@@ -285,8 +285,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               avatarDataUrl={preferences?.avatarDataUrl}
               role={activeRole}
               department={department.name}
-              onSignOut={() => {
-                logout();
+              onSignOut={async () => {
+                await logout();
                 navigate('/login', { replace: true });
               }}
             />

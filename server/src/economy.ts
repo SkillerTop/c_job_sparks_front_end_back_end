@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import type { AuthenticatedPrincipal, SparkType, SpendableSparkType } from './domain.js';
 import { canUseMemberEconomy } from './domain.js';
-import { badRequest, forbidden, notFound } from './errors.js';
+import { badRequest, conflict, forbidden, notFound } from './errors.js';
 import { postLedgerOperation } from './ledger.js';
 import { one } from './sql.js';
 
@@ -192,6 +192,48 @@ export const createDisenchantRequest = async (
     ],
   );
   return created;
+};
+
+export const cancelDisenchantRequest = async (
+  db: PoolClient,
+  principal: AuthenticatedPrincipal,
+  requestId: string,
+  reason: string,
+) => {
+  if (!canUseMemberEconomy(principal.role)) throw forbidden();
+  const request = await one<any>(db, `SELECT * FROM app.disenchant_requests
+    WHERE id=$1 AND employee_id=$2 FOR UPDATE`, [requestId, principal.employeeId])
+    .catch(() => { throw notFound('Disenchant request'); });
+  if (request.status !== 'Created')
+    throw conflict('DISENCHANT_CANNOT_CANCEL', 'Only a request that has not been exported can be cancelled.');
+  const original = await one<{ id: string | number }>(db, `SELECT entry.id
+    FROM app.spark_ledger_entries entry
+    WHERE entry.operation_id=$1 AND entry.amount<0 ORDER BY entry.id LIMIT 1`, [request.debit_operation_id]);
+  const reversal = await postLedgerOperation(db, {
+    operationType: 'Reversal',
+    actorUserId: principal.userId,
+    subjectEmployeeId: principal.employeeId,
+    ruleSetVersionId: request.rule_set_version_id,
+    reversalOfOperationId: request.debit_operation_id,
+    sourceType: 'DisenchantCancellation',
+    sourceId: request.id,
+    requestId: `cancel:${request.id}`,
+    description: reason.trim(),
+    entries: [{
+      employeeId: principal.employeeId,
+      sparkType: request.spark_type,
+      amount: Number(request.spark_amount),
+      entryKind: 'Reversal',
+      relatedEntryId: Number(original.id),
+      sourceType: 'DisenchantCancellation',
+      sourceId: request.id,
+      description: reason.trim(),
+    }],
+  });
+  return one<Record<string, unknown>>(db, `UPDATE app.disenchant_requests
+    SET status='Cancelled',cancelled_at=clock_timestamp(),cancellation_reason=$2,
+        cancellation_operation_id=$3,status_changed_by_user_id=$4
+    WHERE id=$1 RETURNING *`, [request.id, reason.trim(), reversal.operationId, principal.userId]);
 };
 
 export const disenchantResponse = (row: Record<string, any>) => {

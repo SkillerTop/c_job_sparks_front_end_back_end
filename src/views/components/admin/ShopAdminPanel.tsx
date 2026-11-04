@@ -19,7 +19,7 @@ import { SparkIcon } from '@/views/components/common/SparkIcon';
 import { SelectField } from '@/views/components/ui/SelectField';
 import { FULFILLMENT_KIND_OPTIONS, PRODUCT_ICON_OPTIONS, PRODUCT_TYPE_OPTIONS, SHOP_CATEGORIES, SHOP_LOCATIONS, RARITY_LABELS } from '@/constants/shop';
 import { useShopAdminController } from '@/controllers/useShopAdminController';
-import { FULFILLMENT_ROLE_LABELS } from '@/constants/fulfillment';
+import { FULFILLMENT_ROLE_LABELS, fulfillmentStatusOptions } from '@/constants/fulfillment';
 import type { ProductRarity, ProductType, ShopCategory, ShopLocation, ShopProduct } from '@/models/shop';
 import { formatDateTime } from '@/utils/formatters';
 import { SPENDABLE_SPARK_TYPES } from '@/utils/shop';
@@ -48,6 +48,7 @@ export function ShopAdminPanel() {
     loading,
     saving,
     uploading,
+    loadingMore,
     editing,
     setEditing,
     message,
@@ -66,6 +67,7 @@ export function ShopAdminPanel() {
     uploadImage,
     submitAdjustment,
     updateFulfillment,
+    loadMore,
   } = useShopAdminController();
   const [productPendingDelete, setProductPendingDelete] = useState<ShopProduct | null>(null);
 
@@ -133,6 +135,10 @@ export function ShopAdminPanel() {
             </article>
           ))}
         </div>
+        {state?.pageInfo?.products.hasNext && (
+          <button className={styles.shopSecondaryButton} type="button" disabled={Boolean(loadingMore)}
+            onClick={() => void loadMore('products')}><LocalizedText>Load more products</LocalizedText></button>
+        )}
       </section>
 
       <section className={styles.shopAdminPanel} aria-labelledby="reward-fulfillment-title">
@@ -161,13 +167,17 @@ export function ShopAdminPanel() {
                   value={fulfillment.status}
                   disabled={saving || fulfillment.status === 'Delivered' || fulfillment.status === 'Cancelled'}
                   onChange={(status) => void updateFulfillment(fulfillment.id, status, '')}
-                  options={['Requested','InProgress','Ordered','Ready','Delivered','Cancelled'].map((status) => ({ value: status, label: status }))}
+                  options={fulfillmentStatusOptions(fulfillment.status)}
                   ariaLabel={`Fulfillment status for ${fulfillment.employeeName}`}
                 />
               </article>
             ))}
           </div>
         ) : <p className={styles.adminEmpty}><LocalizedText>No reward fulfillment requests yet.</LocalizedText></p>}
+        {state?.pageInfo?.fulfillments.hasNext && (
+          <button className={styles.shopSecondaryButton} type="button" disabled={Boolean(loadingMore)}
+            onClick={() => void loadMore('fulfillments')}><LocalizedText>Load more fulfillment requests</LocalizedText></button>
+        )}
       </section>
 
       <div className={styles.shopAdminGrid}>
@@ -234,6 +244,10 @@ export function ShopAdminPanel() {
           ) : (
             <p className={styles.adminEmpty}>{shopText.admin.noUsers}</p>
           )}
+          {state?.pageInfo?.balances.hasNext && (
+            <button className={styles.shopSecondaryButton} type="button" disabled={Boolean(loadingMore)}
+              onClick={() => void loadMore('balances')}><LocalizedText>Load more employees</LocalizedText></button>
+          )}
         </section>
 
         <section className={styles.shopAdminPanel} aria-labelledby="shop-purchases-title">
@@ -263,6 +277,10 @@ export function ShopAdminPanel() {
             </div>
           ) : (
             <p className={styles.adminEmpty}>{shopText.admin.noPurchases}</p>
+          )}
+          {state?.pageInfo?.purchases.hasNext && (
+            <button className={styles.shopSecondaryButton} type="button" disabled={Boolean(loadingMore)}
+              onClick={() => void loadMore('purchases')}><LocalizedText>Load more purchases</LocalizedText></button>
           )}
         </section>
       </div>

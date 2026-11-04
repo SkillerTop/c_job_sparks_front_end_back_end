@@ -24,6 +24,7 @@ export const SHOP_TEXT = {
     locationDialogTitle: 'Choose your shop location',
     locationDialogDescription: 'Products and fulfillment options depend on your location. You can change it later in the shop.',
     locationDialogHint: 'Choose the country where you will receive the reward.',
+    locationDisclaimer: 'Please note that the actual product design may differ from the image shown, depending on the office location. Please check with your Office Manager for the latest design.',
   },
   inventory: {
     eyebrow: 'Personal collection',

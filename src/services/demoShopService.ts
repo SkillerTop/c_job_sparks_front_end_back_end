@@ -5,6 +5,7 @@ import type {
   ProductDraft,
   PurchaseResult,
   ShopAdminState,
+  ShopAdminCollection,
   ShopInventoryItem,
   ShopLocation,
   ShopProduct,
@@ -287,6 +288,11 @@ export const demoShopService = {
     }));
     return { products: copy(state.products), purchases: state.purchases.map(publicPurchase), balances,
       fulfillmentContacts: demoFulfillmentContacts, fulfillments: [] };
+  },
+
+  async loadAdminCollection(collection: ShopAdminCollection, _cursor: string, identity?: ShopClientIdentity) {
+    const state = await this.getAdminState(identity);
+    return { items: state[collection], nextCursor: null, hasNext: false };
   },
 
   async saveProduct(draft: ProductDraft, identity?: ShopClientIdentity): Promise<ShopAdminState> {

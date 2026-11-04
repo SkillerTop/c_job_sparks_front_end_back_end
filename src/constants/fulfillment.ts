@@ -1,4 +1,19 @@
 import type { FulfillmentContact } from '@/models';
+import type { RewardFulfillment } from '@/models/shop';
+
+export type FulfillmentStatus = RewardFulfillment['status'];
+
+export const FULFILLMENT_TRANSITIONS: Record<FulfillmentStatus, readonly FulfillmentStatus[]> = {
+  Requested: ['InProgress', 'Cancelled'],
+  InProgress: ['Ordered', 'Ready', 'Cancelled'],
+  Ordered: ['Ready', 'Cancelled'],
+  Ready: ['Delivered', 'Cancelled'],
+  Delivered: [],
+  Cancelled: [],
+};
+
+export const fulfillmentStatusOptions = (current: FulfillmentStatus) =>
+  [current, ...FULFILLMENT_TRANSITIONS[current]].map((status) => ({ value: status, label: status }));
 
 export const REWARD_FULFILLMENT_CONTACTS = [
   { id: 'd1000000-0000-4000-8000-000000000001', name: 'Andrey Zherebetsky', email: 'a.zherebetsky@c-job.com.ua', role: 'Director', officeName: null },

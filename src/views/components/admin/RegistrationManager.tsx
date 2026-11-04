@@ -184,14 +184,11 @@ export function RegistrationManager() {
         ) : (
           <div className={accessStyles.historyList}>
             {history.slice(0, 10).map((event) => {
-              const account = accounts.find((item) => item.id === event.accountId);
-              const employee = account ? employeeFor(account) : undefined;
               const status = event.action === 'REGISTRATION_APPROVED'
                 ? 'Approved'
                 : event.action === 'REGISTRATION_REJECTED'
                   ? 'Rejected'
                   : 'Pending';
-              const actor = snapshot!.employees.find((item) => item.id === event.actorId);
               return (
                 <article key={event.id}>
                   <span className={accessStyles.historyIcon} data-status={status}>
@@ -207,9 +204,9 @@ export function RegistrationManager() {
                     <strong>{historyLabels[event.action]}</strong>
                     <p>{event.details}</p>
                     <small>
-                      <LocalizedText>{event.accountLabel ?? employee?.name ?? (account ? account.email : 'Deleted account')}</LocalizedText>{' '}
+                       <LocalizedText>{event.accountLabel ?? 'Deleted account'}</LocalizedText>{' '}
                       <LocalizedText>· actor </LocalizedText>
-                      <LocalizedText>{event.actorLabel ?? actor?.name ?? 'Former administrator'}</LocalizedText>
+                       <LocalizedText>{event.actorLabel ?? 'Former administrator'}</LocalizedText>
                     </small>
                   </div>
                   <div className={accessStyles.historyStatus}>

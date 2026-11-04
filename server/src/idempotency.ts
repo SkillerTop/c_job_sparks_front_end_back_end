@@ -15,6 +15,18 @@ export interface IdempotentResult<T> {
   replayed: boolean;
 }
 
+export const cleanupExpiredIdempotencyKeys = async (pool: Pool, limit = 1_000) => {
+  const safeLimit = Math.max(1, Math.min(10_000, Math.trunc(limit)));
+  const result = await pool.query(`DELETE FROM app.idempotency_keys
+    WHERE ctid IN (
+      SELECT ctid FROM app.idempotency_keys
+       WHERE expires_at<=clock_timestamp()
+       ORDER BY expires_at
+       LIMIT $1
+    )`, [safeLimit]);
+  return result.rowCount ?? 0;
+};
+
 const serializable = async <T>(pool: Pool, work: (db: PoolClient) => Promise<T>) => {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const db = await pool.connect();
@@ -78,7 +90,7 @@ export const withIdempotency = async <T>(
     await db.query(
       `INSERT INTO app.idempotency_keys
         (owner_user_id, scope, idempotency_key, request_hash, expires_at)
-       VALUES ($1,$2,$3,$4,clock_timestamp() + interval '10 years')`,
+       VALUES ($1,$2,$3,$4,clock_timestamp() + interval '72 hours')`,
       [ownerUserId, scope, key, digest],
     );
     const value = await work(db);

@@ -65,6 +65,22 @@ test('the complete route graph registers and protected routes fail closed', asyn
     assert.notEqual(limitedResponse.json().code, 'INTERNAL_ERROR');
     assert.ok(limitedResponse.headers['retry-after']);
 
+    for (const [url, payload] of [
+      ['/api/v1/auth/access-requests', { email: 'rate-limit@c-job.test', password: 'short', confirmPassword: 'short' }],
+      ['/api/v1/auth/password-reset/request', { email: 'rate-limit@c-job.test' }],
+    ] as const) {
+      let routeLimit: Awaited<ReturnType<typeof app.inject>> | undefined;
+      for (let attempt = 0; attempt < 7; attempt += 1) {
+        const response = await app.inject({ method: 'POST', url, payload });
+        if (response.statusCode === 429) {
+          routeLimit = response;
+          break;
+        }
+      }
+      assert.ok(routeLimit, `${url} must enforce its stricter route limit.`);
+      assert.ok(routeLimit.headers['retry-after']);
+    }
+
     const compressed = await app.inject({
       method: 'GET',
       url: '/test/large-json',

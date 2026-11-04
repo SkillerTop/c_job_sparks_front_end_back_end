@@ -72,3 +72,13 @@ test('shop cards expose an accessible full-description toggle and square media',
   assert.match(styles, /\.productDescription\s*\{[^}]*-webkit-line-clamp:\s*4;/s);
   assert.match(styles, /\.productDescriptionExpanded\s*\{[^}]*overflow:\s*visible;/s);
 });
+
+test('shop location disclaimer is prominent and exposed as a note', async () => {
+  const page = await read('src/views/pages/ShopPage.tsx');
+  const dialog = await read('src/views/components/shop/ShopLocationDialog.tsx');
+  const constants = await read('src/constants/shop.ts');
+
+  assert.match(page, /shopLocationDisclaimer[^]*role="note"/);
+  assert.match(dialog, /shopLocationDisclaimer[^]*role="note"/);
+  assert.match(constants, /actual product design may differ from the image shown/);
+});

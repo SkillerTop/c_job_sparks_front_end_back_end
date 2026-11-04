@@ -18,7 +18,7 @@ type DisenchantType = Exclude<SparkType, 'Radiant'>;
 
 export function DisenchantPage() {
   const { localize } = useUserPreferences();
-  const { snapshot, currentUserId, disenchant } = useSpark();
+  const { snapshot, currentUserId, disenchant, cancelDisenchantRequest } = useSpark();
   const [type, setType] = useState<DisenchantType>('White');
   const [amount, setAmount] = useState(1);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -37,6 +37,9 @@ export function DisenchantPage() {
   );
   const availableForType = balances[type];
   const settings = snapshot!.settings;
+  const cancellableRequests = snapshot!.disenchantRequests.filter(
+    (request) => request.employeeId === currentUserId && request.status === 'Created',
+  );
   useEffect(() => {
     setAmount((current) => Math.min(Math.max(availableForType > 0 ? 1 : 0, current), availableForType));
   }, [availableForType]);
@@ -178,6 +181,34 @@ export function DisenchantPage() {
           </section>
         </aside>
       </div>
+      {cancellableRequests.length > 0 && (
+        <section className={styles.panel} aria-labelledby="cancellable-disenchant-title">
+          <div className={styles.panelHeader}>
+            <div><p className={styles.eyebrow}><LocalizedText>Your requests</LocalizedText></p>
+              <h2 id="cancellable-disenchant-title"><LocalizedText>Requests awaiting export</LocalizedText></h2></div>
+          </div>
+          <div className={styles.approvalList}>
+            {cancellableRequests.map((request) => (
+              <article key={request.id} className={styles.approvalCard}>
+                <div><SparkBadge type={request.sparkType} amount={-request.amount} />
+                  <p>{formatMoney(request.moneyValue, request.currency)}</p></div>
+                <button className={styles.dangerButton} type="button" disabled={processing}
+                  onClick={() => void (async () => {
+                    setProcessing(true); setMessage(null);
+                    try {
+                      await cancelDisenchantRequest(request.id, 'Cancelled by employee before accounting export.');
+                      setMessage({ tone: 'success', text: localize('Request cancelled and Sparks returned to your balance.') });
+                    } catch (caught) {
+                      setMessage({ tone: 'error', text: caught instanceof Error ? caught.message : localize('Could not cancel the request.') });
+                    } finally { setProcessing(false); }
+                  })()}>
+                  <LocalizedText>Cancel request</LocalizedText>
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
       <AnimatePresence>
         {celebrate && (
           <motion.div

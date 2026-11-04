@@ -52,11 +52,12 @@ const categoryId = (name: string, sparkType: SparkType, usageType: 'PeerRecognit
   return category.id;
 };
 
-const mutation = <T>(path: string, body: unknown, method = 'POST') =>
+const mutation = <T>(path: string, body: unknown, method = 'POST', retries = 1) =>
   apiRequest<T>(path, {
     method,
     body: JSON.stringify(body),
     idempotencyKey: createIdempotencyKey(),
+    retries,
   });
 
 export const apiSparkService = {
@@ -163,6 +164,11 @@ export const apiSparkService = {
     return { request, snapshot: await workspaceWithFreshBalances() };
   },
 
+  async cancelDisenchantRequest(_employeeId: string, requestId: string, reason: string) {
+    await mutation(`/api/v1/disenchant-requests/${encodeURIComponent(requestId)}/cancel`, { reason });
+    return workspaceWithFreshBalances();
+  },
+
   async exportDisenchantRequests(_actorId: string, requestIds: string[], exportReference: string) {
     const result = await mutation<{ fileName: string; csv: string }>(
       '/api/v1/admin/disenchant-requests/export',
@@ -212,7 +218,7 @@ export const apiSparkService = {
   },
 
   async updateSettings(_actorId: string, input: Partial<AppSnapshot['settings']>) {
-    await mutation('/api/v1/admin/rule-sets', input);
+    await mutation('/api/v1/admin/rule-sets', input, 'POST', 0);
     return workspace();
   },
 
@@ -224,7 +230,7 @@ export const apiSparkService = {
           ? '/api/v1/admin/departments'
           : '/api/v1/admin/spark-categories';
     const id = draft.data.id;
-    await mutation(id ? `${route}/${encodeURIComponent(id)}` : route, draft.data, id ? 'PATCH' : 'POST');
+    await mutation(id ? `${route}/${encodeURIComponent(id)}` : route, draft.data, id ? 'PATCH' : 'POST', 0);
     return workspace();
   },
 

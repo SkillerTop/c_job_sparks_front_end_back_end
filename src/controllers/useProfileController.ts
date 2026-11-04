@@ -79,7 +79,7 @@ export function useProfileController() {
       if (!user) return;
       await profileService.terminateSession(user.employeeId, sessionItem.id);
       if (sessionItem.current) {
-        logout();
+        await logout();
         navigate('/login', { replace: true });
         return;
       }
@@ -90,7 +90,7 @@ export function useProfileController() {
     execute('all-sessions', async () => {
       if (!user) return;
       await profileService.terminateAllSessions(user.employeeId, sessions.map((item) => item.id));
-      logout();
+      await logout();
       navigate('/login', { replace: true });
     });
 

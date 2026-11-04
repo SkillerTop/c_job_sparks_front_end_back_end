@@ -11,6 +11,7 @@ import { getEnvironment, type Environment } from './config/env.js';
 import { createPool } from './db/pool.js';
 import { ApiError, installErrorHandler } from './errors.js';
 import { GraphMailWorker } from './mail.js';
+import { cleanupExpiredIdempotencyKeys } from './idempotency.js';
 import { registerRoutes } from './routes.js';
 
 declare module 'fastify' {
@@ -84,6 +85,7 @@ export const buildApp = async (options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.decorate('db', pool);
   const mailWorker = new GraphMailWorker(pool, environment, app.log);
+  let idempotencyCleanupTimer: NodeJS.Timeout | undefined;
   await app.register(helmet);
   await app.register(compress, {
     global: true,
@@ -140,9 +142,15 @@ export const buildApp = async (options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.addHook('onReady', async () => {
     mailWorker.start();
+    const runCleanup = () => void cleanupExpiredIdempotencyKeys(pool).catch((error) =>
+      app.log.error({ err: error }, 'Idempotency cleanup failed'));
+    runCleanup();
+    idempotencyCleanupTimer = setInterval(runCleanup, 60 * 60 * 1_000);
+    idempotencyCleanupTimer.unref();
   });
 
   app.addHook('onClose', async () => {
+    if (idempotencyCleanupTimer) clearInterval(idempotencyCleanupTimer);
     await mailWorker.stop();
     if (ownsPool) await pool.end();
   });

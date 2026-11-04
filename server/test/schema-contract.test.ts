@@ -36,6 +36,7 @@ test('the MVP schema is complete and ordered', async () => {
     '0018_content_spelling_cleanup.sql',
     '0019_shop_category_catalog.sql',
     '0020_shop_product_locations.sql',
+    '0021_security_workflow_and_retention.sql',
   ]);
   for (const table of [
     'users', 'employees', 'departments', 'roles', 'role_assignments', 'projects', 'project_members',
@@ -71,6 +72,17 @@ test('financial and audit history is protected by database triggers', async () =
 test('unsupported product effects cannot be published as purchasable', async () => {
   const { sql } = await schemaSql();
   assert.match(sql, /is_purchasable = false\s+OR effect_code IN \('theme_unlock', 'profile_frame', 'badge_unlock', 'focus_mode'\)/);
+  const hardening = await readFile(resolve(migrationsDirectory, '0021_security_workflow_and_retention.sql'), 'utf8');
+  assert.match(hardening, /fulfillment_kind <> 'Virtual'/);
+  assert.match(hardening, /ALTER COLUMN effect_code DROP NOT NULL/);
+});
+
+test('workflow cancellation and idempotency retention are schema-backed', async () => {
+  const migration = await readFile(resolve(migrationsDirectory, '0021_security_workflow_and_retention.sql'), 'utf8');
+  assert.match(migration, /ADD COLUMN cancellation_operation_id uuid UNIQUE/);
+  assert.match(migration, /ADD COLUMN cancelled_at timestamptz/);
+  assert.match(migration, /interval '72 hours'/);
+  assert.match(migration, /idempotency_keys_expiry_idx/);
 });
 
 test('non-virtual shop rewards have a server-owned fulfillment contact', async () => {

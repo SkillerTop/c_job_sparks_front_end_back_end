@@ -149,7 +149,11 @@ if (!sourceDatabaseUrl) {
     });
 
     test('Workspace exposes the complete role-specific category catalog', async () => {
-      const response = await authenticated('Administrator', 'GET', '/api/v1/workspace');
+      const adminDashboard = await authenticated('Administrator', 'GET', '/api/v1/workspace?section=dashboard');
+      assert.equal(adminDashboard.statusCode, 403, adminDashboard.body);
+      const employeeAdmin = await authenticated('Employee', 'GET', '/api/v1/workspace?section=admin');
+      assert.equal(employeeAdmin.statusCode, 403, employeeAdmin.body);
+      const response = await authenticated('Administrator', 'GET', '/api/v1/workspace?section=admin');
       assert.equal(response.statusCode, 200, response.body);
       const categories = response.json<{ categories: Array<{
         name: string;
@@ -436,6 +440,22 @@ if (!sourceDatabaseUrl) {
       assert.equal(await count(`SELECT count(*) FROM app.disenchant_requests WHERE id=$1 AND status='Paid'`, [requestId]), 1);
       assert.equal(await count(`SELECT count(*) FROM app.notifications WHERE object_type='Disenchant' AND object_id=$1`, [requestId]), 3);
 
+      const cancellable = await authenticated('Employee', 'POST', '/api/v1/disenchant-requests',
+        { sparkType: 'White', amount: 2 }, `disenchant-cancellable-${randomUUID()}`);
+      assert.equal(cancellable.statusCode, 201, cancellable.body);
+      const cancellableId = cancellable.json<{ id: string }>().id;
+      const cancelled = await authenticated('Employee', 'POST',
+        `/api/v1/disenchant-requests/${cancellableId}/cancel`,
+        { reason: 'Integration cancellation before export.' }, `disenchant-cancel-${randomUUID()}`);
+      assert.equal(cancelled.statusCode, 200, cancelled.body);
+      assert.equal(cancelled.json<{ status: string }>().status, 'Cancelled');
+      assert.equal(await count(`SELECT count(*) FROM app.disenchant_requests WHERE id=$1 AND status='Cancelled'
+        AND cancellation_operation_id IS NOT NULL`, [cancellableId]), 1);
+      const cancellationNet = await databasePool.query<{ total: string }>(`SELECT COALESCE(sum(entry.amount),0)::text AS total
+        FROM app.spark_ledger_entries entry JOIN app.spark_operations operation ON operation.id=entry.operation_id
+        WHERE operation.source_id=$1 AND operation.source_type IN ('Disenchant','DisenchantCancellation')`, [cancellableId]);
+      assert.equal(Number(cancellationNet.rows[0]!.total), 0);
+
       const monthlyRequest = await authenticated('Employee', 'POST', '/api/v1/disenchant-requests',
         { sparkType: 'White', amount: 1 }, `disenchant-monthly-${randomUUID()}`);
       assert.equal(monthlyRequest.statusCode, 201, monthlyRequest.body);
@@ -583,6 +603,25 @@ if (!sourceDatabaseUrl) {
       assert.equal(await count(`SELECT count(*) FROM app.outbox_events
         WHERE event_type='RewardFulfillmentRequested' AND payload->>'purchaseId'=$1`, [result.purchase.id]), 1);
 
+      const fulfillment = await databasePool.query<{ id: string }>(
+        `SELECT id FROM app.reward_fulfillments WHERE purchase_id=$1`, [result.purchase.id]);
+      const whiteBeforeCancellation = await databasePool.query<{ balance: string }>(`SELECT account.balance::text
+        FROM app.spark_accounts account WHERE account.employee_id=$1 AND account.spark_type='White'`,
+      [employeeIds.employee]);
+      const cancellation = await authenticated('Administrator', 'POST',
+        `/api/v1/admin/reward-fulfillments/${fulfillment.rows[0]!.id}/status`,
+        { status: 'Cancelled', notes: 'Integration cancellation policy test.' },
+        `fulfillment-cancel-${randomUUID()}`);
+      assert.equal(cancellation.statusCode, 200, cancellation.body);
+      assert.equal(await count(`SELECT count(*) FROM app.purchases WHERE id=$1 AND status='Cancelled'
+        AND cancellation_operation_id IS NOT NULL`, [result.purchase.id]), 1);
+      assert.equal(await count(`SELECT count(*) FROM app.inventory_items WHERE id=$1 AND status='Revoked'`,
+      [result.inventoryItem.id]), 1);
+      const whiteAfterCancellation = await databasePool.query<{ balance: string }>(`SELECT account.balance::text
+        FROM app.spark_accounts account WHERE account.employee_id=$1 AND account.spark_type='White'`,
+      [employeeIds.employee]);
+      assert.equal(Number(whiteAfterCancellation.rows[0]!.balance), Number(whiteBeforeCancellation.rows[0]!.balance) + 1);
+
       for (const role of ['GPM', 'Head'] as const) {
         const restricted = await authenticated(role, 'POST', '/api/v1/shop/purchases',
           { productId, location: 'Ukraine' }, `restricted-purchase-${role}-${randomUUID()}`);
@@ -619,8 +658,9 @@ if (!sourceDatabaseUrl) {
         `/api/v1/admin/products/${physicalProductId}`);
       assert.equal(forbiddenDelete.statusCode, 403, forbiddenDelete.body);
 
+      const deleteKey = `delete-product-${randomUUID()}`;
       const deleted = await authenticated('Administrator', 'DELETE',
-        `/api/v1/admin/products/${physicalProductId}`);
+        `/api/v1/admin/products/${physicalProductId}`, undefined, deleteKey);
       assert.equal(deleted.statusCode, 200, deleted.body);
       assert.ok(deleted.json<{ products: Array<{ id: string }> }>().products
         .every((product) => product.id !== physicalProductId));
@@ -631,13 +671,18 @@ if (!sourceDatabaseUrl) {
       assert.equal(await count(`SELECT count(*) FROM app.audit_events
         WHERE action='PRODUCT_DELETED' AND entity_id=$1`, [physicalProductId]), 1);
 
+      const replayedDelete = await authenticated('Administrator', 'DELETE',
+        `/api/v1/admin/products/${physicalProductId}`, undefined, deleteKey);
+      assert.equal(replayedDelete.statusCode, 200, replayedDelete.body);
+      assert.equal(replayedDelete.headers['idempotency-replayed'], 'true');
+
       const shopAfterDeletion = await authenticated('Employee', 'GET', '/api/v1/shop');
       assert.equal(shopAfterDeletion.statusCode, 200, shopAfterDeletion.body);
       assert.ok(shopAfterDeletion.json<{ products: Array<{ id: string }> }>().products
         .every((product) => product.id !== physicalProductId));
 
       const repeatedDelete = await authenticated('Administrator', 'DELETE',
-        `/api/v1/admin/products/${physicalProductId}`);
+        `/api/v1/admin/products/${physicalProductId}`, undefined, `delete-product-fresh-${randomUUID()}`);
       assert.equal(repeatedDelete.statusCode, 404, repeatedDelete.body);
     });
 
@@ -820,7 +865,7 @@ if (!sourceDatabaseUrl) {
         WHERE id=$1 AND account_status='Disabled' AND email::text LIKE 'deleted.%@invalid.local'`, [account.id]), 1);
       assert.equal(await count(`SELECT count(*) FROM app.audit_events
         WHERE action='EMPLOYEE_DELETED' AND entity_id=$1`, [employeeId]), 1);
-      const workspaceAfterDeletion = await authenticated('Administrator', 'GET', '/api/v1/workspace');
+      const workspaceAfterDeletion = await authenticated('Administrator', 'GET', '/api/v1/workspace?section=admin');
       assert.equal(workspaceAfterDeletion.statusCode, 200, workspaceAfterDeletion.body);
       assert.ok(!workspaceAfterDeletion.json<{ employees: Array<{ id: string }> }>().employees
         .some((item) => item.id === employeeId));
@@ -1112,7 +1157,7 @@ if (!sourceDatabaseUrl) {
       assert.equal(updatedRules.statusCode, 200, updatedRules.body);
       const ruleSetId = updatedRules.json<{ id: string }>().id;
 
-      const updatedWorkspace = await authenticated('Administrator', 'GET', '/api/v1/workspace');
+      const updatedWorkspace = await authenticated('Administrator', 'GET', '/api/v1/workspace?section=admin');
       assert.equal(updatedWorkspace.statusCode, 200, updatedWorkspace.body);
       assert.deepEqual(updatedWorkspace.json<{ settings: { performanceThresholds: typeof performanceThresholds } }>()
         .settings.performanceThresholds, performanceThresholds);

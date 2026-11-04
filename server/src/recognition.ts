@@ -244,7 +244,18 @@ export const decideRecognition = async (
     if (Number(currentUsage.total) > currentLimit)
       throw conflict('QUOTA_EXHAUSTED', 'The current Peer Recognition quota no longer permits this approval.');
     const gate = await activeQualityGate(db, recognition.recipient_employee_id);
-    if (gate) throw conflict('QUALITY_GATE_ACTIVE', 'Approval is blocked by an active Quality Gate.');
+    if (gate) {
+      await db.query(`UPDATE app.recognitions SET status='BlockedByQualityGate',quality_gate_id=$2,
+        decided_at=clock_timestamp(),decided_by_user_id=$3,rejection_reason='Blocked by active Quality Gate'
+        WHERE id=$1`, [recognitionId, gate.id, principal.userId]);
+      await db.query(`UPDATE app.quota_reservations SET status='Released',resolved_at=clock_timestamp()
+        WHERE subject_type='Recognition' AND subject_id=$1 AND status='Reserved'`, [recognitionId]);
+      await db.query(`INSERT INTO app.approval_actions
+        (subject_type,subject_id,action,actor_user_id,reason,previous_status,resulting_status,request_id)
+        VALUES ('Recognition',$1,'Cancelled',$2,'Blocked by active Quality Gate','Pending','BlockedByQualityGate',$3)`,
+      [recognitionId, principal.userId, requestId]);
+      return 'BlockedByQualityGate' as const;
+    }
     const ledger = await postLedgerOperation(db, {
       operationType: 'PeerRecognition',
       actorUserId: principal.userId,
@@ -300,6 +311,7 @@ export const decideRecognition = async (
      VALUES ('Recognition',$1,$2,$3,$4,'Pending',$2,$5)`,
     [recognitionId, decision, principal.userId, reason.trim() || null, requestId],
   );
+  return decision;
 };
 
 const canTargetAwardRecipient = async (
@@ -588,8 +600,21 @@ export const decideAward = async (
           throw conflict('QUOTA_EXHAUSTED', 'The current GPM White quota no longer permits this approval.');
       }
     }
-    if (award.spark_type === 'White' && (await activeQualityGate(db, award.recipient_employee_id)))
-      throw conflict('QUALITY_GATE_ACTIVE', 'White credit is blocked by an active Quality Gate.');
+    if (award.spark_type === 'White') {
+      const gate = await activeQualityGate(db, award.recipient_employee_id);
+      if (gate) {
+        await db.query(`UPDATE app.award_requests SET status='BlockedByQualityGate',quality_gate_id=$2,
+          decided_at=clock_timestamp(),decided_by_user_id=$3,rejection_reason='Blocked by active Quality Gate'
+          WHERE id=$1`, [awardId, gate.id, principal.userId]);
+        await db.query(`UPDATE app.quota_reservations SET status='Released',resolved_at=clock_timestamp()
+          WHERE subject_type='Award' AND subject_id=$1 AND status='Reserved'`, [awardId]);
+        await db.query(`INSERT INTO app.approval_actions
+          (subject_type,subject_id,action,actor_user_id,reason,previous_status,resulting_status,request_id)
+          VALUES ('Award',$1,'Cancelled',$2,'Blocked by active Quality Gate','Pending','BlockedByQualityGate',$3)`,
+        [awardId, principal.userId, requestId]);
+        return 'BlockedByQualityGate' as const;
+      }
+    }
     const ledger = await postLedgerOperation(db, {
       operationType: 'Award',
       actorUserId: principal.userId,
@@ -638,6 +663,7 @@ export const decideAward = async (
      VALUES ('Award',$1,$2,$3,$4,'Pending',$2,$5)`,
     [awardId, decision, principal.userId, reason.trim() || null, requestId],
   );
+  return decision;
 };
 
 export const listEligibleRecipients = async (

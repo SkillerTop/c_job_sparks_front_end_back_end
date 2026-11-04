@@ -1,4 +1,4 @@
-import { RefreshCcw } from 'lucide-react';
+import { Info, RefreshCcw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CategoryFilter } from '@/views/components/shop/CategoryFilter';
@@ -96,6 +96,10 @@ export function ShopPage() {
     <PageTransition>
       <div className={styles.shopPage}>
         <ShopHeader balances={balances} loading={loading} location={shopLocation} onLocationChange={changeLocation} />
+        <aside className={styles.shopLocationDisclaimer} role="note">
+          <Info size={20} aria-hidden="true" />
+          <p>{shopText.shop.locationDisclaimer}</p>
+        </aside>
         {readOnly && <Feedback tone="info">{t('shop.readOnly')}</Feedback>}
         {error && (
           <div className={styles.shopFeedback}>

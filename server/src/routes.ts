@@ -14,10 +14,13 @@ import {
   setSessionCookie,
 } from './auth.js';
 import { createNotification, writeAudit, enqueueOutbox } from './audit.js';
-import { PERSONAL_LEDGER_ROLES, requireRole } from './authorization.js';
+import { PERSONAL_LEDGER_ROLES, requireRole, requireWorkspaceSection } from './authorization.js';
+import { FULFILLMENT_TARGET_STATUSES, nextFulfillmentStatuses, WORKSPACE_SECTIONS,
+  type FulfillmentStatus } from './contracts.js';
 import { hasFullPersonalLedger } from './domain.js';
 import { withTransaction } from './db/transaction.js';
-import { createDisenchantRequest, convertSparks, disenchantResponse, effectiveRuleSet } from './economy.js';
+import { cancelDisenchantRequest, createDisenchantRequest, convertSparks, disenchantResponse,
+  effectiveRuleSet } from './economy.js';
 import { ApiError, badRequest, conflict, notFound } from './errors.js';
 import { withIdempotency } from './idempotency.js';
 import { employeeBalances, postLedgerOperation } from './ledger.js';
@@ -37,6 +40,7 @@ import { hashPassword, safeEqual, tokenHash, validatePassword, verifyPassword } 
 import {
   activateInventoryItem,
   deleteAdminProduct,
+  listShopAdminCollection,
   purchaseProduct,
   saveAdminProduct,
   SHOP_LOCATIONS,
@@ -44,6 +48,7 @@ import {
   shopSnapshot,
 } from './shop.js';
 import { maybeOne, one, rows } from './sql.js';
+import { openApiDocument } from './openapi.js';
 import { buildWorkspace, buildWorkspaceLayout, type WorkspaceSection } from './workspace.js';
 import {
   createMonthlyDisenchantReport,
@@ -165,6 +170,16 @@ const sendIdempotent = <T>(reply: FastifyReply, result: { value: T; statusCode: 
 
 export const registerRoutes = async (app: FastifyInstance, environment: Environment) => {
   const secureCookie = environment.NODE_ENV === 'production';
+  const accessStatusCookie = 'cjob_access_status';
+  const setAccessStatusCookie = (reply: FastifyReply, requestId: string) => reply.setCookie(
+    accessStatusCookie,
+    requestId,
+    { path: '/', httpOnly: true, secure: secureCookie, sameSite: 'lax', signed: true, maxAge: 7 * 24 * 60 * 60 },
+  );
+  app.get('/api/v1/openapi.json', async (_request, reply) => {
+    void reply.header('cache-control', 'public, max-age=300');
+    return openApiDocument(environment.FRONTEND_ORIGIN);
+  });
 
   app.get('/api/v1/auth/microsoft/config', async () => ({
     enabled: environment.MICROSOFT_AUTH_ENABLED,
@@ -232,9 +247,9 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
         ));
         clearStateCookie();
         if (result.status === 'Pending') {
+          setAccessStatusCookie(reply, result.accessRequestId);
           const pendingUrl = new URL('/login', environment.FRONTEND_ORIGIN);
           pendingUrl.searchParams.set('microsoftStatus', 'Pending');
-          pendingUrl.searchParams.set('email', result.email);
           return reply.redirect(pendingUrl.toString());
         }
         setSessionCookie(reply, result.token, result.expiresAt, secureCookie, environment.SESSION_COOKIE_NAME);
@@ -248,12 +263,13 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
     },
   );
 
-  app.post('/api/v1/auth/access-requests', async (request, reply) => {
+  app.post('/api/v1/auth/access-requests',
+    { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } }, async (request, reply) => {
     const input = jsonBody(
       z.object({ email: emailSchema, password: z.string().min(1).max(128), confirmPassword: z.string().min(1).max(128) }),
       request,
     );
-    const account = await withTransaction(app.db, async (db) => {
+    const result = await withTransaction(app.db, async (db) => {
       const created = await createAccessRequest(db, input, requestMetadata(request));
       const accountId = created.id;
       const requestRecord = await one<{ id: string }>(db, `SELECT id FROM app.access_requests
@@ -268,9 +284,26 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       for (const administrator of administrators) await createNotification(db, administrator.id, 'ApprovalRequested',
         'New access request', `${input.email} requested access.`, 'AccessRequest', requestRecord.id);
       await enqueueOutbox(db, 'AccessRequested', 'AccessRequest', requestRecord.id, { accountId, email: input.email });
-      return created;
+      return { account: created, requestId: requestRecord.id };
     });
-    return reply.status(201).send(account);
+    setAccessStatusCookie(reply, result.requestId);
+    return reply.status(201).send(result.account);
+  });
+
+  app.get('/api/v1/auth/access-requests/me', async (request) => {
+    const raw = request.cookies[accessStatusCookie];
+    const unsigned = raw ? request.unsignCookie(raw) : null;
+    if (!unsigned?.valid || !unsigned.value) throw notFound('Access request');
+    return one<any>(app.db, `SELECT account_user.id,employee.id AS "employeeId",request.email::text,
+      request.status,'Registration'::text AS source,request.requested_at AS "requestedAt",
+      request.first_name AS "firstName",request.last_name AS "lastName",
+      request.requested_department_id AS "requestedDepartmentId",request.employee_number AS "employeeNumber",
+      account_user.auth_provider AS "authProvider",request.reviewed_at AS "reviewedAt",
+      request.reviewed_by_user_id AS "reviewedBy",request.rejection_reason AS "rejectionReason"
+      FROM app.access_requests request
+      JOIN app.users account_user ON account_user.id=request.resulting_user_id
+      LEFT JOIN app.employees employee ON employee.user_id=account_user.id
+      WHERE request.id=$1`, [unsigned.value]).catch(() => { throw notFound('Access request'); });
   });
 
   app.get('/api/v1/media/:id', async (request, reply) => {
@@ -317,7 +350,8 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
     },
   );
 
-  app.post('/api/v1/auth/password-reset/request', async (request, reply) => {
+  app.post('/api/v1/auth/password-reset/request',
+    { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } }, async (request, reply) => {
     const { email } = jsonBody(z.object({ email: emailSchema }), request);
     await withTransaction(app.db, async (db) => {
       const user = await maybeOne<{ id: string }>(db, `SELECT id FROM app.users WHERE lower(email::text)=lower($1)`, [email]);
@@ -489,12 +523,12 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
     });
 
     protectedApp.get('/api/v1/workspace', async (request, reply) => {
-      const { section } = z.object({ section: z.enum([
-        'dashboard','profile','sparks','recognition','achievements','company-achievements','shop','inventory',
-        'convert','disenchant','team','award','approvals','admin','rules','all',
-      ]).default('all') }).parse(request.query) as { section: WorkspaceSection };
+      const principal = principalOf(request);
+      const { section } = z.object({ section: z.enum(WORKSPACE_SECTIONS).default('dashboard') })
+        .parse(request.query) as { section: WorkspaceSection };
+      requireWorkspaceSection(principal, section);
       void reply.header('cache-control', 'private, no-store');
-      return withTransaction(app.db, (db) => buildWorkspace(db, principalOf(request), section), { readOnly: true });
+      return withTransaction(app.db, (db) => buildWorkspace(db, principal, section), { readOnly: true });
     });
     protectedApp.get('/api/v1/workspace/layout', async (request, reply) => {
       void reply.header('cache-control', 'private, no-store');
@@ -653,22 +687,22 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       const input = jsonBody(z.object({ decision: z.enum(['Approved', 'Rejected']), reason: z.string().default('') }), request);
       const result = await withIdempotency(app.db, principal.userId, `recognitions:${id}:decision`, idempotencyKey(request), input, 200,
         async (db) => {
-          await decideRecognition(db, principal, id, input.decision, input.reason, request.id);
+          const outcome = await decideRecognition(db, principal, id, input.decision, input.reason, request.id);
           const subject = await one<{ nominator_user_id: string | null; recipient_user_id: string | null }>(db, `SELECT
             nominator.user_id AS nominator_user_id,recipient.user_id AS recipient_user_id
             FROM app.recognitions recognition JOIN app.employees nominator ON nominator.id=recognition.nominator_employee_id
             JOIN app.employees recipient ON recipient.id=recognition.recipient_employee_id WHERE recognition.id=$1`, [id]);
-          const notificationType = input.decision === 'Approved' ? 'AwardApproved' : 'AwardRejected';
+          const notificationType = outcome === 'Approved' ? 'AwardApproved' : 'AwardRejected';
           if (subject.nominator_user_id) await createNotification(db, subject.nominator_user_id, notificationType,
-            `Peer Recognition ${input.decision.toLowerCase()}`, input.reason || `Your request was ${input.decision.toLowerCase()}.`, 'Recognition', id);
-          if (input.decision === 'Approved' && subject.recipient_user_id)
+            `Peer Recognition ${outcome.toLowerCase()}`, input.reason || `Your request is ${outcome}.`, 'Recognition', id);
+          if (outcome === 'Approved' && subject.recipient_user_id)
             await createNotification(db, subject.recipient_user_id, 'SparksCredited', 'White Sparks credited',
               'A Peer Recognition award was credited to your balance.', 'Recognition', id);
-          await enqueueOutbox(db, `Recognition${input.decision}`, 'Recognition', id, { decision: input.decision });
-          await writeAudit(db, { actorUserId: principal.userId, action: `RECOGNITION_${input.decision.toUpperCase()}`,
-            objectType: 'Recognition', objectId: id, reason: input.reason, after: { status: input.decision },
+          await enqueueOutbox(db, `Recognition${outcome}`, 'Recognition', id, { decision: outcome });
+          await writeAudit(db, { actorUserId: principal.userId, action: `RECOGNITION_${outcome.toUpperCase()}`,
+            objectType: 'Recognition', objectId: id, reason: input.reason, after: { status: outcome },
             requestId: request.id, ip: request.ip, userAgent: request.headers['user-agent'] });
-          return { id, status: input.decision };
+          return { id, status: outcome };
         });
       return sendIdempotent(reply, result);
     });
@@ -729,22 +763,22 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       const input = jsonBody(z.object({ decision: z.enum(['Approved', 'Rejected']), reason: z.string().default('') }), request);
       const result = await withIdempotency(app.db, principal.userId, `awards:${id}:decision`, idempotencyKey(request), input, 200,
         async (db) => {
-          await decideAward(db, principal, id, input.decision, input.reason, request.id);
+          const outcome = await decideAward(db, principal, id, input.decision, input.reason, request.id);
           const subject = await one<{ requester_user_id: string | null; recipient_user_id: string | null }>(db, `SELECT
             requester.user_id AS requester_user_id,recipient.user_id AS recipient_user_id
             FROM app.award_requests award JOIN app.employees requester ON requester.id=award.requested_by_employee_id
             JOIN app.employees recipient ON recipient.id=award.recipient_employee_id WHERE award.id=$1`, [id]);
-          const notificationType = input.decision === 'Approved' ? 'AwardApproved' : 'AwardRejected';
+          const notificationType = outcome === 'Approved' ? 'AwardApproved' : 'AwardRejected';
           if (subject.requester_user_id) await createNotification(db, subject.requester_user_id, notificationType,
-            `Award request ${input.decision.toLowerCase()}`, input.reason || `Your request was ${input.decision.toLowerCase()}.`, 'Award', id);
-          if (input.decision === 'Approved' && subject.recipient_user_id)
+            `Award request ${outcome.toLowerCase()}`, input.reason || `Your request is ${outcome}.`, 'Award', id);
+          if (outcome === 'Approved' && subject.recipient_user_id)
             await createNotification(db, subject.recipient_user_id, 'SparksCredited', 'Sparks credited',
               'An approved award was credited to your balance.', 'Award', id);
-          await enqueueOutbox(db, `Award${input.decision}`, 'Award', id, { decision: input.decision });
-          await writeAudit(db, { actorUserId: principal.userId, action: `AWARD_${input.decision.toUpperCase()}`,
-            objectType: 'Award', objectId: id, reason: input.reason, after: { status: input.decision },
+          await enqueueOutbox(db, `Award${outcome}`, 'Award', id, { decision: outcome });
+          await writeAudit(db, { actorUserId: principal.userId, action: `AWARD_${outcome.toUpperCase()}`,
+            objectType: 'Award', objectId: id, reason: input.reason, after: { status: outcome },
             requestId: request.id, ip: request.ip, userAgent: request.headers['user-agent'] });
-          return { id, status: input.decision };
+          return { id, status: outcome };
         });
       return sendIdempotent(reply, result);
     });
@@ -783,6 +817,15 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
           return response;
         });
       return sendIdempotent(reply, result);
+    });
+    protectedApp.post('/api/v1/disenchant-requests/:id/cancel', async (request, reply) => {
+      const principal = principalOf(request);
+      const { id } = z.object({ id: idSchema }).parse(request.params);
+      const input = jsonBody(z.object({ reason: z.string().trim().min(3).max(500) }), request);
+      const result = await withIdempotency(app.db, principal.userId, `disenchant:${id}:cancel`,
+        idempotencyKey(request), input, 200,
+        (db) => cancelDisenchantRequest(db, principal, id, input.reason));
+      return sendIdempotent(reply, { ...result, value: disenchantResponse(result.value as Record<string, any>) });
     });
     protectedApp.get('/api/v1/me/disenchant-requests', async (request) => {
       const principal = principalOf(request);
@@ -1030,7 +1073,7 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
         departmentId: idSchema.nullable().optional(), managerId: idSchema.nullable().optional(),
         status: z.enum(['Planned','Active','Completed','Archived']).default('Active'), active: z.boolean().default(true),
         members: z.array(z.object({ employeeId: idSchema, responsibility: z.string().max(100).default('Member'),
-          workedHours: z.number().nonnegative().default(0) })).default([]),
+          workedHours: z.number().nonnegative().default(0) })).max(500).default([]),
       });
       const saveProject = async (request: FastifyRequest) => {
         const principal = principalOf(request);
@@ -1048,9 +1091,14 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
             (id,code,name,description,department_id,manager_employee_id,status,is_active)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, [id, `PROJECT-${id.slice(0,8)}`, input.name.trim(),
             input.description?.trim() ?? null, input.departmentId ?? null, input.managerId ?? null, input.status, input.active]);
-          for (const member of input.members) await db.query(`INSERT INTO app.project_members
-            (id,project_id,employee_id,member_role,worked_hours) VALUES ($1,$2,$3,$4,$5)`, [
-            randomUUID(), id, member.employeeId, member.responsibility, member.workedHours,
+          if (input.members.length) await db.query(`INSERT INTO app.project_members
+            (id,project_id,employee_id,member_role,worked_hours)
+            SELECT gen_random_uuid(),$1,member.employee_id,member.member_role,member.worked_hours
+            FROM unnest($2::uuid[],$3::text[],$4::numeric[]) AS member(employee_id,member_role,worked_hours)`, [
+            id,
+            input.members.map((member) => member.employeeId),
+            input.members.map((member) => member.responsibility),
+            input.members.map((member) => member.workedHours),
           ]);
           await writeAudit(db, { actorUserId: principal.userId, action: routeId ? 'PROJECT_UPDATED' : 'PROJECT_CREATED',
             objectType: 'Project', objectId: id, after: input, requestId: request.id, ip: request.ip,
@@ -1070,6 +1118,18 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       const shopAdminGet = async () => withTransaction(app.db, shopAdminSnapshot, { readOnly: true });
       adminApp.get('/api/v1/admin/shop', shopAdminGet);
       adminApp.get('/api/shop/admin', shopAdminGet);
+      adminApp.get('/api/v1/admin/shop/:collection', async (request) => {
+        const { collection } = z.object({ collection: z.enum(['products','purchases','balances','fulfillments']) })
+          .parse(request.params);
+        const query = pagination(request, 50);
+        const valueKeys = {
+          products: 'createdAt', purchases: 'createdAt', balances: 'updatedAt', fulfillments: 'requestedAt',
+        } as const;
+        const values = await withTransaction(app.db,
+          (db) => listShopAdminCollection(db, collection, query.limit, query.cursor), { readOnly: true });
+        return cursorPage(values as Array<Record<string, unknown>>, query.limit, valueKeys[collection],
+          collection === 'balances' ? 'userId' : 'id');
+      });
       adminApp.get('/api/v1/admin/products', async () => (await shopAdminGet()).products);
       const productInput = z.object({
         id: idSchema.optional(), name: z.string().min(1).max(200), description: z.string().max(4000).default(''),
@@ -1106,10 +1166,11 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       adminApp.post('/api/v1/admin/products', saveProduct);
       adminApp.patch('/api/v1/admin/products/:id', saveProduct);
       adminApp.post('/api/shop/admin/products', saveProduct);
-      const deleteProduct = async (request: FastifyRequest) => {
+      const deleteProduct = async (request: FastifyRequest, reply: FastifyReply) => {
         const principal = principalOf(request);
         const { id } = z.object({ id: idSchema }).parse(request.params);
-        return withTransaction(app.db, async (db) => {
+        const result = await withIdempotency(app.db, principal.userId, `admin:product:${id}:delete`,
+          idempotencyKey(request), { id }, 200, async (db) => {
           const deleted = await deleteAdminProduct(db, principal, id);
           await writeAudit(db, {
             actorUserId: principal.userId,
@@ -1124,6 +1185,7 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
           });
           return shopAdminSnapshot(db);
         });
+        return sendIdempotent(reply, result);
       };
       adminApp.delete('/api/v1/admin/products/:id', deleteProduct);
       adminApp.delete('/api/shop/admin/products/:id', deleteProduct);
@@ -1146,7 +1208,7 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
         const principal = principalOf(request);
         const { id } = z.object({ id: idSchema }).parse(request.params);
         const input = jsonBody(z.object({
-          status: z.enum(['InProgress','Ordered','Ready','Delivered','Cancelled']),
+          status: z.enum(FULFILLMENT_TARGET_STATUSES),
           notes: z.string().trim().max(2000).optional(),
         }), request);
         const result = await withIdempotency(app.db, principal.userId, `reward-fulfillment:${id}:status`,
@@ -1155,11 +1217,58 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
               FROM app.reward_fulfillments fulfillment
               JOIN app.employees employee ON employee.id=fulfillment.recipient_employee_id
               WHERE fulfillment.id=$1 FOR UPDATE OF fulfillment`, [id]);
-            if (['Delivered','Cancelled'].includes(current.status))
-              throw conflict('FULFILLMENT_FINAL', 'A completed or cancelled fulfillment cannot be changed.');
+            const currentStatus = current.status as FulfillmentStatus;
+            if (!nextFulfillmentStatuses(currentStatus).includes(input.status))
+              throw conflict('FULFILLMENT_TRANSITION_INVALID',
+                `Reward fulfillment cannot move from ${currentStatus} to ${input.status}.`, {
+                  currentStatus,
+                  allowedStatuses: nextFulfillmentStatuses(currentStatus),
+                });
+            if (input.status === 'Cancelled' && current.source_type === 'ShopPurchase') {
+              const purchase = await one<any>(db, `SELECT purchase.*,item.product_id,item.product_version_id,
+                version.is_limited FROM app.purchases purchase
+                JOIN app.purchase_items item ON item.purchase_id=purchase.id
+                JOIN app.product_versions version ON version.id=item.product_version_id
+                WHERE purchase.id=$1 FOR UPDATE OF purchase`, [current.purchase_id]);
+              if (purchase.status !== 'Completed')
+                throw conflict('PURCHASE_ALREADY_CANCELLED', 'This purchase has already been cancelled.');
+              const usedInventory = await maybeOne<{ id: string }>(db, `SELECT id FROM app.inventory_items
+                WHERE purchase_item_id IN (SELECT id FROM app.purchase_items WHERE purchase_id=$1)
+                  AND status IN ('Active','Used') LIMIT 1 FOR UPDATE`, [purchase.id]);
+              if (usedInventory)
+                throw conflict('PURCHASE_ALREADY_USED', 'An activated or used reward cannot be cancelled.');
+              const originalEntry = await one<{ id: string | number }>(db, `SELECT id FROM app.spark_ledger_entries
+                WHERE operation_id=$1 AND amount<0 ORDER BY id LIMIT 1`, [purchase.spark_operation_id]);
+              const reversal = await postLedgerOperation(db, {
+                operationType: 'Reversal', actorUserId: principal.userId,
+                subjectEmployeeId: current.recipient_employee_id,
+                reversalOfOperationId: purchase.spark_operation_id,
+                sourceType: 'PurchaseCancellation', sourceId: purchase.id,
+                requestId: request.id, description: input.notes || 'Reward fulfillment cancelled.',
+                entries: [{ employeeId: current.recipient_employee_id,
+                  sparkType: purchase.total_price_spark_type,
+                  amount: Number(purchase.total_price_amount), entryKind: 'Reversal',
+                  relatedEntryId: Number(originalEntry.id), sourceType: 'PurchaseCancellation',
+                  sourceId: purchase.id, description: input.notes || 'Reward fulfillment cancelled.' }],
+              });
+              await db.query(`UPDATE app.purchases SET status='Cancelled',cancelled_at=clock_timestamp(),
+                cancelled_by_user_id=$2,cancellation_reason=$3,cancellation_operation_id=$4 WHERE id=$1`,
+              [purchase.id, principal.userId, input.notes || 'Reward fulfillment cancelled.', reversal.operationId]);
+              const revoked = await rows<{ id: string }>(db, `UPDATE app.inventory_items SET status='Revoked',
+                revoked_at=clock_timestamp() WHERE purchase_item_id IN
+                (SELECT id FROM app.purchase_items WHERE purchase_id=$1) AND status='Available' RETURNING id`, [purchase.id]);
+              for (const item of revoked) await db.query(`INSERT INTO app.inventory_events
+                (inventory_item_id,event_type,actor_user_id,details) VALUES ($1,'Revoked',$2,$3::jsonb)`,
+              [item.id, principal.userId, JSON.stringify({ reason: input.notes || 'Fulfillment cancelled' })]);
+              if (purchase.is_limited) await db.query(`INSERT INTO app.stock_movements
+                (product_id,product_version_id,quantity_delta,balance_after,reason,source_type,source_id,actor_user_id)
+                VALUES ($1,$2,1,0,'Reversal','PurchaseCancellation',$3,$4)`,
+              [purchase.product_id, purchase.product_version_id, purchase.id, principal.userId]);
+            }
             await db.query(`UPDATE app.reward_fulfillments SET status=$2,notes=COALESCE($3,notes),
               updated_by_user_id=$4,updated_at=clock_timestamp(),
-              completed_at=CASE WHEN $2='Delivered' THEN clock_timestamp() ELSE completed_at END WHERE id=$1`,
+              completed_at=CASE WHEN $2='Delivered' THEN clock_timestamp() ELSE completed_at END,
+              cancelled_at=CASE WHEN $2='Cancelled' THEN clock_timestamp() ELSE cancelled_at END WHERE id=$1`,
             [id, input.status, input.notes ?? null, principal.userId]);
             if (current.user_id) await createNotification(db, current.user_id, 'System',
               `Reward fulfillment ${input.status.toLowerCase()}`,
@@ -1344,12 +1453,11 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
           ) suggested_manager ON true
           LEFT JOIN LATERAL (SELECT value.* FROM app.access_requests value WHERE value.resulting_user_id=u.id ORDER BY requested_at DESC LIMIT 1) ar ON true
           ORDER BY ar.requested_at DESC NULLS LAST`);
-        const auditEvents = await rows<any>(app.db, `SELECT audit.id::text,account_user.id AS "accountId",
+        const auditEvents = await rows<any>(app.db, `SELECT audit.id::text,
           CASE audit.action WHEN 'ACCESS_REQUESTED' THEN 'REGISTRATION_SUBMITTED'
             WHEN 'MICROSOFT_ACCESS_REQUESTED' THEN 'REGISTRATION_SUBMITTED'
             WHEN 'ACCESS_APPROVED' THEN 'REGISTRATION_APPROVED'
             WHEN 'ACCESS_REJECTED' THEN 'REGISTRATION_REJECTED' ELSE audit.action END AS action,
-          COALESCE(actor_employee.id::text,actor_user_id::text,'system') AS "actorId",
           COALESCE(account_employee.display_name,
             CASE WHEN account_user.email::text ~* '^deleted[.].+@invalid[.]local$' THEN 'Deleted account'
                  ELSE account_user.email::text END,

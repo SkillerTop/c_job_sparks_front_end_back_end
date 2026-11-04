@@ -703,6 +703,21 @@ const demoSparkService = {
     return { request, snapshot: clone() };
   },
 
+  async cancelDisenchantRequest(employeeId: string, requestId: string, reason: string) {
+    await wait();
+    requireActor(employeeId, ['Employee', 'Coordinator']);
+    const request = database.disenchantRequests.find((item) => item.id === requestId && item.employeeId === employeeId);
+    if (!request) throw new Error('Disenchant request was not found.');
+    if (request.status !== 'Created') throw new Error('Only a request that has not been exported can be cancelled.');
+    if (reason.trim().length < 3) throw new Error('Add a short cancellation reason.');
+    request.status = 'Cancelled';
+    addTransaction({ employeeId, sparkType: request.sparkType, amount: request.amount,
+      transactionType: 'Credit', source: 'Disenchant', category: 'Disenchant cancellation',
+      description: reason.trim(), quarter: database.settings.currentQuarter, relatedRequestId: request.id });
+    addAudit('DISENCHANT_CANCELLED', employeeId, request.id, reason.trim());
+    return clone();
+  },
+
   async exportDisenchantRequests(actorId: string, requestIds: string[], exportReference: string) {
     await wait();
     requireActor(actorId, ['Administrator']);

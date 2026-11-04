@@ -515,6 +515,22 @@ test('Disenchant debits immediately and snapshots accounting terms', async () =>
   assert.equal((await snapshot()).disenchantRequests.find((item) => item.id === result.request.id).rate, 0.8);
   await assert.rejects(sparkService.disenchant('emp-alex', 'White', 0.5), /whole|integer/i);
 });
+test('Employee can cancel an unexported Disenchant request and receives an exact reversal', async () => {
+  const created = await sparkService.disenchant('emp-alex', 'White', 2);
+  const afterDebit = calculateBalances(created.snapshot.transactions, 'emp-alex').White;
+  const cancelled = await sparkService.cancelDisenchantRequest(
+    'emp-alex',
+    created.request.id,
+    'Payout is no longer needed.',
+  );
+  assert.equal(cancelled.disenchantRequests.find((item) => item.id === created.request.id).status, 'Cancelled');
+  assert.equal(calculateBalances(cancelled.transactions, 'emp-alex').White, afterDebit + 2);
+  assert.equal(cancelled.transactions.filter((item) => item.relatedRequestId === created.request.id).length, 2);
+  await assert.rejects(
+    sparkService.cancelDisenchantRequest('emp-alex', created.request.id, 'Try again'),
+    /not been exported/,
+  );
+});
 test('Administrator exports created Disenchant requests and only then marks them paid', async () => {
   const created = await sparkService.disenchant('emp-alex', 'White', 1);
   const exported = await sparkService.exportDisenchantRequests(ADMIN, [created.request.id], 'QA-DEMO-EXPORT');

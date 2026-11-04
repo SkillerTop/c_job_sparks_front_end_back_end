@@ -58,7 +58,7 @@ export interface ShopPurchase {
   productName: string;
   pricePaid: number;
   sparkTypePaid: SpendableSparkType | null;
-  status: 'Completed' | 'Refunded' | 'Failed';
+  status: 'Completed' | 'Cancelled' | 'Refunded' | 'Failed';
   createdAt: string;
 }
 
@@ -124,7 +124,11 @@ export interface ShopAdminState {
   balances: AdminBalance[];
   fulfillmentContacts: import('@/models').FulfillmentContact[];
   fulfillments: RewardFulfillment[];
+  pageInfo?: Record<ShopAdminCollection, { nextCursor: string | null; hasNext: boolean }>;
 }
+
+export type ShopAdminCollection = 'products' | 'purchases' | 'balances' | 'fulfillments';
+export interface CursorPage<T> { items: T[]; nextCursor: string | null; hasNext: boolean }
 
 export interface RewardFulfillment {
   id: string;

@@ -4,8 +4,12 @@ import { useAuth } from '@/controllers/AuthContext';
 import { useShop } from '@/controllers/ShopContext';
 import type {
   ProductDraft,
+  RewardFulfillment,
+  ShopAdminCollection,
   ShopAdminState,
   ShopProduct,
+  ShopPurchase,
+  AdminBalance,
   SpendableSparkType,
 } from '@/models/shop';
 import { shopService } from '@/services/shopService';
@@ -44,6 +48,7 @@ export function useShopAdminController() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState<ShopAdminCollection | null>(null);
   const [editing, setEditing] = useState<ProductDraft | null>(null);
   const [message, setMessage] = useState<ShopAdminMessage | null>(null);
   const [adjustUser, setAdjustUser] = useState('');
@@ -78,6 +83,30 @@ export function useShopAdminController() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const loadMore = async (collection: ShopAdminCollection) => {
+    const cursor = state?.pageInfo?.[collection].nextCursor;
+    if (!cursor || loadingMore) return;
+    setLoadingMore(collection);
+    try {
+      const page = await shopService.loadAdminCollection(collection, cursor, clientIdentity);
+      setState((current) => {
+        if (!current) return current;
+        const next = { ...current, pageInfo: { ...current.pageInfo!, [collection]: {
+          nextCursor: page.nextCursor, hasNext: page.hasNext,
+        } } };
+        if (collection === 'products') next.products = [...current.products, ...(page.items as ShopProduct[])];
+        else if (collection === 'purchases') next.purchases = [...current.purchases, ...(page.items as ShopPurchase[])];
+        else if (collection === 'balances') next.balances = [...current.balances, ...(page.items as AdminBalance[])];
+        else next.fulfillments = [...current.fulfillments, ...(page.items as RewardFulfillment[])];
+        return next;
+      });
+    } catch (error) {
+      setMessage({ tone: 'error', text: error instanceof Error ? error.message : 'Could not load more records.' });
+    } finally {
+      setLoadingMore(null);
+    }
+  };
 
   const previewProduct = useMemo<ShopProduct | null>(
     () =>
@@ -234,6 +263,7 @@ export function useShopAdminController() {
     loading,
     saving,
     uploading,
+    loadingMore,
     editing,
     setEditing,
     message,
@@ -252,5 +282,6 @@ export function useShopAdminController() {
     uploadImage,
     submitAdjustment,
     updateFulfillment,
+    loadMore,
   };
 }

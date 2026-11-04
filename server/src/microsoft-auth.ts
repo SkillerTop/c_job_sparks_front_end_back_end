@@ -793,7 +793,11 @@ export const completeMicrosoftLogin = async (
       (user_id,email,outcome,reason,ip_address,user_agent,request_id)
       VALUES ($1,$2,'Blocked','Microsoft access request is pending.',$3,$4,$5)`,
     [account.user_id, account.email, metadata.ip ?? null, metadata.userAgent ?? null, metadata.requestId ?? null]);
-    return { status: 'Pending' as const, email: identity.email, returnPath: authRequest.return_path };
+    return {
+      status: 'Pending' as const,
+      accessRequestId: accessRequest.id,
+      returnPath: authRequest.return_path,
+    };
   }
 
   if (account.account_status !== 'Approved')

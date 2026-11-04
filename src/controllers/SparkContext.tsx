@@ -40,6 +40,7 @@ interface SparkContextValue {
     type: Exclude<SparkType, 'Radiant'>,
     amount: number,
   ) => Promise<{ moneyValue: number; currency: string }>;
+  cancelDisenchantRequest: (requestId: string, reason: string) => Promise<void>;
   exportDisenchantRequests: (requestIds: string[], exportReference: string) => Promise<{ fileName: string; csv: string }>;
   markDisenchantPaid: (requestId: string) => Promise<void>;
   createMonthlyDisenchantReport: (reportMonth: string) => Promise<DisenchantReportResult>;
@@ -104,7 +105,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
   const section = sectionForPath(location.pathname);
 
   useEffect(() => {
-    if (identityError) logout();
+    if (identityError) void logout();
   }, [identityError, logout]);
 
   const refresh = useCallback(async () => {
@@ -255,6 +256,10 @@ export function SparkProvider({ children }: { children: ReactNode }) {
       updateSnapshot(result.snapshot);
       return { moneyValue: result.request.moneyValue, currency: result.request.currency };
     });
+  const cancelDisenchantRequest = (requestId: string, reason: string) =>
+    executeAuthorized(async () =>
+      updateSnapshot(await sparkService.cancelDisenchantRequest(currentUserId, requestId, reason)),
+    );
   const exportDisenchantRequests = (requestIds: string[], exportReference: string) =>
     executeAuthorized(async () => {
       const result = await sparkService.exportDisenchantRequests(currentUserId, requestIds, exportReference);
@@ -338,6 +343,7 @@ export function SparkProvider({ children }: { children: ReactNode }) {
       createAward,
       convert,
       disenchant,
+      cancelDisenchantRequest,
       exportDisenchantRequests,
       markDisenchantPaid,
       createMonthlyDisenchantReport,

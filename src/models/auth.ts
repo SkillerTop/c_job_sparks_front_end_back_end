@@ -49,14 +49,14 @@ export interface AuthUser {
 
 export interface AuthAuditEvent {
   id: string;
-  accountId: string;
+  accountId?: string;
   action:
     | 'REGISTRATION_SUBMITTED'
     | 'REGISTRATION_RESUBMITTED'
     | 'REGISTRATION_APPROVED'
     | 'REGISTRATION_REJECTED'
     | 'PASSWORD_CHANGED';
-  actorId: string;
+  actorId?: string;
   accountLabel?: string;
   actorLabel?: string;
   createdAt: string;
