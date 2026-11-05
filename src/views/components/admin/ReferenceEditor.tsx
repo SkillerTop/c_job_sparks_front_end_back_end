@@ -169,7 +169,7 @@ export function ReferenceEditor({
                     .map((coordinator) => {
                       const checked = (draft.data.coordinatorIds ?? []).includes(coordinator.id);
                       return (
-                        <label className={styles.checkField} key={coordinator.id}>
+                        <label className={styles.coordinatorOption} key={coordinator.id}>
                           <input
                             type="checkbox"
                             checked={checked}
@@ -180,7 +180,11 @@ export function ReferenceEditor({
                                 : current.filter((id) => id !== coordinator.id));
                             }}
                           />
-                          <span>{coordinator.name}</span>
+                          <span className={styles.coordinatorIdentity}>
+                            <strong>{coordinator.name}</strong>
+                            <small>{coordinator.title || coordinator.email}</small>
+                          </span>
+                          <span className={styles.coordinatorRole}><LocalizedText>Coordinator</LocalizedText></span>
                         </label>
                       );
                     })}
