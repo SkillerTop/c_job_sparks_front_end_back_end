@@ -34,7 +34,7 @@ interface Category {
   name: string;
 }
 
-test('all six roles complete their real server-backed business scenarios', async ({ page }) => {
+test('all seven roles complete their real server-backed business scenarios', async ({ page }) => {
   let recognitionId = '';
   const awardIds: string[] = [];
 
@@ -125,6 +125,26 @@ test('all six roles complete their real server-backed business scenarios', async
     expect(award).toMatchObject({ status: 'Approved', sparkType: 'Radiant' });
     await page.goto('/award');
     await expect(page.locator('main')).toBeVisible();
+  });
+
+  await test.step('Office Manager starts reward fulfillment', async () => {
+    await signIn(page, 'mariya.petrenko@c-job.test');
+    const pageResult = await api<{ items: Array<{ id: string; status: string }> }>(
+      page,
+      'GET',
+      '/api/v1/reward-fulfillments?limit=50',
+    );
+    const requested = pageResult.items.find((item) => item.status === 'Requested');
+    expect(requested).toBeTruthy();
+    const updated = await api<{ id: string; status: string }>(
+      page,
+      'POST',
+      `/api/v1/reward-fulfillments/${requested!.id}/status`,
+      { status: 'InProgress', notes: 'E2E: office manager accepted the request.' },
+    );
+    expect(updated.status).toBe('InProgress');
+    await page.goto('/fulfillment');
+    await expect(page.getByRole('heading', { name: 'Reward fulfillment' })).toBeVisible();
   });
 
   await test.step('Administrator performs an audited adjustment and pages audit history', async () => {

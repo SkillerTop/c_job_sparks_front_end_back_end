@@ -18,6 +18,7 @@ const MICROSOFT_APP_ROLE_TO_BUSINESS_ROLE = {
   'CJob.GPM': 'GPM',
   'CJob.Head': 'Head',
   'CJob.TopManagement': 'Top Management',
+  'CJob.OfficeManager': 'Office Manager',
   'CJob.Administrator': 'Administrator',
 } as const;
 

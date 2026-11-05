@@ -160,6 +160,35 @@ export function ReferenceEditor({
                   ariaLabel="Reports to"
                 />
               </label>
+              <fieldset className={`${styles.formField} ${styles.fieldFull}`}>
+                <legend><LocalizedText>Assigned coordinators</LocalizedText></legend>
+                <small><LocalizedText>Choose one or more active coordinators for this employee.</LocalizedText></small>
+                <div className={styles.multiCheckGrid}>
+                  {snapshot.employees
+                    .filter((employee) => employee.active && employee.role === 'Coordinator' && employee.id !== draft.data.id)
+                    .map((coordinator) => {
+                      const checked = (draft.data.coordinatorIds ?? []).includes(coordinator.id);
+                      return (
+                        <label className={styles.checkField} key={coordinator.id}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(event) => {
+                              const current = draft.data.coordinatorIds ?? [];
+                              update('coordinatorIds', event.target.checked
+                                ? [...new Set([...current, coordinator.id])]
+                                : current.filter((id) => id !== coordinator.id));
+                            }}
+                          />
+                          <span>{coordinator.name}</span>
+                        </label>
+                      );
+                    })}
+                  {snapshot.employees.every((employee) => !employee.active || employee.role !== 'Coordinator' || employee.id === draft.data.id) && (
+                    <small><LocalizedText>No active coordinators are available.</LocalizedText></small>
+                  )}
+                </div>
+              </fieldset>
               <label className={`${styles.checkField} ${styles.fieldFull}`}>
                 <input
                   type="checkbox"

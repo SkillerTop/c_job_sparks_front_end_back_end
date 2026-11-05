@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { PoolClient } from 'pg';
 import { z } from 'zod';
 import type { Environment } from './config/env.js';
 import {
@@ -69,7 +70,7 @@ import {
 
 const emailSchema = z.string().email().max(320).transform((value) => value.trim().toLowerCase());
 const idSchema = z.string().uuid();
-const roleSchema = z.enum(['Employee','Coordinator','GPM','Head','Top Management','Administrator']);
+const roleSchema = z.enum(['Employee','Coordinator','GPM','Head','Top Management','Office Manager','Administrator']);
 const employeeInput = z.object({
   id: z.string().uuid().or(z.literal('')).optional(),
   name: z.string().trim().min(1).max(200),
@@ -80,6 +81,7 @@ const employeeInput = z.object({
   active: z.boolean(),
   hasCoordinationExperience: z.boolean().optional(),
   managerId: idSchema.optional(),
+  coordinatorIds: z.array(idSchema).max(20).default([]),
 });
 const accessApprovalEmployeeInput = employeeInput.pick({
   name: true,
@@ -87,7 +89,42 @@ const accessApprovalEmployeeInput = employeeInput.pick({
   departmentId: true,
   role: true,
   managerId: true,
+  coordinatorIds: true,
 });
+
+const replaceEmployeeCoordinators = async (
+  db: PoolClient,
+  employeeId: string,
+  coordinatorIds: readonly string[],
+) => {
+  const uniqueIds = [...new Set(coordinatorIds)];
+  if (uniqueIds.includes(employeeId))
+    throw badRequest('INVALID_COORDINATOR', 'An employee cannot coordinate themselves.');
+  if (uniqueIds.length) {
+    const valid = await rows<{ id: string }>(db, `
+      SELECT employee.id
+        FROM app.employees employee
+        LEFT JOIN app.users account_user ON account_user.id=employee.user_id
+        LEFT JOIN LATERAL (
+          SELECT role.code
+            FROM app.role_assignments assignment
+            JOIN app.roles role ON role.id=assignment.role_id
+           WHERE assignment.user_id=account_user.id
+             AND assignment.starts_at<=clock_timestamp()
+             AND (assignment.ends_at IS NULL OR assignment.ends_at>clock_timestamp())
+           ORDER BY assignment.starts_at DESC LIMIT 1
+        ) active_role ON true
+       WHERE employee.id=ANY($1::uuid[])
+         AND employee.is_active
+         AND COALESCE(active_role.code,employee.provisioned_role_code)='Coordinator'`, [uniqueIds]);
+    if (valid.length !== uniqueIds.length)
+      throw badRequest('INVALID_COORDINATOR', 'Choose only active employees with the Coordinator role.');
+  }
+  await db.query(`DELETE FROM app.employee_coordinators WHERE employee_id=$1`, [employeeId]);
+  if (uniqueIds.length)
+    await db.query(`INSERT INTO app.employee_coordinators (employee_id,coordinator_employee_id)
+      SELECT $1,value FROM unnest($2::uuid[]) value`, [employeeId, uniqueIds]);
+};
 const performanceRewardTierSchema = z.object({
   minimum: z.number().finite().nonnegative().max(1000),
   reward: z.number().int().nonnegative().max(100),
@@ -1050,11 +1087,104 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       return { updated: true };
     });
 
+    const listOperationalFulfillments = async (request: FastifyRequest) => {
+      requireRole(principalOf(request), ['Office Manager', 'Administrator']);
+      const query = pagination(request, 50);
+      const values = await withTransaction(app.db,
+        (db) => listShopAdminCollection(db, 'fulfillments', query.limit, query.cursor), { readOnly: true });
+      return cursorPage(values as Array<Record<string, unknown>>, query.limit, 'requestedAt');
+    };
+
+    const updateRewardFulfillment = async (request: FastifyRequest, reply: FastifyReply) => {
+      const principal = requireRole(principalOf(request), ['Office Manager', 'Administrator']);
+      const { id } = z.object({ id: idSchema }).parse(request.params);
+      const input = jsonBody(z.object({
+        status: z.enum(FULFILLMENT_TARGET_STATUSES),
+        notes: z.string().trim().max(2000).optional(),
+      }), request);
+      const result = await withIdempotency(app.db, principal.userId, `reward-fulfillment:${id}:status`,
+        idempotencyKey(request), input, 200, async (db) => {
+          const current = await one<any>(db, `SELECT fulfillment.*,employee.user_id
+            FROM app.reward_fulfillments fulfillment
+            JOIN app.employees employee ON employee.id=fulfillment.recipient_employee_id
+            WHERE fulfillment.id=$1 FOR UPDATE OF fulfillment`, [id]);
+          const currentStatus = current.status as FulfillmentStatus;
+          if (!nextFulfillmentStatuses(currentStatus).includes(input.status))
+            throw conflict('FULFILLMENT_TRANSITION_INVALID',
+              `Reward fulfillment cannot move from ${currentStatus} to ${input.status}.`, {
+                currentStatus,
+                allowedStatuses: nextFulfillmentStatuses(currentStatus),
+              });
+          if (input.status === 'Cancelled' && current.source_type === 'ShopPurchase') {
+            const purchase = await one<any>(db, `SELECT purchase.*,item.product_id,item.product_version_id,
+              version.is_limited FROM app.purchases purchase
+              JOIN app.purchase_items item ON item.purchase_id=purchase.id
+              JOIN app.product_versions version ON version.id=item.product_version_id
+              WHERE purchase.id=$1 FOR UPDATE OF purchase`, [current.purchase_id]);
+            if (purchase.status !== 'Completed')
+              throw conflict('PURCHASE_ALREADY_CANCELLED', 'This purchase has already been cancelled.');
+            const usedInventory = await maybeOne<{ id: string }>(db, `SELECT id FROM app.inventory_items
+              WHERE purchase_item_id IN (SELECT id FROM app.purchase_items WHERE purchase_id=$1)
+                AND status IN ('Active','Used') LIMIT 1 FOR UPDATE`, [purchase.id]);
+            if (usedInventory)
+              throw conflict('PURCHASE_ALREADY_USED', 'An activated or used reward cannot be cancelled.');
+            const originalEntry = await one<{ id: string | number }>(db, `SELECT id FROM app.spark_ledger_entries
+              WHERE operation_id=$1 AND amount<0 ORDER BY id LIMIT 1`, [purchase.spark_operation_id]);
+            const reversal = await postLedgerOperation(db, {
+              operationType: 'Reversal', actorUserId: principal.userId,
+              subjectEmployeeId: current.recipient_employee_id,
+              reversalOfOperationId: purchase.spark_operation_id,
+              sourceType: 'PurchaseCancellation', sourceId: purchase.id,
+              requestId: request.id, description: input.notes || 'Reward fulfillment cancelled.',
+              entries: [{ employeeId: current.recipient_employee_id,
+                sparkType: purchase.total_price_spark_type,
+                amount: Number(purchase.total_price_amount), entryKind: 'Reversal',
+                relatedEntryId: Number(originalEntry.id), sourceType: 'PurchaseCancellation',
+                sourceId: purchase.id, description: input.notes || 'Reward fulfillment cancelled.' }],
+            });
+            await db.query(`UPDATE app.purchases SET status='Cancelled',cancelled_at=clock_timestamp(),
+              cancelled_by_user_id=$2,cancellation_reason=$3,cancellation_operation_id=$4 WHERE id=$1`,
+            [purchase.id, principal.userId, input.notes || 'Reward fulfillment cancelled.', reversal.operationId]);
+            const revoked = await rows<{ id: string }>(db, `UPDATE app.inventory_items SET status='Revoked',
+              revoked_at=clock_timestamp() WHERE purchase_item_id IN
+              (SELECT id FROM app.purchase_items WHERE purchase_id=$1) AND status='Available' RETURNING id`, [purchase.id]);
+            for (const item of revoked) await db.query(`INSERT INTO app.inventory_events
+              (inventory_item_id,event_type,actor_user_id,details) VALUES ($1,'Revoked',$2,$3::jsonb)`,
+            [item.id, principal.userId, JSON.stringify({ reason: input.notes || 'Fulfillment cancelled' })]);
+            if (purchase.is_limited) await db.query(`INSERT INTO app.stock_movements
+              (product_id,product_version_id,quantity_delta,balance_after,reason,source_type,source_id,actor_user_id)
+              VALUES ($1,$2,1,0,'Reversal','PurchaseCancellation',$3,$4)`,
+            [purchase.product_id, purchase.product_version_id, purchase.id, principal.userId]);
+          }
+          await db.query(`UPDATE app.reward_fulfillments SET status=$2,notes=COALESCE($3,notes),
+            updated_by_user_id=$4,updated_at=clock_timestamp(),
+            completed_at=CASE WHEN $2='Delivered' THEN clock_timestamp() ELSE completed_at END,
+            cancelled_at=CASE WHEN $2='Cancelled' THEN clock_timestamp() ELSE cancelled_at END WHERE id=$1`,
+          [id, input.status, input.notes ?? null, principal.userId]);
+          if (current.user_id) await createNotification(db, current.user_id, 'System',
+            `Reward fulfillment ${input.status.toLowerCase()}`,
+            input.notes || `Your reward fulfillment is now ${input.status}.`, 'RewardFulfillment', id);
+          await enqueueOutbox(db, 'RewardFulfillmentStatusChanged', 'RewardFulfillment', id, {
+            previousStatus: current.status, status: input.status, notes: input.notes ?? null,
+          });
+          await writeAudit(db, { actorUserId: principal.userId, action: 'REWARD_FULFILLMENT_STATUS_CHANGED',
+            objectType: 'RewardFulfillment', objectId: id, before: { status: current.status }, after: input,
+            requestId: request.id, ip: request.ip, userAgent: request.headers['user-agent'] });
+          return { id, status: input.status };
+        });
+      return sendIdempotent(reply, result);
+    };
+
+    protectedApp.get('/api/v1/reward-fulfillments', listOperationalFulfillments);
+    protectedApp.post('/api/v1/reward-fulfillments/:id/status', updateRewardFulfillment);
+
     await protectedApp.register(async (adminApp) => {
       adminApp.addHook('preHandler', async (request) => { requireRole(principalOf(request), ['Administrator']); });
       adminApp.get('/api/v1/admin/employees', async () => rows<any>(app.db, `SELECT employee.id,employee.display_name AS name,
         COALESCE(position.title,'') AS title,employee.department_id,employee.manager_employee_id,employee.is_active,
-        COALESCE(employee.contact_email,account_user.email)::text AS email,COALESCE(role.code,employee.provisioned_role_code) AS role
+        COALESCE(employee.contact_email,account_user.email)::text AS email,COALESCE(role.code,employee.provisioned_role_code) AS role,
+        ARRAY(SELECT assignment.coordinator_employee_id::text FROM app.employee_coordinators assignment
+          WHERE assignment.employee_id=employee.id ORDER BY assignment.coordinator_employee_id) AS coordinator_ids
         FROM app.employees employee LEFT JOIN app.users account_user ON account_user.id=employee.user_id
         LEFT JOIN app.positions position ON position.id=employee.position_id
         LEFT JOIN LATERAL (SELECT value.code FROM app.role_assignments assignment JOIN app.roles value ON value.id=assignment.role_id
@@ -1204,85 +1334,7 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       adminApp.post('/api/v1/admin/products/images', uploadProductImage);
       adminApp.post('/api/shop/admin/images', uploadProductImage);
       adminApp.get('/api/v1/admin/reward-fulfillments', async () => listRewardFulfillments(app.db));
-      adminApp.post('/api/v1/admin/reward-fulfillments/:id/status', async (request, reply) => {
-        const principal = principalOf(request);
-        const { id } = z.object({ id: idSchema }).parse(request.params);
-        const input = jsonBody(z.object({
-          status: z.enum(FULFILLMENT_TARGET_STATUSES),
-          notes: z.string().trim().max(2000).optional(),
-        }), request);
-        const result = await withIdempotency(app.db, principal.userId, `reward-fulfillment:${id}:status`,
-          idempotencyKey(request), input, 200, async (db) => {
-            const current = await one<any>(db, `SELECT fulfillment.*,employee.user_id
-              FROM app.reward_fulfillments fulfillment
-              JOIN app.employees employee ON employee.id=fulfillment.recipient_employee_id
-              WHERE fulfillment.id=$1 FOR UPDATE OF fulfillment`, [id]);
-            const currentStatus = current.status as FulfillmentStatus;
-            if (!nextFulfillmentStatuses(currentStatus).includes(input.status))
-              throw conflict('FULFILLMENT_TRANSITION_INVALID',
-                `Reward fulfillment cannot move from ${currentStatus} to ${input.status}.`, {
-                  currentStatus,
-                  allowedStatuses: nextFulfillmentStatuses(currentStatus),
-                });
-            if (input.status === 'Cancelled' && current.source_type === 'ShopPurchase') {
-              const purchase = await one<any>(db, `SELECT purchase.*,item.product_id,item.product_version_id,
-                version.is_limited FROM app.purchases purchase
-                JOIN app.purchase_items item ON item.purchase_id=purchase.id
-                JOIN app.product_versions version ON version.id=item.product_version_id
-                WHERE purchase.id=$1 FOR UPDATE OF purchase`, [current.purchase_id]);
-              if (purchase.status !== 'Completed')
-                throw conflict('PURCHASE_ALREADY_CANCELLED', 'This purchase has already been cancelled.');
-              const usedInventory = await maybeOne<{ id: string }>(db, `SELECT id FROM app.inventory_items
-                WHERE purchase_item_id IN (SELECT id FROM app.purchase_items WHERE purchase_id=$1)
-                  AND status IN ('Active','Used') LIMIT 1 FOR UPDATE`, [purchase.id]);
-              if (usedInventory)
-                throw conflict('PURCHASE_ALREADY_USED', 'An activated or used reward cannot be cancelled.');
-              const originalEntry = await one<{ id: string | number }>(db, `SELECT id FROM app.spark_ledger_entries
-                WHERE operation_id=$1 AND amount<0 ORDER BY id LIMIT 1`, [purchase.spark_operation_id]);
-              const reversal = await postLedgerOperation(db, {
-                operationType: 'Reversal', actorUserId: principal.userId,
-                subjectEmployeeId: current.recipient_employee_id,
-                reversalOfOperationId: purchase.spark_operation_id,
-                sourceType: 'PurchaseCancellation', sourceId: purchase.id,
-                requestId: request.id, description: input.notes || 'Reward fulfillment cancelled.',
-                entries: [{ employeeId: current.recipient_employee_id,
-                  sparkType: purchase.total_price_spark_type,
-                  amount: Number(purchase.total_price_amount), entryKind: 'Reversal',
-                  relatedEntryId: Number(originalEntry.id), sourceType: 'PurchaseCancellation',
-                  sourceId: purchase.id, description: input.notes || 'Reward fulfillment cancelled.' }],
-              });
-              await db.query(`UPDATE app.purchases SET status='Cancelled',cancelled_at=clock_timestamp(),
-                cancelled_by_user_id=$2,cancellation_reason=$3,cancellation_operation_id=$4 WHERE id=$1`,
-              [purchase.id, principal.userId, input.notes || 'Reward fulfillment cancelled.', reversal.operationId]);
-              const revoked = await rows<{ id: string }>(db, `UPDATE app.inventory_items SET status='Revoked',
-                revoked_at=clock_timestamp() WHERE purchase_item_id IN
-                (SELECT id FROM app.purchase_items WHERE purchase_id=$1) AND status='Available' RETURNING id`, [purchase.id]);
-              for (const item of revoked) await db.query(`INSERT INTO app.inventory_events
-                (inventory_item_id,event_type,actor_user_id,details) VALUES ($1,'Revoked',$2,$3::jsonb)`,
-              [item.id, principal.userId, JSON.stringify({ reason: input.notes || 'Fulfillment cancelled' })]);
-              if (purchase.is_limited) await db.query(`INSERT INTO app.stock_movements
-                (product_id,product_version_id,quantity_delta,balance_after,reason,source_type,source_id,actor_user_id)
-                VALUES ($1,$2,1,0,'Reversal','PurchaseCancellation',$3,$4)`,
-              [purchase.product_id, purchase.product_version_id, purchase.id, principal.userId]);
-            }
-            await db.query(`UPDATE app.reward_fulfillments SET status=$2,notes=COALESCE($3,notes),
-              updated_by_user_id=$4,updated_at=clock_timestamp(),
-              completed_at=CASE WHEN $2='Delivered' THEN clock_timestamp() ELSE completed_at END,
-              cancelled_at=CASE WHEN $2='Cancelled' THEN clock_timestamp() ELSE cancelled_at END WHERE id=$1`,
-            [id, input.status, input.notes ?? null, principal.userId]);
-            if (current.user_id) await createNotification(db, current.user_id, 'System',
-              `Reward fulfillment ${input.status.toLowerCase()}`,
-              input.notes || `Your reward fulfillment is now ${input.status}.`, 'RewardFulfillment', id);
-            await enqueueOutbox(db, 'RewardFulfillmentStatusChanged', 'RewardFulfillment', id, {
-              previousStatus: current.status, status: input.status, notes: input.notes ?? null,
-            });
-            await writeAudit(db, { actorUserId: principal.userId, action: 'REWARD_FULFILLMENT_STATUS_CHANGED',
-              objectType: 'RewardFulfillment', objectId: id, before: { status: current.status }, after: input,
-              requestId: request.id, ip: request.ip, userAgent: request.headers['user-agent'] });
-            return { id, status: input.status };
-          });
-        return sendIdempotent(reply, result);
-      });
+      adminApp.post('/api/v1/admin/reward-fulfillments/:id/status', updateRewardFulfillment);
       adminApp.get('/api/v1/admin/disenchant-reports', async () => rows<any>(app.db, `
         SELECT report.*,department.name AS department_name,count(item.disenchant_request_id)::int AS item_count,
                COALESCE(sum(item.money_amount),0)::numeric(18,2) AS money_total
@@ -1493,11 +1545,15 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
             ORDER BY requested_at DESC LIMIT 1 FOR UPDATE`, [id]).catch(() => { throw notFound('Pending access request'); });
           const account = await one<{ email: string; auth_provider: 'local' | 'entra' }>(db,
             `SELECT email::text,auth_provider FROM app.users WHERE id=$1 FOR UPDATE`, [id]);
-          let employee = await maybeOne<any>(db, `SELECT employee.*,COALESCE(position.title,'') AS title
+          let employee = await maybeOne<any>(db, `SELECT employee.*,COALESCE(position.title,'') AS title,
+            ARRAY(SELECT assignment.coordinator_employee_id::text FROM app.employee_coordinators assignment
+              WHERE assignment.employee_id=employee.id ORDER BY assignment.coordinator_employee_id) AS coordinator_ids
             FROM app.employees employee LEFT JOIN app.positions position ON position.id=employee.position_id
             WHERE employee.user_id=$1 FOR UPDATE OF employee`, [id]);
           if (!employee)
-            employee = await maybeOne<any>(db, `SELECT employee.*,COALESCE(position.title,'') AS title
+            employee = await maybeOne<any>(db, `SELECT employee.*,COALESCE(position.title,'') AS title,
+              ARRAY(SELECT assignment.coordinator_employee_id::text FROM app.employee_coordinators assignment
+                WHERE assignment.employee_id=employee.id ORDER BY assignment.coordinator_employee_id) AS coordinator_ids
               FROM app.employees employee LEFT JOIN app.positions position ON position.id=employee.position_id
               WHERE lower(employee.contact_email::text)=lower($1) FOR UPDATE OF employee`, [account.email]);
           const employeeBefore = employee ? { ...employee } : undefined;
@@ -1514,6 +1570,7 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
               departmentId: employee.department_id,
               role: employee.provisioned_role_code,
               managerId: employee.manager_employee_id ?? undefined,
+              coordinatorIds: employee.coordinator_ids ?? [],
             };
             const department = await maybeOne<{ id: string }>(db,
               `SELECT id FROM app.departments WHERE id=$1 AND is_active`, [profile.departmentId]);
@@ -1557,6 +1614,9 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
             await db.query(`INSERT INTO app.spark_accounts (employee_id,spark_type)
               SELECT $1,value FROM unnest(ARRAY['White','Yellow','Blue','Radiant']::text[]) value
               ON CONFLICT (employee_id,spark_type) DO NOTHING`, [employeeId]);
+            await replaceEmployeeCoordinators(db, employeeId, profile.coordinatorIds ?? []);
+            if (profile.role !== 'Coordinator')
+              await db.query(`DELETE FROM app.employee_coordinators WHERE coordinator_employee_id=$1`, [employeeId]);
             await db.query(`UPDATE app.access_requests SET first_name=$2,last_name=$3,
               employee_number=(SELECT employee_number FROM app.employees WHERE id=$4),requested_department_id=$5
               WHERE id=$1`, [access.id, firstName, lastName, employeeId, profile.departmentId]);
@@ -1654,6 +1714,9 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
               [employeeId, `EMP-${employeeId.slice(0,8)}`, firstName, lastName, input.name.trim(), input.email,
                 input.departmentId, positionId, input.managerId ?? null, input.active, input.role]);
           }
+          await replaceEmployeeCoordinators(db, employeeId, input.coordinatorIds);
+          if (input.role !== 'Coordinator')
+            await db.query(`DELETE FROM app.employee_coordinators WHERE coordinator_employee_id=$1`, [employeeId]);
           await writeAudit(db, { actorUserId: principal.userId, action: existing ? 'EMPLOYEE_UPDATED' : 'EMPLOYEE_CREATED',
             objectType: 'Employee', objectId: employeeId, before: existing ?? undefined, after: input,
             requestId: request.id, ip: request.ip, userAgent: request.headers['user-agent'] });
@@ -1708,6 +1771,8 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
             reason: 'Deleted from Employee Directory', requestId: request.id, ip: request.ip,
             userAgent: request.headers['user-agent'] });
           await db.query(`DELETE FROM app.project_members WHERE employee_id=$1`, [id]);
+          await db.query(`DELETE FROM app.employee_coordinators
+            WHERE employee_id=$1 OR coordinator_employee_id=$1`, [id]);
           if (history.exists) {
             await db.query(`UPDATE app.departments SET head_employee_id=NULL WHERE head_employee_id=$1`, [id]);
             await db.query(`UPDATE app.projects SET manager_employee_id=NULL WHERE manager_employee_id=$1`, [id]);

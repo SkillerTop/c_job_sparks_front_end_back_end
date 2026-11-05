@@ -1,4 +1,4 @@
-export type Role = 'Employee' | 'Coordinator' | 'GPM' | 'Head' | 'Top Management' | 'Administrator';
+export type Role = 'Employee' | 'Coordinator' | 'GPM' | 'Head' | 'Top Management' | 'Office Manager' | 'Administrator';
 export type SparkType = 'White' | 'Yellow' | 'Blue' | 'Radiant';
 export type SparkBalances = Record<SparkType, number>;
 export type RequestStatus = 'Pending' | 'Approved' | 'Rejected';
@@ -24,6 +24,7 @@ export interface Employee {
   managerId?: string;
   managerName?: string;
   managerEmail?: string;
+  coordinatorIds?: string[];
 }
 
 export interface ProjectTeamMember {

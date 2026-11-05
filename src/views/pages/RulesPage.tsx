@@ -135,10 +135,6 @@ export function RulesPage() {
               <LocalizedText>Employees, Coordinators and GPMs start with </LocalizedText>{settings.peerBaseLimit} <LocalizedText>peer nominations per
               quarter. Heads and Top Management use their award workspaces instead.
             </LocalizedText></li>
-            <li>
-              <LocalizedText>A Coordinator receives one extra nomination for every </LocalizedText>{settings.coordinatorTeamMultiplier}{' '}
-              <LocalizedText>active colleagues in their project team(s).
-            </LocalizedText></li>
             <li><LocalizedText>Recipients are active Employees, Coordinators or GPMs; self-recognition is blocked.</LocalizedText></li>
             <li><LocalizedText>Pending requests reserve a nomination. Rejection releases it.</LocalizedText></li>
             <li><LocalizedText>Unused peer recognition expires on the last day of each quarter.</LocalizedText></li>
@@ -166,22 +162,21 @@ export function RulesPage() {
             <div>
               <dt><LocalizedText>Coordinator</LocalizedText></dt>
               <dd>
-                <LocalizedText>Department team view plus Yellow award requests only for colleagues in a shared active project
-                who have recorded project hours.
+                <LocalizedText>Peer recognition with department filtering plus Yellow award requests only for colleagues in a shared active project who have recorded project hours.
               </LocalizedText></dd>
             </div>
             <div>
               <dt><LocalizedText>GPM</LocalizedText></dt>
               <dd>
                 <LocalizedText>Company-wide team view and White/Yellow award requests. GPM White allocation is based on active
-                Coordinators and registrars under their control. GPMs can also review company achievements.
+                Coordinators and registrars under their control. GPMs can also review company achievements and browse the Reward Shop in view-only mode.
               </LocalizedText></dd>
             </div>
             <div>
               <dt><LocalizedText>Head</LocalizedText></dt>
               <dd>
                 <LocalizedText>Department approvals, direct White/Yellow/Blue awards, Quality Gates and the monthly
-                Accounting list.
+                Accounting list, plus view-only Reward Shop access.
               </LocalizedText></dd>
             </div>
             <div>
@@ -189,8 +184,12 @@ export function RulesPage() {
               <dd><LocalizedText>Company-wide Radiant awards, company achievements and read-only Reward Shop access.</LocalizedText></dd>
             </div>
             <div>
+              <dt><LocalizedText>Office Manager</LocalizedText></dt>
+              <dd><LocalizedText>Reward fulfillment status management and view-only Reward Shop access.</LocalizedText></dd>
+            </div>
+            <div>
               <dt><LocalizedText>Administrator</LocalizedText></dt>
-              <dd><LocalizedText>Admin settings and company achievement oversight; administrative access gives no award rights.</LocalizedText></dd>
+              <dd><LocalizedText>Admin settings, company achievement oversight and view-only Reward Shop access; administrative access gives no award rights.</LocalizedText></dd>
             </div>
           </dl>
         </section>
@@ -429,15 +428,14 @@ export function RulesPage() {
             <Users size={20} />
           </div>
           <ul className={rulesStyles.rulesList}>
-            <li><LocalizedText>A Coordinator sees active colleagues from their own department.</LocalizedText></li>
+            <li><LocalizedText>A Coordinator chooses a department directly in Peer recognition.</LocalizedText></li>
             <li>
               <LocalizedText>A Coordinator can award only colleagues in a shared active project team who have recorded hours on
               that project.
             </LocalizedText></li>
             <li><LocalizedText>A GPM sees active colleagues across the whole company.</LocalizedText></li>
             <li><LocalizedText>A Head works with their own department and can see the balances needed for management.</LocalizedText></li>
-            <li><LocalizedText>Coordinator and GPM team cards keep colleague balances private.</LocalizedText></li>
-            <li><LocalizedText>Every colleague card links directly to Peer recognition with that person already selected.</LocalizedText></li>
+            <li><LocalizedText>GPM team cards keep colleague balances private.</LocalizedText></li>
           </ul>
         </section>
       </div>

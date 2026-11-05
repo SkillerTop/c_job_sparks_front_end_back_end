@@ -27,6 +27,10 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
              COALESCE(e.contact_email,account_user.email)::text AS email,e.is_active,e.manager_employee_id,
              microsoft_identity.claims#>>'{manager,displayName}' AS microsoft_manager_name,
              microsoft_identity.claims#>>'{manager,email}' AS microsoft_manager_email,
+             ARRAY(SELECT assignment.coordinator_employee_id::text
+               FROM app.employee_coordinators assignment
+              WHERE assignment.employee_id=e.id
+              ORDER BY assignment.coordinator_employee_id) AS coordinator_ids,
              EXISTS (SELECT 1 FROM app.project_teams team WHERE team.coordinator_employee_id=e.id) AS coordination
         FROM app.employees e
         LEFT JOIN app.users account_user ON account_user.id=e.user_id
@@ -81,6 +85,7 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
       ...(row.manager_employee_id ? { managerId: row.manager_employee_id } : {}),
       ...(row.microsoft_manager_name ? { managerName: row.microsoft_manager_name } : {}),
       ...(row.microsoft_manager_email ? { managerEmail: row.microsoft_manager_email } : {}),
+      coordinatorIds: row.coordinator_ids ?? [],
     })),
     departments: departmentsRaw.map((row) => ({
       id: row.id,name: row.name,headId: row.head_employee_id ?? '',active: row.is_active,
@@ -118,7 +123,7 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
 
 export type WorkspaceSection = 'all' | 'dashboard' | 'profile' | 'sparks' | 'recognition' | 'achievements' |
   'company-achievements' | 'shop' | 'inventory' | 'convert' | 'disenchant' | 'team' | 'award' |
-  'approvals' | 'admin' | 'rules';
+  'approvals' | 'admin' | 'fulfillment' | 'rules';
 
 type WorkspaceDataset = 'categories' | 'directory' | 'projects' | 'transactions' | 'departmentBalances' |
   'recognitions' | 'awards' | 'gates' | 'performance' | 'achievements' | 'disenchant' | 'audit' |
@@ -140,6 +145,7 @@ const sectionDatasets: Record<Exclude<WorkspaceSection, 'all'>, readonly Workspa
   approvals: ['directory','recognitions','awards','gates','disenchant','effects'],
   admin: ['categories','directory','projects','transactions','recognitions','awards','gates','performance',
     'achievements','disenchant','audit','fulfillment','reports','effects'],
+  fulfillment: ['directory','effects'],
   rules: ['categories','effects'],
 };
 
@@ -150,7 +156,7 @@ export const buildWorkspace = async (
 ) => {
   const include = (dataset: WorkspaceDataset) => dataset === 'directory' || section === 'all' ||
     sectionDatasets[section].includes(dataset);
-  const wideDirectory = principal.role === 'Administrator' ||
+  const wideDirectory = principal.role === 'Administrator' || principal.role === 'Office Manager' ||
     (['Coordinator','GPM','Head','Top Management'].includes(principal.role) &&
       ['recognition','company-achievements','team','award','approvals'].includes(section));
   const [categoriesRaw, employeesRaw, departmentsRaw, projectsRaw, transactionsRaw, lifetimeEarningsRaw,
@@ -175,6 +181,10 @@ export const buildWorkspace = async (
              e.is_active, e.manager_employee_id,
              microsoft_identity.claims#>>'{manager,displayName}' AS microsoft_manager_name,
              microsoft_identity.claims#>>'{manager,email}' AS microsoft_manager_email,
+             ARRAY(SELECT assignment.coordinator_employee_id::text
+               FROM app.employee_coordinators assignment
+              WHERE assignment.employee_id=e.id
+              ORDER BY assignment.coordinator_employee_id) AS coordinator_ids,
              EXISTS (SELECT 1 FROM app.project_teams team WHERE team.coordinator_employee_id=e.id) AS coordination
         FROM app.employees e LEFT JOIN app.users u ON u.id=e.user_id
         LEFT JOIN app.positions pos ON pos.id=e.position_id
@@ -364,6 +374,7 @@ export const buildWorkspace = async (
       ...(row.manager_employee_id ? { managerId: row.manager_employee_id } : {}),
       ...(row.microsoft_manager_name ? { managerName: row.microsoft_manager_name } : {}),
       ...(row.microsoft_manager_email ? { managerEmail: row.microsoft_manager_email } : {}),
+      coordinatorIds: row.coordinator_ids ?? [],
     })),
     departments: departmentsRaw.map((row) => ({
       id: row.id, name: row.name, headId: row.head_employee_id ?? '', active: row.is_active,

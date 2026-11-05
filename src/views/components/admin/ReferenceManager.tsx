@@ -160,7 +160,7 @@ export function ReferenceManager() {
           ? 'Employees can be deleted from Directory. Their access is disabled, while immutable Ledger and audit history remains preserved.'
           : isApiMode
           ? 'Records are deactivated, never deleted, so historical references remain intact.'
-          : 'Records are deactivated, never deleted. The six demo identities keep their roles and active status so every workspace remains accessible.'}</LocalizedText>
+          : 'Records are deactivated, never deleted. The seven demo identities keep their roles and active status so every workspace remains accessible.'}</LocalizedText>
       </p>
       {draft && (
         <ReferenceEditor

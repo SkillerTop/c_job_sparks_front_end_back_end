@@ -1,13 +1,13 @@
 import type { PerformanceThresholdSettings, Role, SparkType } from '@/models';
 
 export const APP_NAME = 'C-Job Sparks';
-export const BUSINESS_ROLES: Role[] = ['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management'];
+export const BUSINESS_ROLES: Role[] = ['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management', 'Office Manager'];
 export const MEMBER_WORKSPACE_ROLES: Role[] = ['Employee', 'Coordinator', 'GPM', 'Head'];
 export const PERSONAL_ECONOMY_ROLES: Role[] = ['Employee', 'Coordinator'];
 export const PERSONAL_LEDGER_ROLES: Role[] = ['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management'];
 export const PEER_RECOGNITION_ROLES: Role[] = ['Employee', 'Coordinator', 'GPM'];
 export const PERFORMANCE_ROLES: Role[] = ['Employee', 'Coordinator', 'GPM'];
-export const SHOP_ROLES: Role[] = ['Employee', 'Coordinator', 'Top Management'];
+export const SHOP_ROLES: Role[] = ['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management', 'Office Manager', 'Administrator'];
 export const COMPANY_ACHIEVEMENT_ROLES: Role[] = ['GPM', 'Head', 'Top Management', 'Administrator'];
 export const ALL_ROLES: Role[] = [...BUSINESS_ROLES, 'Administrator'];
 export const SPARK_TYPES: SparkType[] = ['White', 'Yellow', 'Blue', 'Radiant'];
@@ -173,5 +173,6 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   GPM: 'Company team and White/Yellow awards',
   Head: 'Approvals, department awards and quality',
   'Top Management': 'Company-wide Radiant recognition',
+  'Office Manager': 'Reward fulfillment and read-only shop access',
   Administrator: 'Reference data, imports and system rules',
 };

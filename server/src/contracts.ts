@@ -3,6 +3,7 @@ import type { Role } from './domain.js';
 export const WORKSPACE_SECTIONS = [
   'dashboard', 'profile', 'sparks', 'recognition', 'achievements', 'company-achievements',
   'shop', 'inventory', 'convert', 'disenchant', 'team', 'award', 'approvals', 'admin', 'rules', 'all',
+  'fulfillment',
 ] as const;
 
 export type WorkspaceSectionContract = (typeof WORKSPACE_SECTIONS)[number];
@@ -12,14 +13,15 @@ export const WORKSPACE_SECTION_ROLES: Partial<Record<WorkspaceSectionContract, r
   recognition: ['Employee', 'Coordinator', 'GPM'],
   achievements: ['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management'],
   'company-achievements': ['GPM', 'Head', 'Top Management', 'Administrator'],
-  shop: ['Employee', 'Coordinator', 'Top Management'],
+  shop: ['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management', 'Office Manager', 'Administrator'],
   inventory: ['Employee', 'Coordinator'],
   convert: ['Employee', 'Coordinator'],
   disenchant: ['Employee', 'Coordinator'],
-  team: ['Coordinator', 'GPM', 'Head'],
+  team: ['GPM', 'Head'],
   award: ['Coordinator', 'GPM', 'Head', 'Top Management'],
   approvals: ['Head'],
   admin: ['Administrator'],
+  fulfillment: ['Office Manager', 'Administrator'],
   rules: ['Employee', 'Coordinator', 'GPM', 'Head'],
   all: ['Administrator'],
 };

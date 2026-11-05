@@ -9,6 +9,7 @@ const accounts = [
   ['head', 'maya.chen@c-job.test'],
   ['top-management', 'victor.hale@c-job.test'],
   ['administrator', 'ida.novak@c-job.test'],
+  ['office-manager', 'mariya.petrenko@c-job.test'],
 ] as const;
 
 async function signIn(page: Page, email: string) {
@@ -23,7 +24,9 @@ async function signIn(page: Page, email: string) {
 for (const [role, email] of accounts) {
   test(`${role} shell is visually stable and matches an approved baseline when present`, async ({ page }, testInfo) => {
     await signIn(page, email);
-    await page.goto(role === 'administrator' ? '/admin?tab=access' : '/profile');
+    await page.goto(
+      role === 'administrator' ? '/admin?tab=access' : role === 'office-manager' ? '/fulfillment' : '/profile',
+    );
     await page.addStyleTag({ content: '*,*::before,*::after{animation:none!important;transition:none!important}' });
     await page.evaluate(() => document.fonts.ready);
     await page.waitForLoadState('networkidle');

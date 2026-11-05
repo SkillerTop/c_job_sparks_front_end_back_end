@@ -4,11 +4,12 @@ import { expect, test } from '@playwright/test';
 const password = 'SparkDemo2026!';
 const roles = [
   { role: 'Employee', email: 'alex.stone@c-job.test', route: '/profile' },
-  { role: 'Coordinator', email: 'samuel.park@c-job.test', route: '/team' },
+  { role: 'Coordinator', email: 'samuel.park@c-job.test', route: '/recognition' },
   { role: 'GPM', email: 'elena.volkova@c-job.test', route: '/team' },
   { role: 'Head', email: 'maya.chen@c-job.test', route: '/approvals' },
   { role: 'Top Management', email: 'victor.hale@c-job.test', route: '/award' },
   { role: 'Administrator', email: 'ida.novak@c-job.test', route: '/admin' },
+  { role: 'Office Manager', email: 'mariya.petrenko@c-job.test', route: '/fulfillment' },
 ] as const;
 
 for (const account of roles) {

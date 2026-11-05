@@ -418,14 +418,14 @@ test('Yellow request reserves its category and approval creates the configured a
   assert.equal(calculateBalances(state.transactions, employeeId).Yellow, beforeYellow + 1);
   assert.ok(state.achievements.some((item) => item.employeeId === employeeId && item.title === input.category));
 });
-test('Coordinator awards require a shared project with worked hours while the team view remains departmental', async () => {
+test('Coordinator awards require a shared project with worked hours and no longer expose a department team view', async () => {
   const employee = await addEmployee({ departmentId: 'dep-ops' });
   await assert.rejects(sparkService.createAward('emp-sam', 'Coordinator', award(employee.id, 'Yellow', YELLOW_CATEGORIES[0].label)), /shared active project/);
   await sparkService.reviewAward('award-001', 'Rejected', 'Replace the seeded request for this test.', HEAD);
   const projectColleague = await sparkService.createAward('emp-sam', 'Coordinator', award('emp-nora', 'Yellow', YELLOW_CATEGORIES[0].label));
   assert.equal(projectColleague.request.status, 'Pending');
   const state = await snapshot();
-  assert.equal(selectTeamMembers(state, 'emp-sam', 'Coordinator').some((item) => item.id === employee.id), true);
+  assert.deepEqual(selectTeamMembers(state, 'emp-sam', 'Coordinator'), []);
   assert.equal(selectAwardTargets(state, 'emp-sam', 'Coordinator').some((item) => item.id === employee.id), false);
   assert.equal(selectAwardTargets(state, 'emp-sam', 'Coordinator').some((item) => item.id === 'emp-maya'), false);
   assert.equal(selectAwardTargets(state, 'emp-elena', 'GPM').some((item) => item.id === employee.id), false);
@@ -631,13 +631,24 @@ test('A replacement that would make any employee negative leaves the entire batc
   assert.deepEqual(await snapshot(), before);
 });
 test('Reference validation protects identity, unique emails, reporting cycles and department integrity', async () => {
-  await assert.rejects(updateEmployee('emp-sam', { active: false }), /six demo identities/);
+  await assert.rejects(updateEmployee('emp-sam', { active: false }), /seven demo identities/);
   await assert.rejects(addEmployee({ email: 'alex.stone@c-job.test' }), /email address is already/);
   const a = await addEmployee();
   const b = await addEmployee({ managerId: a.id });
   await assert.rejects(updateEmployee(a.id, { managerId: b.id }), /reporting cycle/);
   const state = await snapshot();
   await assert.rejects(sparkService.saveReference(ADMIN, { kind: 'departments', data: { ...state.departments[0], active: false } }), /active employees/);
+});
+test('Employee directory supports multiple active coordinators', async () => {
+  const extraCoordinator = await addEmployee({ role: 'Coordinator' });
+  const employee = await addEmployee({ coordinatorIds: ['emp-sam', extraCoordinator.id, 'emp-sam'] });
+  assert.deepEqual(employee.coordinatorIds, ['emp-sam', extraCoordinator.id]);
+  await assert.rejects(updateEmployee(employee.id, { coordinatorIds: ['emp-maya'] }), /Coordinator role/);
+  const afterDelete = await sparkService.deleteEmployee(ADMIN, extraCoordinator.id);
+  assert.deepEqual(
+    afterDelete.employees.find((item) => item.id === employee.id)?.coordinatorIds,
+    ['emp-sam'],
+  );
 });
 test('Employees can be deleted while immutable history is preserved', async () => {
   const removable = await addEmployee();

@@ -30,6 +30,13 @@ globalThis.localStorage = {
 const employee = { id: 'emp-alex', email: 'alex.stone@c-job.test', role: 'Employee' };
 const topManagement = { id: 'emp-victor', email: 'victor.hale@c-job.test', role: 'Top Management' };
 const administrator = { id: 'emp-ida', email: 'ida.novak@c-job.test', role: 'Administrator' };
+const viewOnlyRoles = [
+  topManagement,
+  { id: 'emp-elena', email: 'elena.volkova@c-job.test', role: 'GPM' },
+  { id: 'emp-maya', email: 'maya.chen@c-job.test', role: 'Head' },
+  { id: 'emp-mariya', email: 'mariya.petrenko@c-job.test', role: 'Office Manager' },
+  administrator,
+];
 
 test('the standalone shop purchases and activates an item exactly once', async () => {
   values.clear();
@@ -67,10 +74,16 @@ test('the standalone shop purchases and activates an item exactly once', async (
 
 test('role restrictions and balance adjustments use the API-compatible error model', async () => {
   values.clear();
-  await assert.rejects(
-    demoShopService.purchase('task-reroll', topManagement, 'request-top', undefined, 'Ukraine'),
-    (error) => error instanceof ShopServiceError && error.code === 'FORBIDDEN',
-  );
+  for (const identity of viewOnlyRoles) {
+    const snapshot = await demoShopService.getSnapshot(identity);
+    assert.deepEqual(snapshot.balances, { White: 0, Yellow: 0, Blue: 0 });
+    assert.deepEqual(snapshot.inventory, []);
+    assert.deepEqual(snapshot.transactions, []);
+    await assert.rejects(
+      demoShopService.purchase('task-reroll', identity, `request-${identity.role}`, undefined, 'Ukraine'),
+      (error) => error instanceof ShopServiceError && error.code === 'FORBIDDEN',
+    );
+  }
 
   const adjusted = await demoShopService.adjustBalance('emp-alex', 'Yellow', 2, 'Demo adjustment', administrator);
   assert.equal(adjusted.balances.find((entry) => entry.userId === 'emp-alex')?.balances.Yellow, 9);

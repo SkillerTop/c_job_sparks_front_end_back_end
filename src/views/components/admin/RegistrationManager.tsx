@@ -68,6 +68,7 @@ export function RegistrationManager() {
         snapshot!.departments.find((department) => department.active)?.id ?? '',
       role: employee?.role ?? account.suggestedRole ?? 'Employee',
       managerId: employee?.managerId ?? account.suggestedManagerId ?? '',
+      coordinatorIds: employee?.coordinatorIds ?? [],
     });
     setMessage(null);
     setReviewError('');
@@ -84,7 +85,8 @@ export function RegistrationManager() {
       }
       await reviewRegistration(selected.id, decision, reason,
         decision === 'Approved' && employeeProfile
-          ? { ...employeeProfile, managerId: employeeProfile.managerId || undefined }
+          ? { ...employeeProfile, managerId: employeeProfile.managerId || undefined,
+              coordinatorIds: employeeProfile.coordinatorIds ?? [] }
           : undefined);
       await refresh();
       setSelected(null);
@@ -322,6 +324,33 @@ export function RegistrationManager() {
                   </small>
                 )}
               </label>
+              <fieldset className={`${styles.formField} ${styles.fieldFull}`}>
+                <legend><LocalizedText>Assigned coordinators</LocalizedText></legend>
+                <small><LocalizedText>Choose one or more active coordinators for this employee.</LocalizedText></small>
+                <div className={styles.multiCheckGrid}>
+                  {snapshot!.employees
+                    .filter((employee) => employee.active && employee.role === 'Coordinator' && employee.id !== selected?.employeeId)
+                    .map((coordinator) => {
+                      const checked = (employeeProfile?.coordinatorIds ?? []).includes(coordinator.id);
+                      return (
+                        <label className={styles.checkField} key={coordinator.id}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={processing}
+                            onChange={(event) => setEmployeeProfile((current) => current ? {
+                              ...current,
+                              coordinatorIds: event.target.checked
+                                ? [...new Set([...(current.coordinatorIds ?? []), coordinator.id])]
+                                : (current.coordinatorIds ?? []).filter((id) => id !== coordinator.id),
+                            } : current)}
+                          />
+                          <span>{coordinator.name}</span>
+                        </label>
+                      );
+                    })}
+                </div>
+              </fieldset>
             </div>
           </div>
         ) : (

@@ -599,6 +599,7 @@ const demoAuthService = {
             active: true,
             hasCoordinationExperience: existingEmployee?.hasCoordinationExperience ?? false,
             managerId: employeeInput.managerId,
+            coordinatorIds: employeeInput.coordinatorIds ?? [],
           },
         });
         const updatedSnapshot = await sparkService.getSnapshot();

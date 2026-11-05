@@ -33,6 +33,7 @@ export interface AccessApprovalEmployeeInput {
   departmentId: string;
   role: Role;
   managerId?: string;
+  coordinatorIds?: string[];
 }
 
 export interface AuthUser {

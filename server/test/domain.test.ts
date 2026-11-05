@@ -70,7 +70,11 @@ test('personal economy and shop access follow the role policy', () => {
   assert.equal(canUseMemberEconomy('Head'), false);
   assert.equal(canPurchase('Top Management'), false);
   assert.equal(canViewShop('Top Management'), true);
-  assert.equal(canViewShop('GPM'), false);
+  assert.equal(canViewShop('GPM'), true);
+  assert.equal(canViewShop('Head'), true);
+  assert.equal(canViewShop('Office Manager'), true);
+  assert.equal(canViewShop('Administrator'), true);
+  assert.equal(canPurchase('Office Manager'), false);
   assert.equal(hasFullPersonalLedger('Coordinator'), true);
   assert.equal(hasFullPersonalLedger('Head'), false);
 });

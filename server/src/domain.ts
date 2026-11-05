@@ -4,6 +4,7 @@ export const ROLES = [
   'GPM',
   'Head',
   'Top Management',
+  'Office Manager',
   'Administrator',
 ] as const;
 
@@ -114,7 +115,8 @@ export const canUseMemberEconomy = (role: Role) =>
 export const canPurchase = canUseMemberEconomy;
 
 export const canViewShop = (role: Role) =>
-  role === 'Employee' || role === 'Coordinator' || role === 'Top Management';
+  role === 'Employee' || role === 'Coordinator' || role === 'GPM' || role === 'Head' ||
+  role === 'Top Management' || role === 'Office Manager' || role === 'Administrator';
 
 export const hasFullPersonalLedger = (role: Role) =>
   role === 'Employee' || role === 'Coordinator';

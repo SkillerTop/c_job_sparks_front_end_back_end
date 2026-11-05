@@ -36,6 +36,9 @@ const AwardPage = lazy(() => import('@/views/pages/AwardPage').then((module) => 
 const ApprovalsPage = lazy(() => import('@/views/pages/ApprovalsPage').then((module) => ({ default: module.ApprovalsPage })));
 const TeamPage = lazy(() => import('@/views/pages/TeamPage').then((module) => ({ default: module.TeamPage })));
 const AdminPage = lazy(() => import('@/views/pages/AdminPage').then((module) => ({ default: module.AdminPage })));
+const FulfillmentPage = lazy(() =>
+  import('@/views/pages/FulfillmentPage').then((module) => ({ default: module.FulfillmentPage })),
+);
 const RulesPage = lazy(() => import('@/views/pages/RulesPage').then((module) => ({ default: module.RulesPage })));
 const ForbiddenPage = lazy(() => import('@/views/pages/ForbiddenPage').then((module) => ({ default: module.ForbiddenPage })));
 const NotFoundPage = lazy(() => import('@/views/pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })));
@@ -110,6 +113,7 @@ function WorkspaceLayout() {
 function WorkspaceIndex() {
   const { activeRole } = useSpark();
   if (activeRole === 'Administrator') return <Navigate replace to="/admin" />;
+  if (activeRole === 'Office Manager') return <Navigate replace to="/fulfillment" />;
   if (activeRole === 'Top Management') return <Navigate replace to="/award" />;
   return <DashboardPage />;
 }
@@ -242,7 +246,7 @@ export function AppRouter() {
           <Route
             path="team"
             element={
-              <RouteGuard roles={['Coordinator', 'GPM', 'Head']}>
+              <RouteGuard roles={['GPM', 'Head']}>
                 <TeamPage />
               </RouteGuard>
             }
@@ -252,6 +256,14 @@ export function AppRouter() {
             element={
               <RouteGuard roles={['Administrator']}>
                 <AdminPage />
+              </RouteGuard>
+            }
+          />
+          <Route
+            path="fulfillment"
+            element={
+              <RouteGuard roles={['Office Manager', 'Administrator']}>
+                <FulfillmentPage />
               </RouteGuard>
             }
           />

@@ -1874,6 +1874,29 @@
   font-weight: 500;
   line-height: 1.45;
 }
+.formField:where(fieldset) {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.formField:where(fieldset) > legend {
+  padding: 0;
+  font: inherit;
+}
+.multiCheckGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.35rem 0.75rem;
+  max-height: 14rem;
+  padding: 0.55rem 0.75rem;
+  overflow-y: auto;
+  border: 1px solid var(--control-border);
+  border-radius: 0.74rem;
+  background: var(--control-bg);
+}
+.multiCheckGrid .checkField {
+  min-height: 2.25rem;
+}
 .formField input,
 .formField select,
 .formField textarea {

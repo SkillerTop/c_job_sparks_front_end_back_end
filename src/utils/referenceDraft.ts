@@ -15,6 +15,7 @@ export const createReferenceDraft = (kind: ReferenceDraft['kind'], snapshot: App
           departmentId: snapshot.departments.find((department) => department.active)?.id ?? '',
           hasCoordinationExperience: false,
           managerId: '',
+          coordinatorIds: [],
         },
       };
     case 'departments':

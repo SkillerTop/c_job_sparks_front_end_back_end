@@ -22,6 +22,7 @@ const people = [
   ['aaaaaaaa-0004-4000-8000-000000000004', 'aaaaaaaa-1004-4000-8000-000000000004', 'EMP-004', 'Maya', 'Chen', 'Head', 'maya.chen@c-job.test', departments[0][0]],
   ['aaaaaaaa-0005-4000-8000-000000000005', 'aaaaaaaa-1005-4000-8000-000000000005', 'EMP-005', 'Victor', 'Hale', 'Top Management', 'victor.hale@c-job.test', departments[2][0]],
   ['aaaaaaaa-0006-4000-8000-000000000006', 'aaaaaaaa-1006-4000-8000-000000000006', 'EMP-006', 'Ida', 'Novak', 'Administrator', 'ida.novak@c-job.test', departments[3][0]],
+  ['aaaaaaaa-0007-4000-8000-000000000007', 'aaaaaaaa-1007-4000-8000-000000000007', 'EMP-007', 'Mariya', 'Petrenko', 'Office Manager', 'mariya.petrenko@c-job.test', departments[1][0]],
 ] as const;
 
 export const seedDevelopmentData = async (db: PoolClient) => {

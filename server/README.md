@@ -69,5 +69,5 @@ Uploaded shop images are stored below `MEDIA_ROOT`; database rows retain their h
 - Financial mutations require `Idempotency-Key` (8–255 characters).
 - Errors use `{ code, message, details?, requestId }`.
 - Collection endpoints are role/scope filtered. Supplying another employee ID never expands access.
-- Employee and Coordinator are the only roles with purchasing, conversion and Disenchant access. GPM and Head personal Ledger endpoints expose only Radiant entries; Top Management can browse the shop without purchasing.
+- Employee and Coordinator are the only roles with purchasing, conversion and Disenchant access. GPM and Head personal Ledger endpoints expose only Radiant entries. GPM, Head, Top Management, Office Manager and Administrator can browse the shop without purchasing; Office Manager and Administrator can update reward fulfillment.
 - Deleting an employee immediately revokes access and removes the person from Directory. A record without history is removed physically; a record referenced by immutable Ledger or business history is pseudonymized and retained only as a technical tombstone so those records remain valid.

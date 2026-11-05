@@ -1122,7 +1122,7 @@ const demoSparkService = {
         const fixedRole = Object.entries(DEMO_ROLE_ACTORS).find(([, id]) => id === employee.id)?.[0];
         if (fixedRole && (!employee.active || employee.role !== fixedRole))
           throw new Error(
-            'The six demo identities must keep their assigned role and active status. Other records are fully editable.',
+            'The seven demo identities must keep their assigned role and active status. Other records are fully editable.',
           );
         if (
           employee.id &&
@@ -1148,6 +1148,16 @@ const demoSparkService = {
             cursor = database.employees.find((entry) => entry.id === cursor?.managerId);
           }
         }
+        employee.coordinatorIds = [...new Set(employee.coordinatorIds ?? [])];
+        if (employee.coordinatorIds.includes(employee.id))
+          throw new Error('An employee cannot be assigned as their own coordinator.');
+        const invalidCoordinator = employee.coordinatorIds.find((coordinatorId) =>
+          !database.employees.some(
+            (entry) => entry.id === coordinatorId && entry.active && entry.role === 'Coordinator',
+          ),
+        );
+        if (invalidCoordinator)
+          throw new Error('Choose only active employees with the Coordinator role.');
         employee.initials = employee.name
           .split(/\s+/)
           .filter(Boolean)
@@ -1159,6 +1169,11 @@ const demoSparkService = {
         database.employees = isNew
           ? [...database.employees, employee]
           : database.employees.map((entry) => (entry.id === employee.id ? employee : entry));
+        if (employee.role !== 'Coordinator')
+          database.employees = database.employees.map((entry) => ({
+            ...entry,
+            coordinatorIds: (entry.coordinatorIds ?? []).filter((coordinatorId) => coordinatorId !== employee.id),
+          }));
       } else if (draft.kind === 'departments') {
         const department = item as AppSnapshot['departments'][number];
         if (
@@ -1235,7 +1250,11 @@ const demoSparkService = {
     return atomic(() => {
       database.employees = database.employees
         .filter((item) => item.id !== employeeId)
-        .map((item) => item.managerId === employeeId ? { ...item, managerId: undefined } : item);
+        .map((item) => ({
+          ...item,
+          managerId: item.managerId === employeeId ? undefined : item.managerId,
+          coordinatorIds: (item.coordinatorIds ?? []).filter((coordinatorId) => coordinatorId !== employeeId),
+        }));
       database.departments = database.departments.map((department) =>
         department.headId === employeeId ? { ...department, headId: '' } : department);
       database.projectTeams = database.projectTeams.map((project) => ({

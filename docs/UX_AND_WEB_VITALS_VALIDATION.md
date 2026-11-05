@@ -35,7 +35,7 @@ Lighthouse CI runs each configured route three times on desktop and mobile and b
 
 ## Screenshot regression
 
-`e2e/visual-regression.spec.ts` covers Employee, Coordinator, GPM, Head, Top Management and Administrator shells on desktop and mobile. Every run compares two settled renders to catch reload loops or late layout shifts and attaches the image to the report. When a platform-specific approved baseline is present, the same test also performs a strict cross-release pixel comparison. Baselines must be generated from the approved CI OS/browser image and reviewed before committing. Update snapshots only for an intentional visual change:
+`e2e/visual-regression.spec.ts` covers Employee, Coordinator, GPM, Head, Top Management, Office Manager and Administrator shells on desktop and mobile. Every run compares two settled renders to catch reload loops or late layout shifts and attaches the image to the report. When a platform-specific approved baseline is present, the same test also performs a strict cross-release pixel comparison. Baselines must be generated from the approved CI OS/browser image and reviewed before committing. Update snapshots only for an intentional visual change:
 
 ```bash
 pnpm exec playwright test e2e/visual-regression.spec.ts --update-snapshots

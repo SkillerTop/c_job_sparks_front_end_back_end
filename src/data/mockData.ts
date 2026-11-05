@@ -15,6 +15,7 @@ export const DEMO_ROLE_ACTORS: Record<Role, string> = {
   GPM: 'emp-elena',
   Head: 'emp-maya',
   'Top Management': 'emp-victor',
+  'Office Manager': 'emp-mariya',
   Administrator: 'emp-ida',
 };
 
@@ -168,6 +169,17 @@ export const initialSnapshot: AppSnapshot = {
       departmentId: 'dep-ops',
       role: 'Administrator',
       email: 'ida.novak@c-job.test',
+      active: true,
+      hasCoordinationExperience: false,
+    },
+    {
+      id: 'emp-mariya',
+      name: 'Mariya Petrenko',
+      initials: 'MP',
+      title: 'Office Manager',
+      departmentId: 'dep-ops',
+      role: 'Office Manager',
+      email: 'mariya.petrenko@c-job.test',
       active: true,
       hasCoordinationExperience: false,
     },

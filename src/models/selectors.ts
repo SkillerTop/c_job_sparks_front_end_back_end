@@ -69,7 +69,7 @@ export const selectTeamMembers = (snapshot: AppSnapshot, actorId: string, role: 
   const actor = snapshot.employees.find((employee) => employee.id === actorId);
   return snapshot.employees.filter((employee) => {
     if (!employee.active || employee.role === 'Administrator') return false;
-    if (role === 'Head' || role === 'Coordinator') return employee.departmentId === actor?.departmentId;
+    if (role === 'Head') return employee.departmentId === actor?.departmentId;
     if (role === 'GPM') return true;
     return role === 'Top Management';
   });

@@ -134,6 +134,7 @@ if (!sourceDatabaseUrl) {
         login('Head', 'maya.chen@c-job.test'),
         login('Top Management', 'victor.hale@c-job.test'),
         login('Administrator', 'ida.novak@c-job.test'),
+        login('Office Manager', 'mariya.petrenko@c-job.test'),
       ]);
     });
 
@@ -605,6 +606,15 @@ if (!sourceDatabaseUrl) {
 
       const fulfillment = await databasePool.query<{ id: string }>(
         `SELECT id FROM app.reward_fulfillments WHERE purchase_id=$1`, [result.purchase.id]);
+      const officeFulfillments = await authenticated('Office Manager', 'GET', '/api/v1/reward-fulfillments');
+      assert.equal(officeFulfillments.statusCode, 200, officeFulfillments.body);
+      assert.ok(officeFulfillments.json<{ items: Array<{ id: string }> }>().items
+        .some((item) => item.id === fulfillment.rows[0]!.id));
+      const officeProgress = await authenticated('Office Manager', 'POST',
+        `/api/v1/reward-fulfillments/${fulfillment.rows[0]!.id}/status`,
+        { status: 'InProgress', notes: 'Office manager accepted the request.' },
+        `fulfillment-progress-${randomUUID()}`);
+      assert.equal(officeProgress.statusCode, 200, officeProgress.body);
       const whiteBeforeCancellation = await databasePool.query<{ balance: string }>(`SELECT account.balance::text
         FROM app.spark_accounts account WHERE account.employee_id=$1 AND account.spark_type='White'`,
       [employeeIds.employee]);
@@ -622,20 +632,23 @@ if (!sourceDatabaseUrl) {
       [employeeIds.employee]);
       assert.equal(Number(whiteAfterCancellation.rows[0]!.balance), Number(whiteBeforeCancellation.rows[0]!.balance) + 1);
 
-      for (const role of ['GPM', 'Head'] as const) {
+      for (const role of ['GPM', 'Head', 'Top Management', 'Office Manager', 'Administrator'] as const) {
         const restricted = await authenticated(role, 'POST', '/api/v1/shop/purchases',
           { productId, location: 'Ukraine' }, `restricted-purchase-${role}-${randomUUID()}`);
         assert.equal(restricted.statusCode, 403, restricted.body);
       }
-      const gpmShop = await authenticated('GPM', 'GET', '/api/v1/shop');
-      assert.equal(gpmShop.statusCode, 403, gpmShop.body);
-      const topShop = await authenticated('Top Management', 'GET', '/api/v1/shop');
-      assert.equal(topShop.statusCode, 200, topShop.body);
-      assert.deepEqual(topShop.json<{ balances: Record<string, number> }>().balances,
-        { White: 0, Yellow: 0, Blue: 0 });
-      const topPurchase = await authenticated('Top Management', 'POST', '/api/v1/shop/purchases',
-        { productId, location: 'Ukraine' }, `restricted-purchase-top-${randomUUID()}`);
-      assert.equal(topPurchase.statusCode, 403, topPurchase.body);
+      for (const role of ['GPM', 'Head', 'Top Management', 'Office Manager', 'Administrator'] as const) {
+        const readOnlyShop = await authenticated(role, 'GET', '/api/v1/shop');
+        assert.equal(readOnlyShop.statusCode, 200, `${role}: ${readOnlyShop.body}`);
+        const shopBody = readOnlyShop.json<{
+          balances: Record<string, number>;
+          inventory: unknown[];
+          transactions: unknown[];
+        }>();
+        assert.deepEqual(shopBody.balances, { White: 0, Yellow: 0, Blue: 0 });
+        assert.deepEqual(shopBody.inventory, []);
+        assert.deepEqual(shopBody.transactions, []);
+      }
 
       const gpmBalances = await authenticated('GPM', 'GET', '/api/v1/me/spark-balances');
       assert.equal(gpmBalances.statusCode, 200, gpmBalances.body);

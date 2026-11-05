@@ -37,6 +37,7 @@ test('the MVP schema is complete and ordered', async () => {
     '0019_shop_category_catalog.sql',
     '0020_shop_product_locations.sql',
     '0021_security_workflow_and_retention.sql',
+    '0022_office_manager_and_employee_coordinators.sql',
   ]);
   for (const table of [
     'users', 'employees', 'departments', 'roles', 'role_assignments', 'projects', 'project_members',
@@ -48,7 +49,16 @@ test('the MVP schema is complete and ordered', async () => {
     'notifications', 'media_assets', 'audit_events', 'idempotency_keys', 'outbox_events',
     'external_identities', 'microsoft_auth_requests',
     'reward_fulfillment_contacts', 'reward_fulfillments', 'disenchant_reports', 'disenchant_report_items',
+    'employee_coordinators',
   ]) assert.match(sql, new RegExp(`CREATE TABLE app\\.${table}\\s*\\(`));
+});
+
+test('office managers and multiple employee coordinators are schema-backed', async () => {
+  const migration = await readFile(resolve(migrationsDirectory, '0022_office_manager_and_employee_coordinators.sql'), 'utf8');
+  assert.match(migration, /'Office Manager'/);
+  assert.match(migration, /CREATE TABLE app\.employee_coordinators/);
+  assert.match(migration, /PRIMARY KEY \(employee_id, coordinator_employee_id\)/);
+  assert.match(migration, /CHECK \(employee_id <> coordinator_employee_id\)/);
 });
 
 test('the catalog migration contains every server category definition', async () => {

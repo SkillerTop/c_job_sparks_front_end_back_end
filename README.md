@@ -44,6 +44,7 @@ The development seed uses password `SparkDemo2026!` for these accounts:
 | GPM | `elena.volkova@c-job.test` |
 | Head | `maya.chen@c-job.test` |
 | Top Management | `victor.hale@c-job.test` |
+| Office Manager | `mariya.petrenko@c-job.test` |
 | Administrator | `ida.novak@c-job.test` |
 
 The seed is for local development only.
@@ -72,7 +73,7 @@ The Microsoft button is always visible in API mode. It stays disabled with a set
 
 The Microsoft work email does not need to exist in the employee directory before the first sign-in. The backend creates a passwordless `Pending` account and an access request. Microsoft Graph pre-fills full name, job title, department and manager. Department is authoritative from Microsoft: an existing case-insensitive Directory match is reused, an inactive match is reactivated, and a missing department is created automatically without a Head. A manager is selected automatically only when the manager's work email matches an active employee; otherwise the administrator chooses the correct record during approval. After approval, every Microsoft sign-in refreshes full name, job title, photo, department and the safe manager match.
 
-The business role is an authorization value, not a Teams profile property. To suggest it securely from Microsoft, define exactly one Entra app role per employee using one of these values: `CJob.Employee`, `CJob.Coordinator`, `CJob.GPM`, `CJob.Head`, `CJob.TopManagement`, or `CJob.Administrator`. The signed and validated ID-token role is used to pre-fill the approval form; the administrator still confirms it. Existing approved role assignments are not silently changed by profile synchronization.
+The business role is an authorization value, not a Teams profile property. To suggest it securely from Microsoft, define exactly one Entra app role per employee using one of these values: `CJob.Employee`, `CJob.Coordinator`, `CJob.GPM`, `CJob.Head`, `CJob.TopManagement`, `CJob.OfficeManager`, or `CJob.Administrator`. The signed and validated ID-token role is used to pre-fill the approval form; the administrator still confirms it. Existing approved role assignments are not silently changed by profile synchronization.
 
 ### Microsoft Graph email delivery
 
@@ -108,7 +109,7 @@ pnpm build:all
 pnpm verify:production-bundle
 ```
 
-The full GitHub Actions pipeline also starts PostgreSQL, applies and verifies all migrations, seeds deterministic role fixtures, runs browser scenarios for all six roles, checks critical/serious accessibility issues with axe, and enforces Lighthouse budgets. To reproduce the browser stage locally after preparing the test database and building the backend:
+The full GitHub Actions pipeline also starts PostgreSQL, applies and verifies all migrations, seeds deterministic role fixtures, runs browser scenarios for all seven roles, checks critical/serious accessibility issues with axe, and enforces Lighthouse budgets. To reproduce the browser stage locally after preparing the test database and building the backend:
 
 ```bash
 pnpm exec playwright install chromium
@@ -134,7 +135,7 @@ Microsoft sign-in and Graph mail are intentionally tested separately against sta
 - Physical Shop rewards, certificates and IT equipment create fulfillment requests; email recipients are placed in the transactional outbox for a future mail worker.
 - A department Head can create one immutable current-month Disenchant report containing all new, previously unreported requests.
 - Unsupported product effects cannot be purchased.
-- Only Employee and Coordinator roles can use the personal economy. GPM and Head see only their personal Radiant ledger; Top Management can browse the shop but cannot purchase.
+- Only Employee and Coordinator roles can use the personal economy. GPM and Head see only their personal Radiant ledger. GPM, Head, Top Management, Office Manager and Administrator can browse the shop but cannot purchase. Office Manager can manage reward fulfillment statuses.
 - Company Achievements are available to GPM, Head, Top Management and Administrator roles.
 
 See [`server/README.md`](./server/README.md) for API and operational details and [`ARCHITECTURE.md`](./ARCHITECTURE.md) for module boundaries.

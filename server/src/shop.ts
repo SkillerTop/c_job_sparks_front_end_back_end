@@ -121,6 +121,7 @@ const mapProduct = (product: ProductRow) => ({
 
 export const shopSnapshot = async (db: PoolClient, principal: AuthenticatedPrincipal, location?: ShopLocation) => {
   if (!canViewShop(principal.role)) throw forbidden('The Reward Shop is not available for your role.');
+  const personalShopAccess = canPurchase(principal.role);
   const products = (await rows<ProductRow>(
     db,
     `${productSelect}
@@ -185,14 +186,14 @@ export const shopSnapshot = async (db: PoolClient, principal: AuthenticatedPrinc
     amount: Number(entry.amount),
     createdAt: iso(entry.createdAt),
   }));
-  const visibleBalances = principal.role === 'Top Management'
+  const visibleBalances = !personalShopAccess
     ? { White: 0, Yellow: 0, Blue: 0 }
     : { White: balances.White, Yellow: balances.Yellow, Blue: balances.Blue };
   return {
     products,
     balances: visibleBalances,
-    inventory,
-    transactions: purchases,
+    inventory: personalShopAccess ? inventory : [],
+    transactions: personalShopAccess ? purchases : [],
     fulfillmentContacts: await listFulfillmentContacts(db),
     identity: { id: principal.employeeId, email: principal.email, authenticated: true },
   };

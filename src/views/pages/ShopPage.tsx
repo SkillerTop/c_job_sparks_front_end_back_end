@@ -13,6 +13,7 @@ import { ShopSkeleton } from '@/views/components/shop/ShopSkeleton';
 import { Feedback } from '@/views/components/common/Feedback';
 import { PageTransition } from '@/views/components/common/PageTransition';
 import { SHOP_CATEGORIES, SHOP_SORTS } from '@/constants/shop';
+import { PERSONAL_ECONOMY_ROLES } from '@/constants/app';
 import { isInsufficientSparksError, useShop } from '@/controllers/ShopContext';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
@@ -26,7 +27,7 @@ export function ShopPage() {
   const { activeRole } = useSpark();
   const { t } = useUserPreferences();
   const { snapshot, balances, loading, error, purchasingId, refresh, purchase, shopLocation, setShopLocation } = useShop();
-  const readOnly = activeRole === 'Top Management';
+  const readOnly = !PERSONAL_ECONOMY_ROLES.includes(activeRole);
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get('category');
   const sortParam = searchParams.get('sort');

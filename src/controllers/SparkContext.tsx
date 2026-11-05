@@ -74,6 +74,7 @@ const workspaceSections = new Set([
   'award',
   'approvals',
   'team',
+  'fulfillment',
   'admin',
   'rules',
 ]);

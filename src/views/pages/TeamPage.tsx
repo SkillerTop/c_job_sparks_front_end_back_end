@@ -80,9 +80,7 @@ export function TeamPage() {
   const pageTitle =
     activeRole === 'GPM'
       ? 'Company team'
-      : activeRole === 'Coordinator'
-        ? 'Department team'
-        : 'Department workspace';
+      : 'Department workspace';
   return (
     <PageTransition>
       <PageHeader
@@ -90,9 +88,7 @@ export function TeamPage() {
         title={pageTitle}
         description={activeRole === 'Head'
             ? 'Department balances, Quality Gates and accounting requests, with a complete audit trail.'
-            : activeRole === 'GPM'
-              ? 'Find any active colleague across C-Job. Spark balances remain private.'
-              : 'Work with active colleagues in your department. Spark balances remain private.'}
+            : 'Find any active colleague across C-Job. Spark balances remain private.'}
         action={
           <label className={styles.searchField}>
             <span className={styles.srOnly}><LocalizedText>Search people</LocalizedText></span>

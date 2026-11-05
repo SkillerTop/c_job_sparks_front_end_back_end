@@ -119,13 +119,18 @@ const demoFulfillmentContacts = REWARD_FULFILLMENT_CONTACTS.map((contact) => ({ 
 const snapshotFor = (state: DemoShopState, identity: ShopClientIdentity, location?: ShopLocation): ShopSnapshot => {
   ensureUser(state, identity);
   expireInventory(state);
+  const personalShopAccess = identity.role === 'Employee' || identity.role === 'Coordinator';
   return {
     products: copy(location
       ? state.products.filter((product) => product.availableLocations.includes(location))
       : state.products),
-    balances: { ...state.balances[identity.id] },
-    inventory: state.inventory.filter((item) => item.userId === identity.id).map(publicInventory),
-    transactions: state.transactions.filter((item) => item.userId === identity.id).map(publicTransaction),
+    balances: personalShopAccess ? { ...state.balances[identity.id] } : { White: 0, Yellow: 0, Blue: 0 },
+    inventory: personalShopAccess
+      ? state.inventory.filter((item) => item.userId === identity.id).map(publicInventory)
+      : [],
+    transactions: personalShopAccess
+      ? state.transactions.filter((item) => item.userId === identity.id).map(publicTransaction)
+      : [],
     fulfillmentContacts: demoFulfillmentContacts,
     identity: { id: identity.id, email: identity.email, authenticated: true },
   };
@@ -167,7 +172,7 @@ export const demoShopService = {
 
   async purchase(productId: string, identity?: ShopClientIdentity, requestId = makeId('request'), _fulfillment?: unknown, location?: ShopLocation): Promise<PurchaseResult> {
     const current = requireIdentity(identity);
-    if (current.role === 'Administrator' || current.role === 'Top Management') {
+    if (current.role !== 'Employee' && current.role !== 'Coordinator') {
       throw new ShopServiceError('Your role can browse the Reward Shop but cannot make purchases.', 'FORBIDDEN', 403);
     }
     if (!location) throw new ShopServiceError('Choose your shop location.', 'SHOP_LOCATION_REQUIRED', 400);

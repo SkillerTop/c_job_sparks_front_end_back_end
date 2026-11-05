@@ -101,13 +101,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => desktop.removeEventListener('change', closeDrawer);
   }, []);
   const user = snapshot!.employees.find((employee) => employee.id === currentUserId)!;
+  const departmentName = snapshot!.departments.find((item) => item.id === user.departmentId)?.name ?? 'Not assigned';
   const ledgerBalances = selectAuthoritativeBalances(snapshot!, currentUserId);
   const spendableBalances = {
     White: ledgerBalances.White,
     Yellow: ledgerBalances.Yellow,
     Blue: ledgerBalances.Blue,
   };
-  const department = snapshot!.departments.find((item) => item.id === user.departmentId)!;
   const pendingRequests = selectPendingRequests(snapshot!, currentUserId, activeRole);
   const pendingDisenchantRequests = selectPendingDepartmentDisenchantRequests(
     snapshot!,
@@ -130,15 +130,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         { labelKey: 'nav.adminSettings', path: '/admin', icon: Settings2, badge: pendingRegistrations.length },
         { labelKey: 'nav.companyAchievements', path: '/company-achievements', icon: Trophy },
       ];
+    if (activeRole === 'Office Manager')
+      return [{ labelKey: 'nav.rewardFulfillment', path: '/fulfillment', icon: PackageCheck }];
     const items: NavItem[] = [];
-    if (['Coordinator', 'GPM', 'Head'].includes(activeRole))
+    if (['GPM', 'Head'].includes(activeRole))
       items.push({
         labelKey:
           activeRole === 'GPM'
             ? 'nav.companyTeam'
-            : activeRole === 'Coordinator'
-              ? 'nav.departmentTeam'
-              : 'nav.departmentWorkspace',
+            : 'nav.departmentWorkspace',
         path: '/team',
         icon: Users,
         badge: activeRole === 'Head' ? pendingDisenchantCount : undefined,
@@ -284,7 +284,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               initials={user.initials}
               avatarDataUrl={preferences?.avatarDataUrl}
               role={activeRole}
-              department={department.name}
+              department={departmentName}
               onSignOut={async () => {
                 await logout();
                 navigate('/login', { replace: true });
