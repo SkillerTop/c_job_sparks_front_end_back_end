@@ -2,11 +2,21 @@
 ALTER TABLE app.product_versions
   ADD COLUMN price_components jsonb;
 
+-- Published product versions are normally immutable. This migration is executed
+-- in one transaction and temporarily suspends only that table's immutability
+-- trigger while the newly added snapshot column is backfilled. A failure rolls
+-- back both the data change and the trigger state.
+ALTER TABLE app.product_versions
+  DISABLE TRIGGER product_versions_published_immutable;
+
 UPDATE app.product_versions
    SET price_components = jsonb_build_array(jsonb_build_object(
      'sparkType', price_spark_type,
      'amount', price_amount
    ));
+
+ALTER TABLE app.product_versions
+  ENABLE TRIGGER product_versions_published_immutable;
 
 ALTER TABLE app.product_versions
   ALTER COLUMN price_components SET NOT NULL,

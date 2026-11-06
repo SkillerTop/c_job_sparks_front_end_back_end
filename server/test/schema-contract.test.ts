@@ -60,6 +60,7 @@ test('shop prices support one to three atomic Spark components', async () => {
   assert.match(migration, /ALTER TABLE app\.purchases[\s\S]+ADD COLUMN price_components jsonb/);
   assert.match(migration, /ALTER TABLE app\.purchase_items[\s\S]+ADD COLUMN unit_price_components jsonb/);
   assert.match(migration, /jsonb_array_length\(price_components\) BETWEEN 1 AND 3/);
+  assert.match(migration, /DISABLE TRIGGER product_versions_published_immutable[\s\S]+UPDATE app\.product_versions[\s\S]+ENABLE TRIGGER product_versions_published_immutable/);
 });
 
 test('office managers and multiple employee coordinators are schema-backed', async () => {
