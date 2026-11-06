@@ -38,6 +38,7 @@ test('the MVP schema is complete and ordered', async () => {
     '0020_shop_product_locations.sql',
     '0021_security_workflow_and_retention.sql',
     '0022_office_manager_and_employee_coordinators.sql',
+    '0023_composite_shop_prices.sql',
   ]);
   for (const table of [
     'users', 'employees', 'departments', 'roles', 'role_assignments', 'projects', 'project_members',
@@ -51,6 +52,14 @@ test('the MVP schema is complete and ordered', async () => {
     'reward_fulfillment_contacts', 'reward_fulfillments', 'disenchant_reports', 'disenchant_report_items',
     'employee_coordinators',
   ]) assert.match(sql, new RegExp(`CREATE TABLE app\\.${table}\\s*\\(`));
+});
+
+test('shop prices support one to three atomic Spark components', async () => {
+  const migration = await readFile(resolve(migrationsDirectory, '0023_composite_shop_prices.sql'), 'utf8');
+  assert.match(migration, /ALTER TABLE app\.product_versions[\s\S]+ADD COLUMN price_components jsonb/);
+  assert.match(migration, /ALTER TABLE app\.purchases[\s\S]+ADD COLUMN price_components jsonb/);
+  assert.match(migration, /ALTER TABLE app\.purchase_items[\s\S]+ADD COLUMN unit_price_components jsonb/);
+  assert.match(migration, /jsonb_array_length\(price_components\) BETWEEN 1 AND 3/);
 });
 
 test('office managers and multiple employee coordinators are schema-backed', async () => {

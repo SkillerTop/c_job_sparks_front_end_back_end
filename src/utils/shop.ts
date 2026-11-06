@@ -5,6 +5,7 @@ import type {
   ShopInventoryItem,
   ShopProduct,
   ShopSort,
+  SparkPriceComponent,
 } from '@/models/shop';
 import { getActiveLocale } from '@/utils/locale';
 
@@ -25,9 +26,45 @@ export const formatSparkAmount = (value: number) => value.toLocaleString(getActi
 export const formatSparkPrice = (amount: number, sparkType: SpendableSparkType) =>
   `${formatSparkAmount(amount)} ${sparkType} ${amount === 1 ? 'Spark' : 'Sparks'}`;
 
+export const getProductPriceComponents = (
+  product: Pick<ShopProduct, 'price' | 'priceSparkType' | 'priceComponents'>,
+): SparkPriceComponent[] => {
+  const configured = product.priceComponents?.filter((component) =>
+    SPENDABLE_SPARK_TYPES.includes(component.sparkType) && Number.isSafeInteger(component.amount) && component.amount > 0,
+  );
+  return configured?.length
+    ? configured
+    : [{ sparkType: product.priceSparkType, amount: product.price }];
+};
+
+export const formatProductPrice = (
+  product: Pick<ShopProduct, 'price' | 'priceSparkType' | 'priceComponents'>,
+) => getProductPriceComponents(product)
+  .map((component) => formatSparkPrice(component.amount, component.sparkType))
+  .join(' + ');
+
+export const getMissingPriceComponents = (
+  product: Pick<ShopProduct, 'price' | 'priceSparkType' | 'priceComponents'>,
+  balances: SpendableSparkBalances,
+) => getProductPriceComponents(product)
+  .map((component) => ({
+    ...component,
+    available: balances[component.sparkType],
+    missing: Math.max(0, component.amount - balances[component.sparkType]),
+  }))
+  .filter((component) => component.missing > 0);
+
+export const getProductPriceCoverage = (
+  product: Pick<ShopProduct, 'price' | 'priceSparkType' | 'priceComponents'>,
+  balances: SpendableSparkBalances,
+) => Math.min(...getProductPriceComponents(product).map((component) =>
+  Math.min(100, Math.max(0, (balances[component.sparkType] / component.amount) * 100)),
+));
+
 const PRICE_SORT_WEIGHT: Record<SpendableSparkType, number> = { White: 1, Yellow: 10, Blue: 80 };
 
-const comparablePrice = (product: ShopProduct) => product.price * PRICE_SORT_WEIGHT[product.priceSparkType];
+const comparablePrice = (product: ShopProduct) => getProductPriceComponents(product)
+  .reduce((total, component) => total + component.amount * PRICE_SORT_WEIGHT[component.sparkType], 0);
 
 export const filterAndSortProducts = (
   products: ShopProduct[],
@@ -64,7 +101,7 @@ export const getProductAction = (
   if (owned && product.productType !== 'Consumable') {
     return owned.status === 'Active' ? 'activated' : 'purchased';
   }
-  if (balances[product.priceSparkType] < product.price) return 'insufficient';
+  if (getMissingPriceComponents(product, balances).length) return 'insufficient';
   return 'buy';
 };
 

@@ -17,6 +17,7 @@ import type {
 } from '@/models/shop';
 import type { ShopClientIdentity } from './shopService';
 import { ShopServiceError } from './shopErrors';
+import { getMissingPriceComponents, getProductPriceComponents } from '@/utils/shop';
 
 const STORAGE_KEY = 'cjob-sparks.frontend-shop.v1';
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -201,13 +202,14 @@ export const demoShopService = {
     );
     if (owned) throw new ShopServiceError('You already own an available copy of this item.', 'ALREADY_OWNED', 409);
 
-    const balance = state.balances[current.id][product.priceSparkType];
-    if (balance < product.price) {
+    const priceComponents = getProductPriceComponents(product);
+    const missingComponents = getMissingPriceComponents(product, state.balances[current.id]);
+    if (missingComponents.length) {
       throw new ShopServiceError(
-        `You need ${product.price - balance} more ${product.priceSparkType} Sparks.`,
+        `You need ${missingComponents.map((component) => `${component.missing} more ${component.sparkType}`).join(' and ')} Sparks.`,
         'INSUFFICIENT_SPARKS',
         409,
-        { balance, price: product.price, missing: product.price - balance },
+        { missingComponents },
       );
     }
 
@@ -218,6 +220,7 @@ export const demoShopService = {
       userId: current.id,
       productId: product.id,
       productName: product.name,
+      priceComponents: priceComponents.map((component) => ({ ...component })),
       pricePaid: product.price,
       sparkTypePaid: product.priceSparkType,
       status: 'Completed',
@@ -233,22 +236,23 @@ export const demoShopService = {
       createdAt,
       product: copy(product),
     };
-    const transaction: StoredTransaction = {
+    const transactions: StoredTransaction[] = priceComponents.map((component) => ({
       id: makeId('shop'),
       userId: current.id,
-      sparkType: product.priceSparkType,
-      amount: -product.price,
+      sparkType: component.sparkType,
+      amount: -component.amount,
       transactionType: 'purchase',
       relatedPurchaseId: purchase.id,
       description: `Purchase: ${product.name}`,
       createdAt,
-    };
+    }));
 
-    state.balances[current.id][product.priceSparkType] -= product.price;
+    for (const component of priceComponents)
+      state.balances[current.id][component.sparkType] -= component.amount;
     if (product.stock !== null) product.stock -= 1;
     state.purchases.unshift(purchase);
     state.inventory.unshift(inventoryItem);
-    state.transactions.unshift(transaction);
+    state.transactions.unshift(...transactions);
     saveState(state);
 
     return {
@@ -303,7 +307,9 @@ export const demoShopService = {
   async saveProduct(draft: ProductDraft, identity?: ShopClientIdentity): Promise<ShopAdminState> {
     requireAdmin(identity);
     if (!draft.name.trim() || !draft.description.trim()) throw new Error('Name and description are required.');
-    if (!Number.isInteger(draft.price) || draft.price < 1) throw new Error('Price must be a positive whole number.');
+    const priceComponents = getProductPriceComponents(draft);
+    if (!priceComponents.length || priceComponents.some((component) => !Number.isSafeInteger(component.amount) || component.amount < 1))
+      throw new Error('Enter at least one positive whole-number Spark price.');
     if (!draft.availableLocations.length) throw new Error('Select at least one available location.');
     if (draft.fulfillmentKind !== 'Virtual' && !draft.fulfillmentContactId)
       throw new Error('Choose who is responsible for fulfilling this reward.');
@@ -312,8 +318,12 @@ export const demoShopService = {
     const existingIndex = draft.id ? state.products.findIndex((product) => product.id === draft.id) : -1;
     let id = draft.id || slugify(draft.name);
     if (existingIndex < 0 && state.products.some((product) => product.id === id)) id = `${id}-${Date.now().toString(36)}`;
+    const primaryPrice = priceComponents[0]!;
     const product: ShopProduct = {
       ...draft,
+      priceComponents: priceComponents.map((component) => ({ ...component })),
+      price: primaryPrice.amount,
+      priceSparkType: primaryPrice.sparkType,
       id,
       name: draft.name.trim(),
       description: draft.description.trim(),

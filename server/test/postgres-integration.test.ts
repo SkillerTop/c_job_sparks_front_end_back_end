@@ -533,6 +533,10 @@ if (!sourceDatabaseUrl) {
         rarity: 'Common',
         price: 1,
         priceSparkType: 'White',
+        priceComponents: [
+          { sparkType: 'White', amount: 1 },
+          { sparkType: 'Yellow', amount: 2 },
+        ],
         productType: 'Permanent',
         fulfillmentKind: 'Physical',
         fulfillmentContactId: null,
@@ -571,10 +575,15 @@ if (!sourceDatabaseUrl) {
       }, `physical-product-${randomUUID()}`);
       assert.equal(productResponse.statusCode, 200, productResponse.body);
       const configuredProduct = productResponse.json<{
-        products: Array<{ id: string; name: string; fulfillmentContactId: string | null; availableLocations: string[] }>;
+        products: Array<{ id: string; name: string; fulfillmentContactId: string | null; availableLocations: string[];
+          priceComponents: Array<{ sparkType: string; amount: number }> }>;
       }>().products.find((product) => product.name === physicalProductName)!;
       assert.equal(configuredProduct.fulfillmentContactId, 'd1000000-0000-4000-8000-000000000001');
       assert.deepEqual(configuredProduct.availableLocations, ['Ukraine']);
+      assert.deepEqual(configuredProduct.priceComponents, [
+        { sparkType: 'White', amount: 1 },
+        { sparkType: 'Yellow', amount: 2 },
+      ]);
       const physicalProductId = configuredProduct.id;
       const ukraineCatalog = await authenticated('Employee', 'GET', '/api/v1/shop?location=Ukraine');
       assert.ok(ukraineCatalog.json<{ products: Array<{ id: string }> }>().products
@@ -594,8 +603,13 @@ if (!sourceDatabaseUrl) {
           officeName: 'Main office',
         } }, `purchase-${randomUUID()}`);
       assert.equal(response.statusCode, 201, response.body);
-      const result = response.json<{ purchase: { id: string }; inventoryItem: { id: string } }>();
+      const result = response.json<{ purchase: { id: string; priceComponents: Array<{ sparkType: string; amount: number }> };
+        inventoryItem: { id: string } }>();
+      assert.deepEqual(result.purchase.priceComponents, configuredProduct.priceComponents);
       assert.equal(await count(`SELECT count(*) FROM app.purchases WHERE id=$1`, [result.purchase.id]), 1);
+      assert.equal(await count(`SELECT count(*) FROM app.spark_ledger_entries entry
+        JOIN app.spark_operations operation ON operation.id=entry.operation_id
+        WHERE operation.source_id=$1 AND operation.operation_type='Purchase' AND entry.amount<0`, [result.purchase.id]), 2);
       assert.equal(await count(`SELECT count(*) FROM app.inventory_items WHERE id=$1`, [result.inventoryItem.id]), 1);
       assert.equal(await count(`SELECT count(*) FROM app.audit_events WHERE entity_type='Purchase' AND entity_id=$1`, [result.purchase.id]), 1);
       assert.equal(await count(`SELECT count(*) FROM app.reward_fulfillments
@@ -618,6 +632,9 @@ if (!sourceDatabaseUrl) {
       const whiteBeforeCancellation = await databasePool.query<{ balance: string }>(`SELECT account.balance::text
         FROM app.spark_accounts account WHERE account.employee_id=$1 AND account.spark_type='White'`,
       [employeeIds.employee]);
+      const yellowBeforeCancellation = await databasePool.query<{ balance: string }>(`SELECT account.balance::text
+        FROM app.spark_accounts account WHERE account.employee_id=$1 AND account.spark_type='Yellow'`,
+      [employeeIds.employee]);
       const cancellation = await authenticated('Administrator', 'POST',
         `/api/v1/admin/reward-fulfillments/${fulfillment.rows[0]!.id}/status`,
         { status: 'Cancelled', notes: 'Integration cancellation policy test.' },
@@ -630,7 +647,11 @@ if (!sourceDatabaseUrl) {
       const whiteAfterCancellation = await databasePool.query<{ balance: string }>(`SELECT account.balance::text
         FROM app.spark_accounts account WHERE account.employee_id=$1 AND account.spark_type='White'`,
       [employeeIds.employee]);
+      const yellowAfterCancellation = await databasePool.query<{ balance: string }>(`SELECT account.balance::text
+        FROM app.spark_accounts account WHERE account.employee_id=$1 AND account.spark_type='Yellow'`,
+      [employeeIds.employee]);
       assert.equal(Number(whiteAfterCancellation.rows[0]!.balance), Number(whiteBeforeCancellation.rows[0]!.balance) + 1);
+      assert.equal(Number(yellowAfterCancellation.rows[0]!.balance), Number(yellowBeforeCancellation.rows[0]!.balance) + 2);
 
       for (const role of ['GPM', 'Head', 'Top Management', 'Office Manager', 'Administrator'] as const) {
         const restricted = await authenticated(role, 'POST', '/api/v1/shop/purchases',

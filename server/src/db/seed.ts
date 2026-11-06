@@ -150,9 +150,10 @@ export const seedDevelopmentData = async (db: PoolClient) => {
   await db.query(`INSERT INTO app.products (id,sku,category_id,created_by_user_id) VALUES ($1,'NEON-THEME',$2,$3) ON CONFLICT (id) DO NOTHING`, [productId, shopCategory, people[5][0]]);
   await db.query(
     `INSERT INTO app.product_versions
-      (id,product_id,version,name,description,rarity,price_spark_type,price_amount,effect_code,
+      (id,product_id,version,name,description,rarity,price_spark_type,price_amount,price_components,effect_code,
        status,is_purchasable,is_featured,is_limited,available_from,created_by_user_id)
-     VALUES ($1,$2,1,'Neon theme','Unlocks the neon workspace theme.','Rare','White',15,'theme_unlock',
+     VALUES ($1,$2,1,'Neon theme','Unlocks the neon workspace theme.','Rare','White',15,
+       '[{"sparkType":"White","amount":15}]'::jsonb,'theme_unlock',
        'Active',true,true,true,'2026-01-01',$3) ON CONFLICT (id) DO NOTHING`,
     [productVersion, productId, people[5][0]],
   );

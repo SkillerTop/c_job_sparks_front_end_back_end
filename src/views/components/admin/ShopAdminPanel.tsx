@@ -13,14 +13,14 @@ import { Feedback } from '@/views/components/common/Feedback';
 import { Modal } from '@/views/components/common/Modal';
 import { ProductVisual } from '@/views/components/shop/ProductVisual';
 import { RarityBadge } from '@/views/components/shop/RarityBadge';
-import { SparkAmount } from '@/views/components/shop/SparkAmount';
+import { SparkPrice } from '@/views/components/shop/SparkPrice';
 import { ShopSkeleton } from '@/views/components/shop/ShopSkeleton';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
 import { SelectField } from '@/views/components/ui/SelectField';
 import { FULFILLMENT_KIND_OPTIONS, PRODUCT_ICON_OPTIONS, PRODUCT_TYPE_OPTIONS, SHOP_CATEGORIES, SHOP_LOCATIONS, RARITY_LABELS } from '@/constants/shop';
 import { useShopAdminController } from '@/controllers/useShopAdminController';
 import { FULFILLMENT_ROLE_LABELS, fulfillmentStatusOptions } from '@/constants/fulfillment';
-import type { ProductRarity, ProductType, ShopCategory, ShopLocation, ShopProduct } from '@/models/shop';
+import type { ProductRarity, ProductType, ShopCategory, ShopLocation, ShopProduct, SpendableSparkType } from '@/models/shop';
 import { formatDateTime } from '@/utils/formatters';
 import { SPENDABLE_SPARK_TYPES } from '@/utils/shop';
 import styles from '@/views/styles/shop.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
@@ -86,6 +86,26 @@ export function ShopAdminPanel() {
     void submitAdjustment();
   };
 
+  const updatePriceComponent = (sparkType: SpendableSparkType, rawValue: string) => {
+    if (!editing) return;
+    const amount = rawValue === '' ? 0 : Number(rawValue);
+    const priceComponents = SPENDABLE_SPARK_TYPES
+      .map((type) => ({
+        sparkType: type,
+        amount: type === sparkType
+          ? amount
+          : (editing.priceComponents?.find((component) => component.sparkType === type)?.amount ?? 0),
+      }))
+      .filter((component) => component.amount > 0);
+    const primary = priceComponents[0] ?? { sparkType: 'White' as const, amount: 0 };
+    setEditing({
+      ...editing,
+      priceComponents,
+      price: primary.amount,
+      priceSparkType: primary.sparkType,
+    });
+  };
+
   if (loading && !state) return <ShopSkeleton count={3} />;
 
   return (
@@ -109,7 +129,7 @@ export function ShopAdminPanel() {
               <div>
                 <RarityBadge rarity={product.rarity} />
                 <h3>{product.name}</h3>
-                <p><SparkAmount amount={product.price} sparkType={product.priceSparkType} /> · <LocalizedText>{product.stock === null ? shopText.admin.unlimited : `${product.stock} ${shopText.admin.units}`}</LocalizedText></p>
+                <p><SparkPrice product={product} /> · <LocalizedText>{product.stock === null ? shopText.admin.unlimited : `${product.stock} ${shopText.admin.units}`}</LocalizedText></p>
                 <small>
                   {product.availableLocations.map((location, index) => (
                     <span key={location}>{index > 0 ? ' · ' : ''}<LocalizedText>{location}</LocalizedText></span>
@@ -262,15 +282,18 @@ export function ShopAdminPanel() {
             <div className={styles.adminPurchaseList}>
               {state.purchases.map((purchase) => (
                 <article key={purchase.id}>
-                  <span className={styles.adminPurchaseIcon}>{purchase.sparkTypePaid ? (
-                    <SparkIcon type={purchase.sparkTypePaid} size={15} animated={false} />
+                  <span className={styles.adminPurchaseIcon}>{(purchase.priceComponents?.[0]?.sparkType ?? purchase.sparkTypePaid) ? (
+                    <SparkIcon type={(purchase.priceComponents?.[0]?.sparkType ?? purchase.sparkTypePaid)!} size={15} animated={false} />
                   ) : <ReceiptText size={14} />}</span>
                   <div>
                     <strong>{purchase.productName}</strong>
                     <small>{formatDateTime(purchase.createdAt)} · {purchase.userId}</small>
                   </div>
-                  <span className={styles.adminPurchaseAmount}>{purchase.sparkTypePaid ? (
-                    <SparkAmount amount={-purchase.pricePaid} sparkType={purchase.sparkTypePaid} signed compact />
+                  <span className={styles.adminPurchaseAmount}>{purchase.priceComponents?.length || purchase.sparkTypePaid ? (
+                    <SparkPrice components={(purchase.priceComponents?.length
+                      ? purchase.priceComponents
+                      : [{ amount: purchase.pricePaid, sparkType: purchase.sparkTypePaid! }])
+                      .map((component) => ({ ...component, amount: -component.amount }))} signed compact />
                   ) : shopText.admin.legacyPurchase}</span>
                 </article>
               ))}
@@ -320,19 +343,28 @@ export function ShopAdminPanel() {
                 <span>{shopText.admin.description}</span>
                 <textarea required maxLength={4000} rows={8} value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} />
               </label>
-              <label>
-                <span>{shopText.admin.price}</span>
-                <input type="number" min="0" max="1000000" step="1" required value={editing.price} onChange={(event) => setEditing({ ...editing, price: Number(event.target.value) })} />
-              </label>
-              <label>
-                <span>{shopText.admin.priceSparkType}</span>
-                <SelectField
-                  value={editing.priceSparkType}
-                  onChange={(priceSparkType) => setEditing({ ...editing, priceSparkType })}
-                  options={SPARK_TYPE_OPTIONS}
-                  ariaLabel={shopText.admin.priceSparkTypeAria}
-                />
-              </label>
+              <fieldset className={`${styles.priceComposer} ${styles.editorWide}`}>
+                <legend>{shopText.admin.price}</legend>
+                <small><LocalizedText>Use one or combine several Spark types. Leave unused types empty.</LocalizedText></small>
+                <div>
+                  {SPENDABLE_SPARK_TYPES.map((sparkType) => (
+                    <label key={sparkType}>
+                      <span><SparkIcon type={sparkType} size={17} animated={false} /> {sparkType}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000000"
+                        step="1"
+                        inputMode="numeric"
+                        value={editing.priceComponents?.find((component) => component.sparkType === sparkType)?.amount || ''}
+                        onChange={(event) => updatePriceComponent(sparkType, event.target.value)}
+                        aria-label={`${sparkType} Spark price`}
+                        placeholder="0"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <label>
                 <span>{shopText.admin.stock}</span>
                 <input type="number" min="0" max="1000000" step="1" value={editing.stock ?? ''} onChange={(event) => setEditing({ ...editing, stock: toNullableNumber(event.target.value) })} placeholder={shopText.admin.stockPlaceholder} />

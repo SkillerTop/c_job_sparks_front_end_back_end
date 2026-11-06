@@ -347,6 +347,14 @@
   font-weight: 850;
 }
 
+.sparkPrice {
+  display: inline-flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.32rem;
+}
+
 .sparkAmountCompact {
   min-height: 1.55rem;
   padding: 0.16rem 0.34rem;
@@ -849,7 +857,7 @@
 
 .purchaseSummary div:last-child { border-bottom: 0; }
 .purchaseSummary dt { color: var(--muted-strong); font-size: 0.8125rem; }
-.purchaseSummary dd { display: inline-flex; align-items: center; gap: 0.3rem; margin: 0; color: var(--ink); font-size: 0.875rem; font-weight: 800; }
+.purchaseSummary dd { display: inline-flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.3rem; margin: 0; color: var(--ink); font-size: 0.875rem; font-weight: 800; }
 .purchaseAfter { background: var(--accent-soft); }
 .purchaseAfter dd { color: var(--accent-green); }
 
@@ -1515,6 +1523,40 @@
   grid-column: 1 / -1;
 }
 
+.priceComposer {
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+
+.priceComposer legend {
+  padding-inline: 0.25rem;
+  color: var(--muted-strong);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.priceComposer > small {
+  display: block;
+  margin-bottom: 0.65rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.priceComposer > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.priceComposer label > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .editorChecks {
   display: flex;
   gap: 0.75rem 1rem;
@@ -1543,6 +1585,12 @@
 }
 
 @keyframes shopSpin { to { transform: rotate(360deg); } }
+
+@media (max-width: 32rem) {
+  .priceComposer > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 @keyframes shopSkeleton { from { background-position: 100% 0; } to { background-position: -120% 0; } }
 @keyframes shopGlint { 0%, 62% { left: -35%; opacity: 0; } 68% { opacity: 0.7; } 82% { left: 118%; opacity: 0; } 100% { left: 118%; opacity: 0; } }
 @keyframes successPop { from { opacity: 0; transform: scale(0.45) rotate(-12deg); } to { opacity: 1; transform: scale(1) rotate(0); } }

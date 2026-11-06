@@ -110,6 +110,54 @@ test('an administrator can remove a product while purchase history stays intact'
   );
 });
 
+test('a composite product price debits every Spark type atomically', async () => {
+  values.clear();
+  const configured = await demoShopService.saveProduct({
+    name: 'Composite price test reward',
+    description: 'A reward paid with several Spark types.',
+    availableLocations: ['Ukraine'],
+    imageUrl: null,
+    icon: 'gift',
+    category: 'Other',
+    rarity: 'Common',
+    priceComponents: [
+      { sparkType: 'White', amount: 3 },
+      { sparkType: 'Yellow', amount: 2 },
+    ],
+    price: 3,
+    priceSparkType: 'White',
+    productType: 'Consumable',
+    durationHours: null,
+    stock: null,
+    isActive: true,
+    isFeatured: false,
+    isLimited: false,
+    availableFrom: null,
+    availableUntil: null,
+    fulfillmentKind: 'Virtual',
+    fulfillmentContactId: null,
+  }, administrator);
+  const product = configured.products.find((entry) => entry.name === 'Composite price test reward');
+  assert.ok(product);
+
+  const result = await demoShopService.purchase(product.id, employee, 'composite-price', undefined, 'Ukraine');
+  assert.deepEqual(result.purchase.priceComponents, [
+    { sparkType: 'White', amount: 3 },
+    { sparkType: 'Yellow', amount: 2 },
+  ]);
+  assert.equal(result.balances.White, 15);
+  assert.equal(result.balances.Yellow, 5);
+  assert.deepEqual(
+    result.transactions
+      .filter((entry) => entry.relatedPurchaseId === result.purchase.id)
+      .map(({ sparkType, amount }) => ({ sparkType, amount })),
+    [
+      { sparkType: 'White', amount: -3 },
+      { sparkType: 'Yellow', amount: -2 },
+    ],
+  );
+});
+
 test('shop location is remembered per account and filters the catalog', async () => {
   values.clear();
   assert.equal(readShopLocation(employee.id), null);

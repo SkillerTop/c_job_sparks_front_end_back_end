@@ -1018,8 +1018,8 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
             `Your purchase of ${purchase.purchase.productName} is complete.`, 'Purchase', purchase.purchase.id);
           await enqueueOutbox(db, 'PurchaseCompleted', 'Purchase', purchase.purchase.id, purchase.purchase);
           await writeAudit(db, { actorUserId: principal.userId, action: 'PURCHASE_COMPLETED', objectType: 'Purchase',
-            objectId: purchase.purchase.id, after: { productId: input.productId, location: input.location, pricePaid: purchase.purchase.pricePaid,
-              sparkType: purchase.purchase.sparkTypePaid }, requestId: request.id, ip: request.ip,
+            objectId: purchase.purchase.id, after: { productId: input.productId, location: input.location,
+              priceComponents: purchase.purchase.priceComponents }, requestId: request.id, ip: request.ip,
             userAgent: request.headers['user-agent'] });
           return { ...(await shopSnapshot(db, principal, input.location)), ...purchase, fulfillment };
         });
@@ -1128,19 +1128,24 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
                 AND status IN ('Active','Used') LIMIT 1 FOR UPDATE`, [purchase.id]);
             if (usedInventory)
               throw conflict('PURCHASE_ALREADY_USED', 'An activated or used reward cannot be cancelled.');
-            const originalEntry = await one<{ id: string | number }>(db, `SELECT id FROM app.spark_ledger_entries
-              WHERE operation_id=$1 AND amount<0 ORDER BY id LIMIT 1`, [purchase.spark_operation_id]);
+            const originalEntries = await rows<{ id: string | number; spark_type: 'White' | 'Yellow' | 'Blue'; amount: string | number }>(db,
+              `SELECT entry.id,account.spark_type,entry.amount
+                 FROM app.spark_ledger_entries entry
+                 JOIN app.spark_accounts account ON account.id=entry.account_id
+                WHERE entry.operation_id=$1 AND entry.amount<0
+                ORDER BY entry.id`, [purchase.spark_operation_id]);
+            if (!originalEntries.length) throw conflict('PURCHASE_LEDGER_MISSING', 'The original purchase debit could not be found.');
             const reversal = await postLedgerOperation(db, {
               operationType: 'Reversal', actorUserId: principal.userId,
               subjectEmployeeId: current.recipient_employee_id,
               reversalOfOperationId: purchase.spark_operation_id,
               sourceType: 'PurchaseCancellation', sourceId: purchase.id,
               requestId: request.id, description: input.notes || 'Reward fulfillment cancelled.',
-              entries: [{ employeeId: current.recipient_employee_id,
-                sparkType: purchase.total_price_spark_type,
-                amount: Number(purchase.total_price_amount), entryKind: 'Reversal',
-                relatedEntryId: Number(originalEntry.id), sourceType: 'PurchaseCancellation',
-                sourceId: purchase.id, description: input.notes || 'Reward fulfillment cancelled.' }],
+              entries: originalEntries.map((entry) => ({ employeeId: current.recipient_employee_id,
+                sparkType: entry.spark_type,
+                amount: Math.abs(Number(entry.amount)), entryKind: 'Reversal' as const,
+                relatedEntryId: Number(entry.id), sourceType: 'PurchaseCancellation',
+                sourceId: purchase.id, description: input.notes || 'Reward fulfillment cancelled.' })),
             });
             await db.query(`UPDATE app.purchases SET status='Cancelled',cancelled_at=clock_timestamp(),
               cancelled_by_user_id=$2,cancellation_reason=$3,cancellation_operation_id=$4 WHERE id=$1`,
@@ -1268,8 +1273,14 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
         availableLocations: z.array(shopLocationSchema).min(1).max(SHOP_LOCATIONS.length)
           .refine((values) => new Set(values).size === values.length, 'Locations must be unique.')
           .default([...SHOP_LOCATIONS]),
-        rarity: z.enum(['Common','Rare','Epic','Legendary']), price: z.number().int().positive(),
-        priceSparkType: z.enum(['White','Yellow','Blue']), productType: z.enum(['Consumable','Activatable','Permanent']),
+        rarity: z.enum(['Common','Rare','Epic','Legendary']), price: z.number().int().nonnegative(),
+        priceSparkType: z.enum(['White','Yellow','Blue']),
+        priceComponents: z.array(z.object({
+          sparkType: z.enum(['White','Yellow','Blue']), amount: z.number().int().positive().max(1000000),
+        })).min(1).max(3).refine((components) =>
+          new Set(components.map((component) => component.sparkType)).size === components.length,
+        'Spark types in a product price must be unique.').optional(),
+        productType: z.enum(['Consumable','Activatable','Permanent']),
         durationHours: z.number().positive().nullable(), stock: z.number().int().nonnegative().nullable(),
         isActive: z.boolean(), isFeatured: z.boolean(), isLimited: z.boolean(),
         availableFrom: z.iso.datetime().nullable(), availableUntil: z.iso.datetime().nullable(),

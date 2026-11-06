@@ -14,6 +14,11 @@ export type ShopSort = 'popular' | 'price-asc' | 'price-desc' | 'newest';
 export type ShopTransactionType = 'purchase' | 'refund' | 'adjustment';
 export type ShopTransactionFilter = 'all' | 'purchase' | 'credit' | 'refund';
 
+export interface SparkPriceComponent {
+  sparkType: SpendableSparkType;
+  amount: number;
+}
+
 export interface ShopProduct {
   id: string;
   name: string;
@@ -25,6 +30,8 @@ export interface ShopProduct {
   icon: string;
   category: ShopCategory;
   rarity: ProductRarity;
+  /** Canonical price. Legacy singular fields remain during the database/API transition. */
+  priceComponents?: SparkPriceComponent[];
   price: number;
   priceSparkType: SpendableSparkType;
   productType: ProductType;
@@ -56,6 +63,7 @@ export interface ShopPurchase {
   userId: string;
   productId: string;
   productName: string;
+  priceComponents?: SparkPriceComponent[];
   pricePaid: number;
   sparkTypePaid: SpendableSparkType | null;
   status: 'Completed' | 'Cancelled' | 'Refunded' | 'Failed';

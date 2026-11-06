@@ -9,6 +9,7 @@ import { one, rows } from './sql.js';
 
 export const SHOP_LOCATIONS = ['Ukraine', 'Poland', 'Bulgaria'] as const;
 export type ShopLocation = typeof SHOP_LOCATIONS[number];
+export interface SparkPriceComponent { sparkType: SpendableSparkType; amount: number }
 
 export interface AdminProductInput {
   id?: string | undefined;
@@ -20,6 +21,7 @@ export interface AdminProductInput {
   rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
   price: number;
   priceSparkType: SpendableSparkType;
+  priceComponents?: SparkPriceComponent[] | undefined;
   productType: 'Consumable' | 'Activatable' | 'Permanent';
   durationHours: number | null;
   stock: number | null;
@@ -44,6 +46,7 @@ interface ProductRow {
   rarity: string;
   price_spark_type: SpendableSparkType;
   price_amount: string | number;
+  price_components: unknown;
   effect_code: string | null;
   effect_configuration: Record<string, unknown>;
   fulfillment_kind: FulfillmentKind;
@@ -60,7 +63,7 @@ interface ProductRow {
 
 const productSelect = `
   SELECT p.id, pv.id AS version_id, pv.name, COALESCE(pv.description, pv.short_description) AS description,
-         sc.name AS category, pv.available_locations, pv.rarity, pv.price_spark_type, pv.price_amount, pv.effect_code,
+         sc.name AS category, pv.available_locations, pv.rarity, pv.price_spark_type, pv.price_amount, pv.price_components, pv.effect_code,
          pv.effect_configuration, pv.fulfillment_kind, pv.fulfillment_contact_id, pv.is_featured, pv.is_limited, pv.available_from, pv.available_to,
          pv.inventory_ttl_seconds, pv.created_at,
          CASE WHEN ma.id IS NULL THEN NULL ELSE '/api/v1/media/' || ma.id::text END AS image_url,
@@ -84,40 +87,64 @@ const productSelect = `
 
 const iso = (value: Date | string | null) => (value ? new Date(value).toISOString() : null);
 
+const validPriceComponents = (value: unknown): value is SparkPriceComponent[] => Array.isArray(value) &&
+  value.length >= 1 && value.length <= 3 &&
+  value.every((component) => component && typeof component === 'object' &&
+    ['White', 'Yellow', 'Blue'].includes((component as SparkPriceComponent).sparkType) &&
+    Number.isSafeInteger((component as SparkPriceComponent).amount) && (component as SparkPriceComponent).amount > 0) &&
+  new Set(value.map((component) => (component as SparkPriceComponent).sparkType)).size === value.length;
+
+const priceComponentsFrom = (value: unknown, sparkType: SpendableSparkType, amount: string | number) =>
+  validPriceComponents(value) ? value : [{ sparkType, amount: Number(amount) }];
+
+const normalizePriceComponents = (input: AdminProductInput) => {
+  const components = input.priceComponents?.length
+    ? input.priceComponents
+    : [{ sparkType: input.priceSparkType, amount: input.price }];
+  if (!validPriceComponents(components))
+    throw badRequest('PRODUCT_PRICE_INVALID', 'Configure one to three unique positive whole-number Spark prices.');
+  return components;
+};
+
 const productTypeFrom = (product: ProductRow): AdminProductInput['productType'] => {
   const configured = product.effect_configuration?.productType;
   if (configured === 'Consumable' || configured === 'Activatable' || configured === 'Permanent') return configured;
   return product.inventory_ttl_seconds ? 'Activatable' : 'Permanent';
 };
 
-const mapProduct = (product: ProductRow) => ({
-  id: product.id,
-  name: product.name,
-  description: product.description ?? '',
-  availableLocations: product.available_locations,
-  imageUrl: product.image_url,
-  imageSrcSet: product.image_url
-    ? [320, 640, 960].map((width) => `${product.image_url}?width=${width} ${width}w`).join(', ')
-    : null,
-  imageSizes: '(max-width: 40rem) 45vw, 18rem',
-  icon: 'Sparkles',
-  category: product.category,
-  rarity: product.rarity,
-  price: Number(product.price_amount),
-  priceSparkType: product.price_spark_type,
-  productType: productTypeFrom(product),
-  durationHours: product.inventory_ttl_seconds ? Number(product.inventory_ttl_seconds) / 3600 : null,
-  stock: product.is_limited ? Number(product.available_quantity ?? 0) : null,
-  isActive: true,
-  isFeatured: product.is_featured,
-  isLimited: product.is_limited,
-  availableFrom: iso(product.available_from),
-  availableUntil: iso(product.available_to),
-  createdAt: iso(product.created_at),
-  effectCode: product.effect_code ?? undefined,
-  fulfillmentKind: product.fulfillment_kind,
-  fulfillmentContactId: product.fulfillment_contact_id,
-});
+const mapProduct = (product: ProductRow) => {
+  const priceComponents = priceComponentsFrom(product.price_components, product.price_spark_type, product.price_amount);
+  const primaryPrice = priceComponents[0]!;
+  return ({
+    id: product.id,
+    name: product.name,
+    description: product.description ?? '',
+    availableLocations: product.available_locations,
+    imageUrl: product.image_url,
+    imageSrcSet: product.image_url
+      ? [320, 640, 960].map((width) => `${product.image_url}?width=${width} ${width}w`).join(', ')
+      : null,
+    imageSizes: '(max-width: 40rem) 45vw, 18rem',
+    icon: 'Sparkles',
+    category: product.category,
+    rarity: product.rarity,
+    priceComponents,
+    price: primaryPrice.amount,
+    priceSparkType: primaryPrice.sparkType,
+    productType: productTypeFrom(product),
+    durationHours: product.inventory_ttl_seconds ? Number(product.inventory_ttl_seconds) / 3600 : null,
+    stock: product.is_limited ? Number(product.available_quantity ?? 0) : null,
+    isActive: true,
+    isFeatured: product.is_featured,
+    isLimited: product.is_limited,
+    availableFrom: iso(product.available_from),
+    availableUntil: iso(product.available_to),
+    createdAt: iso(product.created_at),
+    effectCode: product.effect_code ?? undefined,
+    fulfillmentKind: product.fulfillment_kind,
+    fulfillmentContactId: product.fulfillment_contact_id,
+  });
+};
 
 export const shopSnapshot = async (db: PoolClient, principal: AuthenticatedPrincipal, location?: ShopLocation) => {
   if (!canViewShop(principal.role)) throw forbidden('The Reward Shop is not available for your role.');
@@ -144,7 +171,7 @@ export const shopSnapshot = async (db: PoolClient, principal: AuthenticatedPrinc
             CASE ii.status WHEN 'Available' THEN 'Owned' ELSE ii.status END AS status,
             ii.activated_at AS "activatedAt", ii.expires_at AS "expiresAt", ii.acquired_at AS "itemCreatedAt",
             p.id,pv.id AS version_id,pv.name,COALESCE(pv.description,pv.short_description) AS description,
-            category.name AS category,pv.available_locations,pv.rarity,pv.price_spark_type,pv.price_amount,pv.effect_code,
+            category.name AS category,pv.available_locations,pv.rarity,pv.price_spark_type,pv.price_amount,pv.price_components,pv.effect_code,
             pv.effect_configuration,pv.fulfillment_kind,pv.fulfillment_contact_id,pv.is_featured,pv.is_limited,pv.available_from,pv.available_to,
             pv.inventory_ttl_seconds,pv.created_at,NULL::text AS image_url,stock.available_quantity
        FROM app.inventory_items ii
@@ -228,7 +255,8 @@ export const purchaseProduct = async (
   const purchaseId = randomUUID();
   const purchaseItemId = randomUUID();
   const inventoryId = randomUUID();
-  const price = Number(product.price_amount);
+  const priceComponents = priceComponentsFrom(product.price_components, product.price_spark_type, product.price_amount);
+  const primaryPrice = priceComponents[0]!;
   const ledger = await postLedgerOperation(db, {
     operationType: 'Purchase',
     actorUserId: principal.userId,
@@ -237,29 +265,28 @@ export const purchaseProduct = async (
     sourceId: purchaseId,
     requestId,
     description: `Purchased ${product.name}.`,
-    entries: [
-      {
-        employeeId: principal.employeeId,
-        sparkType: product.price_spark_type,
-        amount: -price,
-        entryKind: 'Debit',
-        sourceType: 'Purchase',
-        sourceId: purchaseId,
-        description: `Purchased ${product.name}.`,
-      },
-    ],
+    entries: priceComponents.map((component) => ({
+      employeeId: principal.employeeId,
+      sparkType: component.sparkType,
+      amount: -component.amount,
+      entryKind: 'Debit',
+      sourceType: 'Purchase',
+      sourceId: purchaseId,
+      description: `Purchased ${product.name}.`,
+    })),
   });
   await db.query(
     `INSERT INTO app.purchases
-      (id, employee_id, spark_operation_id, total_price_spark_type, total_price_amount, metadata)
-     VALUES ($1,$2,$3,$4,$5,$6::jsonb)`,
-    [purchaseId, principal.employeeId, ledger.operationId, product.price_spark_type, price, JSON.stringify({ requestId, location })],
+      (id, employee_id, spark_operation_id, total_price_spark_type, total_price_amount, price_components, metadata)
+     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb)`,
+    [purchaseId, principal.employeeId, ledger.operationId, primaryPrice.sparkType, primaryPrice.amount,
+      JSON.stringify(priceComponents), JSON.stringify({ requestId, location })],
   );
   await db.query(
     `INSERT INTO app.purchase_items
       (id, purchase_id, product_id, product_version_id, product_name_snapshot, effect_code_snapshot,
-       effect_configuration_snapshot, quantity, unit_price_spark_type, unit_price_amount)
-     VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,1,$8,$9)`,
+       effect_configuration_snapshot, quantity, unit_price_spark_type, unit_price_amount, unit_price_components)
+     VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,1,$8,$9,$10::jsonb)`,
     [
       purchaseItemId,
       purchaseId,
@@ -268,8 +295,9 @@ export const purchaseProduct = async (
       product.name,
       product.effect_code,
       JSON.stringify(product.effect_configuration),
-      product.price_spark_type,
-      price,
+      primaryPrice.sparkType,
+      primaryPrice.amount,
+      JSON.stringify(priceComponents),
     ],
   );
   await db.query(
@@ -306,8 +334,9 @@ export const purchaseProduct = async (
       userId: principal.employeeId,
       productId: product.id,
       productName: product.name,
-      pricePaid: price,
-      sparkTypePaid: product.price_spark_type,
+      priceComponents,
+      pricePaid: primaryPrice.amount,
+      sparkTypePaid: primaryPrice.sparkType,
       status: 'Completed',
       createdAt: new Date().toISOString(),
     },
@@ -381,7 +410,7 @@ export const shopAdminSnapshot = async (db: PoolClient) => {
   const products = (await rows<ProductRow & { product_is_active: boolean }>(db, `
     SELECT p.id,p.is_active AS product_is_active,pv.id AS version_id,pv.name,
            COALESCE(pv.description,pv.short_description) AS description,sc.name AS category,pv.available_locations,pv.rarity,
-           pv.price_spark_type,pv.price_amount,pv.effect_code,pv.effect_configuration,pv.fulfillment_kind,pv.fulfillment_contact_id,pv.is_featured,pv.is_limited,
+           pv.price_spark_type,pv.price_amount,pv.price_components,pv.effect_code,pv.effect_configuration,pv.fulfillment_kind,pv.fulfillment_contact_id,pv.is_featured,pv.is_limited,
            pv.available_from,pv.available_to,pv.inventory_ttl_seconds,pv.created_at,
            CASE WHEN ma.id IS NULL THEN NULL ELSE '/api/v1/media/' || ma.id::text END AS image_url,
            ps.available_quantity
@@ -395,7 +424,7 @@ export const shopAdminSnapshot = async (db: PoolClient) => {
       WHERE p.deleted_at IS NULL
       ORDER BY pv.created_at DESC`)).map((row) => ({ ...mapProduct(row), isActive: row.product_is_active }));
   const purchases = await rows<any>(db, `SELECT purchase.id,purchase.employee_id AS "userId",item.product_id AS "productId",
-    item.product_name_snapshot AS "productName",purchase.total_price_amount::int AS "pricePaid",
+    item.product_name_snapshot AS "productName",purchase.price_components AS "priceComponents",purchase.total_price_amount::int AS "pricePaid",
     purchase.total_price_spark_type AS "sparkTypePaid",purchase.status,purchase.purchased_at AS "createdAt"
     FROM app.purchases purchase JOIN app.purchase_items item ON item.purchase_id=purchase.id
     ORDER BY purchase.purchased_at DESC LIMIT 500`);
@@ -433,7 +462,7 @@ export const listShopAdminCollection = async (
     const values = await rows<ProductRow & { product_is_active: boolean }>(db, `
       SELECT p.id,p.is_active AS product_is_active,pv.id AS version_id,pv.name,
              COALESCE(pv.description,pv.short_description) AS description,sc.name AS category,
-             pv.available_locations,pv.rarity,pv.price_spark_type,pv.price_amount,pv.effect_code,
+             pv.available_locations,pv.rarity,pv.price_spark_type,pv.price_amount,pv.price_components,pv.effect_code,
              pv.effect_configuration,pv.fulfillment_kind,pv.fulfillment_contact_id,pv.is_featured,
              pv.is_limited,pv.available_from,pv.available_to,pv.inventory_ttl_seconds,pv.created_at::text AS created_at,
              CASE WHEN ma.id IS NULL THEN NULL ELSE '/api/v1/media/' || ma.id::text END AS image_url,
@@ -453,7 +482,7 @@ export const listShopAdminCollection = async (
   }
   if (collection === 'purchases') return rows<any>(db, `SELECT purchase.id,
       purchase.employee_id AS "userId",item.product_id AS "productId",
-      item.product_name_snapshot AS "productName",purchase.total_price_amount::int AS "pricePaid",
+      item.product_name_snapshot AS "productName",purchase.price_components AS "priceComponents",purchase.total_price_amount::int AS "pricePaid",
       purchase.total_price_spark_type AS "sparkTypePaid",purchase.status,purchase.purchased_at::text AS "createdAt"
     FROM app.purchases purchase JOIN app.purchase_items item ON item.purchase_id=purchase.id
    WHERE ($1::timestamptz IS NULL OR (purchase.purchased_at,purchase.id) < ($1::timestamptz,$2::uuid))
@@ -497,6 +526,8 @@ export const saveAdminProduct = async (
   principal: AuthenticatedPrincipal,
   input: AdminProductInput,
 ) => {
+  const priceComponents = normalizePriceComponents(input);
+  const primaryPrice = priceComponents[0]!;
   const category = await one<{ id: string }>(db, `INSERT INTO app.shop_categories (id,code,name)
     VALUES ($1,$2,$3) ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name RETURNING id`, [
     randomUUID(), input.category.toLowerCase().replaceAll(' ', '-'), input.category,
@@ -534,12 +565,12 @@ export const saveAdminProduct = async (
       .catch(() => { throw badRequest('FULFILLMENT_CONTACT_INVALID', 'Choose an active reward fulfillment contact.'); });
   }
   await db.query(`INSERT INTO app.product_versions
-    (id,product_id,version,name,description,available_locations,rarity,price_spark_type,price_amount,effect_code,
+    (id,product_id,version,name,description,available_locations,rarity,price_spark_type,price_amount,price_components,effect_code,
      effect_configuration,fulfillment_kind,fulfillment_contact_id,status,is_purchasable,is_featured,is_limited,available_from,available_to,
      inventory_ttl_seconds,created_by_user_id)
-    VALUES ($1,$2,$3,$4,$5,$6::text[],$7,$8,$9,$10,$11::jsonb,$12,$13,'Active',$14,$15,$16,$17,$18,$19,$20)`, [
+    VALUES ($1,$2,$3,$4,$5,$6::text[],$7,$8,$9,$10::jsonb,$11,$12::jsonb,$13,$14,'Active',$15,$16,$17,$18,$19,$20,$21)`, [
     versionId, productId, version.next, input.name.trim(), input.description.trim(), input.availableLocations, input.rarity,
-    input.priceSparkType, input.price, effectCode, JSON.stringify({ productType: input.productType }),
+    primaryPrice.sparkType, primaryPrice.amount, JSON.stringify(priceComponents), effectCode, JSON.stringify({ productType: input.productType }),
     input.fulfillmentKind, fulfillmentContactId, input.isActive && supported, input.isFeatured, input.isLimited, availableFrom, availableTo,
     input.durationHours ? input.durationHours * 3600 : null, principal.userId,
   ]);

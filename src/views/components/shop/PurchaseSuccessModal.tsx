@@ -4,7 +4,8 @@ import { Modal } from '@/views/components/common/Modal';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
 
 import type { ShopProduct, SpendableSparkBalances } from '@/models/shop';
-import { SparkAmount } from './SparkAmount';
+import { getProductPriceComponents } from '@/utils/shop';
+import { SparkPrice } from './SparkPrice';
 import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
 
 
@@ -25,16 +26,21 @@ export function PurchaseSuccessModal({
       description={shopText.purchase.successDescription}
       onClose={onClose}
     >
-      {product && (
+      {product && (() => {
+        const priceComponents = getProductPriceComponents(product);
+        return (
         <div className={styles.successPurchase} role="status" aria-live="polite">
           <div className={styles.successBurst} aria-hidden="true">
             <span><SparkIcon type="White" size={20} animated={false} /></span>
             <span><Sparkles /></span>
-            <span><SparkIcon type={product.priceSparkType} size={20} animated={false} /></span>
+            <span><SparkIcon type={priceComponents[0]!.sparkType} size={20} animated={false} /></span>
             <strong><Check /></strong>
           </div>
           <h3>{product.name}</h3>
-          <p>{shopText.purchase.newBalance}: <SparkAmount amount={balances[product.priceSparkType]} sparkType={product.priceSparkType} /></p>
+          <p>{shopText.purchase.newBalance}: <SparkPrice components={priceComponents.map((component) => ({
+            sparkType: component.sparkType,
+            amount: balances[component.sparkType],
+          }))} /></p>
           <div className={styles.shopModalActions}>
             <button className={styles.shopSecondaryButton} type="button" onClick={onClose}>
               {shopText.purchase.continueShopping}
@@ -44,7 +50,8 @@ export function PurchaseSuccessModal({
             </Link>
           </div>
         </div>
-      )}
+        );
+      })()}
     </Modal>
   );
 }

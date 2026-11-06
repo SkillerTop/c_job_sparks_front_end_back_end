@@ -13,6 +13,7 @@ import type {
   SpendableSparkType,
 } from '@/models/shop';
 import { shopService } from '@/services/shopService';
+import { getProductPriceComponents } from '@/utils/shop';
 
 const EMPTY_PRODUCT: ProductDraft = {
   name: '',
@@ -22,6 +23,7 @@ const EMPTY_PRODUCT: ProductDraft = {
   icon: 'gift',
   category: 'Other',
   rarity: 'Common',
+  priceComponents: [{ sparkType: 'White', amount: 4 }],
   price: 4,
   priceSparkType: 'White',
   productType: 'Consumable',
@@ -133,6 +135,7 @@ export function useShopAdminController() {
             icon: product.icon,
             category: product.category,
             rarity: product.rarity,
+            priceComponents: getProductPriceComponents(product).map((component) => ({ ...component })),
             price: product.price,
             priceSparkType: product.priceSparkType,
             productType: product.productType,
@@ -154,6 +157,11 @@ export function useShopAdminController() {
     if (!editing || saving) return;
     if (!editing.availableLocations.length) {
       setMessage({ tone: 'error', text: 'Select at least one available location.' });
+      return;
+    }
+    if (!editing.priceComponents?.length || editing.priceComponents.some((component) =>
+      !Number.isSafeInteger(component.amount) || component.amount <= 0)) {
+      setMessage({ tone: 'error', text: 'Enter at least one positive whole-number Spark price.' });
       return;
     }
     if (editing.fulfillmentKind !== 'Virtual' && !editing.fulfillmentContactId) {

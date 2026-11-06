@@ -5,10 +5,10 @@ import { SHOP_CATEGORIES } from '@/constants/shop';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
 import type { ShopInventoryItem, ShopProduct, SpendableSparkBalances } from '@/models/shop';
-import { durationLabel, formatSparkPrice, getProductAction, isProductNew } from '@/utils/shop';
+import { formatProductPrice, getProductAction, getProductPriceComponents, getProductPriceCoverage, isProductNew, durationLabel } from '@/utils/shop';
 import { ProductVisual, rarityClass } from './ProductVisual';
 import { RarityBadge } from './RarityBadge';
-import { SparkAmount } from './SparkAmount';
+import { SparkPrice } from './SparkPrice';
 import styles from '@/views/styles/shop.module.css';import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
 
 
@@ -46,10 +46,8 @@ export function ProductCard({
   const actionLabel = readOnly ? t('shop.viewOnly') : actionLabels[action];
   const disabled = readOnly || loading || ['purchased', 'activated', 'sold-out', 'soon'].includes(action);
   const category = localize(SHOP_CATEGORIES.find((item) => item.value === product.category)?.label ?? product.category);
-  const available = balances[product.priceSparkType];
-  const progress = product.price === 0
-    ? 100
-    : Math.min(100, Math.max(0, (available / product.price) * 100));
+  const priceComponents = getProductPriceComponents(product);
+  const progress = getProductPriceCoverage(product, balances);
   const promo = product.isLimited
     ? shopText.labels.limited
     : product.isFeatured
@@ -117,7 +115,7 @@ export function ProductCard({
           )}
         </div>
         <div className={styles.priceRow}>
-          <SparkAmount amount={product.price} sparkType={product.priceSparkType} className={styles.price} />
+          <SparkPrice product={product} className={styles.price} />
           {product.stock !== null && <small>{shopText.product.remaining(product.stock)}</small>}
         </div>
         <div
@@ -137,7 +135,7 @@ export function ProductCard({
           aria-label={shopText.aria.productAction(
             actionLabel,
             product.name,
-            formatSparkPrice(product.price, product.priceSparkType),
+            formatProductPrice(product),
           )}
           onClick={() => onAction(product, action)}
         >
@@ -154,7 +152,7 @@ export function ProductCard({
           ) : action === 'buy' ? (
             <ShoppingBag size={16} aria-hidden="true" />
           ) : (
-            <SparkIcon type={product.priceSparkType} size={16} animated={false} />
+            <SparkIcon type={priceComponents[0]!.sparkType} size={16} animated={false} />
           )}
           {loading ? shopText.actions.processing : actionLabel}
         </button>

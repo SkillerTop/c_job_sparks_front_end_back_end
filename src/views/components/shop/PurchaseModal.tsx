@@ -10,7 +10,8 @@ import type { DeliveryMethod, PurchaseFulfillmentChoice, ShopProduct, SpendableS
 import { SelectField } from '@/views/components/ui/SelectField';
 import { ProductVisual } from './ProductVisual';
 import { RarityBadge } from './RarityBadge';
-import { SparkAmount } from './SparkAmount';
+import { SparkPrice } from './SparkPrice';
+import { getProductPriceComponents } from '@/utils/shop';
 import styles from '@/views/styles/shop.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
 import { useLocalizedShopText } from '@/hooks/useLocalizedShopText';
 
@@ -54,8 +55,15 @@ export function PurchaseModal({
         ? 'InternalCoordination'
         : 'OfficePickup');
   }, [product, contacts, officeOptions]);
-  const available = product ? balances[product.priceSparkType] : 0;
-  const after = product ? available - product.price : available;
+  const priceComponents = product ? getProductPriceComponents(product) : [];
+  const currentBalances = priceComponents.map((component) => ({
+    sparkType: component.sparkType,
+    amount: balances[component.sparkType],
+  }));
+  const balancesAfterPurchase = priceComponents.map((component) => ({
+    sparkType: component.sparkType,
+    amount: Math.max(0, balances[component.sparkType] - component.amount),
+  }));
   const needsFulfillment = product?.fulfillmentKind !== 'Virtual';
   const fulfillment = needsFulfillment && product ? {
     deliveryMethod,
@@ -128,15 +136,15 @@ export function PurchaseModal({
           <dl className={styles.purchaseSummary}>
             <div>
               <dt>{shopText.labels.price}</dt>
-              <dd><SparkAmount amount={product.price} sparkType={product.priceSparkType} /></dd>
+              <dd><SparkPrice product={product} /></dd>
             </div>
             <div>
               <dt>{shopText.purchase.currentBalance}</dt>
-              <dd><SparkAmount amount={available} sparkType={product.priceSparkType} /></dd>
+              <dd><SparkPrice components={currentBalances} /></dd>
             </div>
             <div className={styles.purchaseAfter}>
               <dt>{shopText.purchase.afterPurchase}</dt>
-              <dd><SparkAmount amount={Math.max(0, after)} sparkType={product.priceSparkType} /></dd>
+              <dd><SparkPrice components={balancesAfterPurchase} /></dd>
             </div>
           </dl>
           <p className={styles.secureNote}>
@@ -148,7 +156,7 @@ export function PurchaseModal({
             </button>
             <button className={styles.shopPrimaryButton} type="button" disabled={loading || (needsFulfillment && !assignedContact) || (needsFulfillment && deliveryMethod === 'OfficePickup' && !officeName)} onClick={() => onConfirm(fulfillment)}>
               {loading ? <span className={styles.shopSpinner} aria-hidden="true" /> : (
-                <SparkIcon type={product.priceSparkType} size={16} animated={false} />
+                <SparkIcon type={priceComponents[0]!.sparkType} size={16} animated={false} />
               )}
               {loading ? shopText.purchase.processing : shopText.purchase.confirm}
             </button>
