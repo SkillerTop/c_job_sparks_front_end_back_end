@@ -1,0 +1,40 @@
+.page { display: grid; gap: 1.25rem; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.filters { display: flex; gap: .5rem; flex-wrap: wrap; }
+.filter, .filterActive { min-height: 2.75rem; padding: .65rem .9rem; border: 1px solid var(--line); border-radius: .8rem; background: var(--surface); color: var(--ink); font-weight: 700; }
+.filterActive { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: 1rem; }
+.card { display: grid; gap: .9rem; min-height: 20rem; padding: 1.1rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); box-shadow: var(--shadow-sm); }
+.muted { filter: saturate(.55); background: color-mix(in srgb, var(--surface) 82%, var(--surface-soft)); }
+.completed { border-color: color-mix(in srgb, var(--success) 55%, var(--line)); }
+.cancelled { opacity: .72; }
+.cardHeader, .meta, .actions, .reward { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+.cardHeader { justify-content: space-between; align-items: flex-start; }
+.card h2 { margin: 0; font-size: 1.15rem; }
+.description { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; }
+.meta { color: var(--muted); font-size: .875rem; }
+.reward { width: fit-content; padding: .45rem .7rem; border-radius: 999px; background: color-mix(in srgb, var(--surface) 72%, #dce8f5); font-weight: 800; }
+.status { padding: .35rem .55rem; border-radius: 999px; background: var(--surface-soft); font-size: .78rem; font-weight: 800; }
+.assignee { margin-top: auto; padding-top: .8rem; border-top: 1px solid var(--line); }
+.actions button, .primary, .secondary, .danger { min-height: 2.75rem; border-radius: .75rem; padding: .65rem .85rem; font-weight: 800; display: inline-flex; gap: .45rem; align-items: center; justify-content: center; }
+.primary { border: 1px solid var(--primary); background: var(--primary); color: var(--on-primary); }
+.secondary { border: 1px solid var(--line-strong); background: transparent; color: var(--ink); }
+.danger { border: 1px solid var(--danger); background: transparent; color: var(--danger); }
+.form { display: grid; gap: 1rem; }
+.form label { display: grid; gap: .4rem; font-weight: 700; }
+.form input, .form textarea { width: 100%; min-height: 2.8rem; border: 1px solid var(--line-strong); border-radius: .7rem; background: var(--control-bg); color: var(--ink); padding: .75rem; }
+.form textarea { min-height: 9rem; resize: vertical; }
+.rewardComposer { display: grid; gap: .65rem; margin: 0; padding: .9rem; border: 1px solid var(--line); border-radius: .8rem; background: var(--surface-soft); }
+.rewardComposer legend { padding: 0 .35rem; font-weight: 800; }
+.rewardComposer small { color: var(--muted); line-height: 1.4; }
+.rewardComposer > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
+.rewardComposer label { display: grid; gap: .4rem; font-weight: 700; }
+.rewardComposer label span { display: inline-flex; align-items: center; gap: .4rem; }
+.rewardComposer input { width: 100%; min-height: 2.8rem; border: 1px solid var(--line-strong); border-radius: .7rem; background: var(--control-bg); color: var(--ink); padding: .75rem; }
+.rewardComposer [role='alert'] { color: var(--danger); font-weight: 700; }
+.modalActions { display: flex; justify-content: flex-end; gap: .75rem; flex-wrap: wrap; margin-top: 1.1rem; }
+.warning { padding: 1rem; border: 1px solid var(--warning); border-radius: .8rem; background: color-mix(in srgb, var(--warning) 13%, transparent); line-height: 1.55; }
+.history { display: grid; gap: .75rem; max-height: 60vh; overflow: auto; }
+.history article { padding: .8rem; border: 1px solid var(--line); border-radius: .7rem; }
+.history small { display: block; color: var(--muted); margin-top: .3rem; }
+@media (max-width: 40rem) { .toolbar, .actions, .modalActions { align-items: stretch; } .toolbar > *, .actions button, .modalActions button { width: 100%; } .filters { display: grid; grid-template-columns: 1fr 1fr; width: 100%; } .rewardComposer > div { grid-template-columns: 1fr; } }

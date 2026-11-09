@@ -77,6 +77,7 @@ const workspaceSections = new Set([
   'fulfillment',
   'admin',
   'rules',
+  'task-board',
 ]);
 
 function sectionForPath(pathname: string) {

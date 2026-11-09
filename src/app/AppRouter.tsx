@@ -9,6 +9,7 @@ import {
   PEER_RECOGNITION_ROLES,
   PERFORMANCE_ROLES,
   SHOP_ROLES,
+  ALL_ROLES,
 } from '@/constants/app';
 import { useAuth } from '@/controllers/AuthContext';
 import { useSpark } from '@/controllers/SparkContext';
@@ -40,6 +41,7 @@ const FulfillmentPage = lazy(() =>
   import('@/views/pages/FulfillmentPage').then((module) => ({ default: module.FulfillmentPage })),
 );
 const RulesPage = lazy(() => import('@/views/pages/RulesPage').then((module) => ({ default: module.RulesPage })));
+const TaskBoardPage = lazy(() => import('@/views/pages/TaskBoardPage').then((module) => ({ default: module.TaskBoardPage })));
 const ForbiddenPage = lazy(() => import('@/views/pages/ForbiddenPage').then((module) => ({ default: module.ForbiddenPage })));
 const NotFoundPage = lazy(() => import('@/views/pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })));
 const LoginPage = lazy(() => import('@/views/pages/LoginPage').then((module) => ({ default: module.LoginPage })));
@@ -154,6 +156,10 @@ export function AppRouter() {
       <Route element={<RequireAuth />}>
         <Route element={<WorkspaceLayout />}>
           <Route index element={<WorkspaceIndex />} />
+          <Route
+            path="task-board"
+            element={<RouteGuard roles={ALL_ROLES}><TaskBoardPage /></RouteGuard>}
+          />
           <Route path="profile" element={<ProfilePage />} />
           <Route
             path="sparks"

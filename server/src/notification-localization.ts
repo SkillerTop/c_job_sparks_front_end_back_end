@@ -26,6 +26,9 @@ const uk: Record<string, string> = {
   'Your Disenchant request is now Exported.': 'Ваш запит на розпилення експортовано.',
   'Performance recorded': 'Результати роботи збережено',
   'Performance reward recorded': 'Нагороду за результати роботи збережено',
+  'Task booked': 'Завдання заброньовано', 'You were unassigned from a task': 'Вас відкріпили від завдання',
+  'Task completed': 'Завдання виконано', 'Task cancelled': 'Завдання скасовано',
+  'Task reward could not be credited': 'Не вдалося нарахувати нагороду за завдання',
 };
 
 const ru: Record<string, string> = {
@@ -54,6 +57,9 @@ const ru: Record<string, string> = {
   'Your Disenchant request is now Exported.': 'Ваш запрос на распыление экспортирован.',
   'Performance recorded': 'Результаты работы сохранены',
   'Performance reward recorded': 'Награда за результаты работы сохранена',
+  'Task booked': 'Задание забронировано', 'You were unassigned from a task': 'Вас открепили от задания',
+  'Task completed': 'Задание выполнено', 'Task cancelled': 'Задание отменено',
+  'Task reward could not be credited': 'Не удалось начислить награду за задание',
 };
 
 const decision = (value: string, language: Exclude<NotificationLanguage, 'en'>) => {
@@ -155,6 +161,26 @@ export const localizeNotification = (
   if (match) return language === 'uk'
     ? `Результати за ${match[1]} імпортовано; нараховано ${match[2]} White Sparks.`
     : `Результаты за ${match[1]} импортированы; начислено ${match[2]} White Sparks.`;
+
+  match = value.match(/^(.+) booked the task “(.+)”\.$/);
+  if (match) return language === 'uk'
+    ? `${match[1]} забронював(-ла) завдання «${match[2]}».`
+    : `${match[1]} забронировал(а) задание «${match[2]}».`;
+
+  match = value.match(/^You were unassigned from the task “(.+)”\.$/);
+  if (match) return language === 'uk'
+    ? `Вас відкріпили від завдання «${match[1]}».`
+    : `Вас открепили от задания «${match[1]}».`;
+
+  match = value.match(/^The task “(.+)” was cancelled\.$/);
+  if (match) return language === 'uk'
+    ? `Завдання «${match[1]}» скасовано.`
+    : `Задание «${match[1]}» отменено.`;
+
+  match = value.match(/^The task “(.+)” was marked as completed\. You received (.+) Sparks\.$/);
+  if (match) return language === 'uk'
+    ? `Завдання «${match[1]}» позначено як виконане. Вам нараховано ${match[2]} Sparks.`
+    : `Задание «${match[1]}» отмечено как выполненное. Вам начислено ${match[2]} Sparks.`;
 
   return value;
 };

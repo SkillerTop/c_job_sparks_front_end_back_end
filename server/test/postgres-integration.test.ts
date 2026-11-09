@@ -280,6 +280,105 @@ if (!sourceDatabaseUrl) {
         WHERE entity_id=$1 AND action='CATEGORY_DELETED'`, [removableCategoryId]), 1);
     });
 
+    test('Task Board enforces approvals, exclusive booking and exactly-once atomic rewards', async () => {
+      const draft = {
+        title: `Integration task ${randomUUID()}`,
+        description: 'A complete Task Board integration scenario.',
+        rewardComponents: [{ sparkType: 'White', amount: 7 }],
+        dueDate: null,
+      };
+      const employeeCannotApprove = await authenticated('Employee', 'POST', '/api/v1/task-board/approval-sessions',
+        { taskId: null, draft }, randomUUID());
+      assert.equal(employeeCannotApprove.statusCode, 403, employeeCannotApprove.body);
+
+      const missingApproval = await authenticated('Head', 'POST', '/api/v1/task-board',
+        { draft, approvalSessionId: randomUUID() }, randomUUID());
+      assert.equal(missingApproval.statusCode, 400, missingApproval.body);
+
+      const approvalStart = await authenticated('Head', 'POST', '/api/v1/task-board/approval-sessions',
+        { taskId: null, draft }, randomUUID());
+      assert.equal(approvalStart.statusCode, 201, approvalStart.body);
+      const approvalId = approvalStart.json<{ id: string }>().id;
+      const outOfOrder = await authenticated('Head', 'POST',
+        `/api/v1/task-board/approval-sessions/${approvalId}/confirm-second`, {}, randomUUID());
+      assert.equal(outOfOrder.statusCode, 409, outOfOrder.body);
+      assert.equal((await authenticated('Head', 'POST',
+        `/api/v1/task-board/approval-sessions/${approvalId}/confirm-first`, {}, randomUUID())).statusCode, 200);
+      assert.equal((await authenticated('Head', 'POST',
+        `/api/v1/task-board/approval-sessions/${approvalId}/confirm-second`, {}, randomUUID())).statusCode, 200);
+
+      const create = await authenticated('Head', 'POST', '/api/v1/task-board',
+        { draft, approvalSessionId: approvalId }, randomUUID());
+      assert.equal(create.statusCode, 201, create.body);
+      const taskId = create.json<{ id: string }>().id;
+
+      const changedDraft = { ...draft, rewardComponents: [
+        { sparkType: 'White', amount: 9 },
+        { sparkType: 'Yellow', amount: 2 },
+        { sparkType: 'Blue', amount: 1 },
+      ] };
+      const unapprovedRewardChange = await authenticated('Head', 'PATCH', `/api/v1/task-board/${taskId}`,
+        { draft: changedDraft, approvalSessionId: null }, randomUUID());
+      assert.equal(unapprovedRewardChange.statusCode, 400, unapprovedRewardChange.body);
+
+      const changeApproval = await authenticated('Head', 'POST', '/api/v1/task-board/approval-sessions',
+        { taskId, draft: changedDraft }, randomUUID());
+      assert.equal(changeApproval.statusCode, 201, changeApproval.body);
+      const changeApprovalId = changeApproval.json<{ id: string }>().id;
+      assert.equal((await authenticated('Head', 'POST',
+        `/api/v1/task-board/approval-sessions/${changeApprovalId}/confirm-first`, {}, randomUUID())).statusCode, 200);
+      assert.equal((await authenticated('Head', 'POST',
+        `/api/v1/task-board/approval-sessions/${changeApprovalId}/confirm-second`, {}, randomUUID())).statusCode, 200);
+      assert.equal((await authenticated('Head', 'PATCH', `/api/v1/task-board/${taskId}`,
+        { draft: changedDraft, approvalSessionId: changeApprovalId }, randomUUID())).statusCode, 200);
+
+      const employeeBook = await authenticated('Employee', 'POST', `/api/v1/task-board/${taskId}/book`, {}, randomUUID());
+      assert.equal(employeeBook.statusCode, 200, employeeBook.body);
+      assert.equal(employeeBook.json<{ status: string; assigneeName: string }>().status, 'Booked');
+      assert.ok(employeeBook.json<{ assigneeName: string }>().assigneeName);
+      const competingBook = await authenticated('Coordinator', 'POST', `/api/v1/task-board/${taskId}/book`, {}, randomUUID());
+      assert.equal(competingBook.statusCode, 409, competingBook.body);
+
+      const unassign = await authenticated('Head', 'POST', `/api/v1/task-board/${taskId}/unassign`,
+        { reason: 'Reassign for integration coverage.' }, randomUUID());
+      assert.equal(unassign.statusCode, 200, unassign.body);
+      assert.equal(unassign.json<{ status: string }>().status, 'Active');
+      assert.equal((await authenticated('Coordinator', 'POST', `/api/v1/task-board/${taskId}/book`, {}, randomUUID())).statusCode, 200);
+
+      const balanceBefore = await databasePool.query<{ spark_type: string; balance: string }>(`
+        SELECT spark_type,balance::text FROM app.spark_accounts
+         WHERE employee_id=$1 AND spark_type=ANY($2::text[])
+         ORDER BY spark_type`, [employeeIds.coordinator, ['White', 'Yellow', 'Blue']]);
+      const completionKey = randomUUID();
+      const complete = await authenticated('Head', 'POST', `/api/v1/task-board/${taskId}/complete`, {}, completionKey);
+      assert.equal(complete.statusCode, 200, complete.body);
+      assert.equal(complete.json<{ status: string }>().status, 'Completed');
+      const replay = await authenticated('Head', 'POST', `/api/v1/task-board/${taskId}/complete`, {}, completionKey);
+      assert.equal(replay.statusCode, 200, replay.body);
+      assert.equal(replay.headers['idempotency-replayed'], 'true');
+      const secondCompletion = await authenticated('Head', 'POST', `/api/v1/task-board/${taskId}/complete`, {}, randomUUID());
+      assert.equal(secondCompletion.statusCode, 409, secondCompletion.body);
+      const balanceAfter = await databasePool.query<{ spark_type: string; balance: string }>(`
+        SELECT spark_type,balance::text FROM app.spark_accounts
+         WHERE employee_id=$1 AND spark_type=ANY($2::text[])
+         ORDER BY spark_type`, [employeeIds.coordinator, ['White', 'Yellow', 'Blue']]);
+      const beforeByType = new Map(balanceBefore.rows.map((row) => [row.spark_type, Number(row.balance)]));
+      const afterByType = new Map(balanceAfter.rows.map((row) => [row.spark_type, Number(row.balance)]));
+      for (const component of changedDraft.rewardComponents)
+        assert.equal((afterByType.get(component.sparkType) ?? 0) - (beforeByType.get(component.sparkType) ?? 0), component.amount);
+      assert.equal(await count(`SELECT count(*) FROM app.spark_operations
+        WHERE source_type='TaskBoardItem' AND source_id=$1`, [taskId]), 1);
+      assert.equal(await count(`SELECT count(*) FROM app.spark_ledger_entries entry
+        JOIN app.spark_operations operation ON operation.id=entry.operation_id
+        WHERE operation.source_type='TaskBoardItem' AND operation.source_id=$1`, [taskId]), 3);
+
+      const history = await authenticated('Administrator', 'GET', `/api/v1/task-board/${taskId}/history`);
+      assert.equal(history.statusCode, 200, history.body);
+      const eventTypes = history.json<Array<{ eventType: string }>>().map((event) => event.eventType);
+      for (const eventType of ['Created', 'Updated', 'Booked', 'AssigneeDetached', 'Completed', 'RewardCredited'])
+        assert.ok(eventTypes.includes(eventType), `Missing ${eventType} event`);
+    });
+
     test('Recognition persists audit, outbox and approval notification', async () => {
       const beforeLayoutResponse = await authenticated('Head', 'GET', '/api/v1/workspace/layout');
       assert.equal(beforeLayoutResponse.statusCode, 200, beforeLayoutResponse.body);

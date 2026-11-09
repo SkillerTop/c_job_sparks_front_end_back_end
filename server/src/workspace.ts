@@ -123,7 +123,9 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
 
 export type WorkspaceSection = 'all' | 'dashboard' | 'profile' | 'sparks' | 'recognition' | 'achievements' |
   'company-achievements' | 'shop' | 'inventory' | 'convert' | 'disenchant' | 'team' | 'award' |
-  'approvals' | 'admin' | 'fulfillment' | 'rules';
+  'approvals' | 'admin' | 'fulfillment' | 'rules' | 'task-board';
+// Task Board data is intentionally served by its own cursor-paginated API. The
+// workspace section only supplies the authenticated shell and current user.
 
 type WorkspaceDataset = 'categories' | 'directory' | 'projects' | 'transactions' | 'departmentBalances' |
   'recognitions' | 'awards' | 'gates' | 'performance' | 'achievements' | 'disenchant' | 'audit' |
@@ -147,6 +149,7 @@ const sectionDatasets: Record<Exclude<WorkspaceSection, 'all'>, readonly Workspa
     'achievements','disenchant','audit','fulfillment','reports','effects'],
   fulfillment: ['directory','effects'],
   rules: ['categories','effects'],
+  'task-board': ['effects'],
 };
 
 export const buildWorkspace = async (

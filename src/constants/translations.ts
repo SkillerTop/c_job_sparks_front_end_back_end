@@ -23,6 +23,7 @@ const en = {
   'nav.awardSpark': 'Award a Spark',
   'nav.approvalCenter': 'Approval center',
   'nav.rewardFulfillment': 'Reward fulfillment',
+  'nav.taskBoard': 'Task Board',
   'shell.skip': 'Skip to content',
   'shell.openNavigation': 'Open navigation',
   'shell.closeNavigation': 'Close navigation',

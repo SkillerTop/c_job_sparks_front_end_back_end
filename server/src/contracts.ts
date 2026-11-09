@@ -4,6 +4,7 @@ export const WORKSPACE_SECTIONS = [
   'dashboard', 'profile', 'sparks', 'recognition', 'achievements', 'company-achievements',
   'shop', 'inventory', 'convert', 'disenchant', 'team', 'award', 'approvals', 'admin', 'rules', 'all',
   'fulfillment',
+  'task-board',
 ] as const;
 
 export type WorkspaceSectionContract = (typeof WORKSPACE_SECTIONS)[number];
@@ -22,6 +23,7 @@ export const WORKSPACE_SECTION_ROLES: Partial<Record<WorkspaceSectionContract, r
   approvals: ['Head'],
   admin: ['Administrator'],
   fulfillment: ['Office Manager', 'Administrator'],
+  'task-board': ['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management', 'Office Manager', 'Administrator'],
   rules: ['Employee', 'Coordinator', 'GPM', 'Head'],
   all: ['Administrator'],
 };

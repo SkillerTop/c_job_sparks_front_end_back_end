@@ -30,6 +30,7 @@ const en: Record<string, RouteMeta> = {
   '/approvals': { title: 'Approval center', description: 'Review recognition and award requests in your scope.' },
   '/admin': { title: 'Administration', description: 'Manage access, Spark rules, imports and the Reward Shop.' },
   '/rules': { title: 'Spark rules', description: 'Read the current C-Job Spark recognition rules.' },
+  '/task-board': { title: 'Task Board', description: 'Book employee tasks and earn the published Spark reward after completion.' },
   '/forbidden': { title: 'Access restricted', description: 'This workspace is not available for the active role.' },
 };
 
@@ -41,7 +42,7 @@ const routeTitles: Record<InterfaceLanguage, Record<string, string>> = {
     '/performance': 'Мої результати', '/achievements': 'Досягнення', '/company-achievements': 'Досягнення компанії', '/shop': 'Магазин нагород',
     '/inventory': 'Мої предмети', '/convert': 'Конвертація Sparks', '/disenchant': 'Розпилення Sparks',
     '/team': 'Командний простір', '/award': 'Нагородити Spark', '/approvals': 'Центр погоджень',
-    '/admin': 'Адміністрування', '/rules': 'Правила Sparks', '/forbidden': 'Доступ обмежено',
+    '/admin': 'Адміністрування', '/rules': 'Правила Sparks', '/task-board': 'Дошка оголошень', '/forbidden': 'Доступ обмежено',
   },
   ru: {
     '/': 'Главная', '/login': 'Вход', '/register': 'Запрос доступа', '/registration-status': 'Запрос доступа',
@@ -49,7 +50,7 @@ const routeTitles: Record<InterfaceLanguage, Record<string, string>> = {
     '/performance': 'Мои результаты', '/achievements': 'Достижения', '/company-achievements': 'Достижения компании', '/shop': 'Магазин наград',
     '/inventory': 'Мои предметы', '/convert': 'Конвертация Sparks', '/disenchant': 'Распыление Sparks',
     '/team': 'Командное пространство', '/award': 'Наградить Spark', '/approvals': 'Центр согласований',
-    '/admin': 'Администрирование', '/rules': 'Правила Sparks', '/forbidden': 'Доступ ограничен',
+    '/admin': 'Администрирование', '/rules': 'Правила Sparks', '/task-board': 'Доска объявлений', '/forbidden': 'Доступ ограничен',
   },
 };
 

@@ -4,6 +4,7 @@ import {
   Award,
   Bell,
   BookOpen,
+  ClipboardList,
   CircleGauge,
   Flame,
   Home,
@@ -39,11 +40,13 @@ import { EmptyState } from '@/views/components/common/EmptyState';
 import { StatusBadge } from '@/views/components/common/StatusBadge';
 import { SparkIcon } from '@/views/components/common/SparkIcon';
 import { BrandLockup } from '@/views/components/common/BrandLockup';
+import { LocalizedText } from '@/views/components/common/LocalizedText';
 import { AppFooter } from './AppFooter';
 import { AccountMenu } from './AccountMenu';
 import { BackToTop } from './BackToTop';
 import { CompactBalanceMenu } from './CompactBalanceMenu';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
+import { useNotificationsController } from '@/controllers/useNotificationsController';
 import { selectAuthoritativeBalances } from '@/utils/personalBalances';
 import styles from '@/views/styles/app.module.css';
 
@@ -51,6 +54,7 @@ type NavItem = { labelKey: TranslationKey; path: string; icon: typeof Home; role
 
 const baseItems: NavItem[] = [
   { labelKey: 'nav.home', path: '/', icon: Home, roles: MEMBER_WORKSPACE_ROLES },
+  { labelKey: 'nav.taskBoard', path: '/task-board', icon: ClipboardList },
   { labelKey: 'nav.mySparks', path: '/sparks', icon: WalletCards, roles: PERSONAL_LEDGER_ROLES },
   {
     labelKey: 'nav.peerRecognition',
@@ -84,6 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { snapshot, currentUserId, activeRole } = useSpark();
   const { accounts, logout } = useAuth();
   const { preferences, t } = useUserPreferences();
+  const notifications = useNotificationsController();
   const [open, setOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const drawer = useRef<HTMLElement>(null);
@@ -124,6 +129,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     : snapshot!.shell?.pendingApprovals ?? visibleApprovalQueueCount;
   const pendingDisenchantCount = snapshot!.shell?.pendingDisenchant ?? pendingDisenchantRequests.length;
   const pending = pendingApprovals + pendingDisenchantCount + pendingRegistrations.length;
+  const notificationCount = pending + notifications.unread;
   const roleItems = useMemo<NavItem[]>(() => {
     if (activeRole === 'Administrator')
       return [
@@ -269,15 +275,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               <CompactBalanceMenu balances={spendableBalances} loading={false} />
             )}
             <button
-              className={`${styles.iconButton} ${pending > 0 ? styles.notificationButtonActive : ''}`}
+              className={`${styles.iconButton} ${notificationCount > 0 ? styles.notificationButtonActive : ''}`}
               type="button"
-              onClick={() => setNotificationsOpen(true)}
-              aria-label={t('shell.notifications', { count: pending })}
+              onClick={() => { setNotificationsOpen(true); void notifications.markAllRead(); }}
+              aria-label={t('shell.notifications', { count: notificationCount })}
               aria-haspopup="dialog"
               aria-expanded={notificationsOpen}
             >
               <Bell className={styles.notificationBell} size={19} aria-hidden="true" focusable="false" />
-              {pending > 0 && <span className={styles.notificationDot} aria-hidden="true" />}
+              {notificationCount > 0 && <span className={styles.notificationDot} aria-hidden="true" />}
             </button>
             <AccountMenu
               name={user.name}
@@ -310,10 +316,21 @@ export function AppShell({ children }: { children: ReactNode }) {
         }
         onClose={() => setNotificationsOpen(false)}
       >
-        {pending === 0 ? (
+        {pending === 0 && notifications.items.length === 0 ? (
           <EmptyState title={t('shell.upToDate')} description={t('shell.noPending')} />
         ) : (
           <div className={styles.requestList}>
+            {notifications.items.map((item) => (
+              <article key={item.id}>
+                <div>
+                  <strong>{item.title}</strong>
+                  <p>{item.text}</p>
+                  {item.link_path && <NavLink className={styles.textLink} to={item.link_path}
+                    onClick={() => setNotificationsOpen(false)}><LocalizedText>Open</LocalizedText></NavLink>}
+                </div>
+                {!item.read_at && <StatusBadge status="New" />}
+              </article>
+            ))}
             {pendingRegistrations.map((account) => (
               <article key={account.id}>
                 <div>

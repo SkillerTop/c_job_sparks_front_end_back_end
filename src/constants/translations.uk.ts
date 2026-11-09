@@ -10,6 +10,7 @@ export const UK_TRANSLATIONS: Dictionary = {
   'nav.adminSettings': 'Налаштування адміністратора', 'nav.companyTeam': 'Команда компанії',
   'nav.departmentTeam': 'Команда відділу', 'nav.departmentWorkspace': 'Простір відділу', 'nav.rewardFulfillment': 'Видача нагород',
   'nav.radiantAward': 'Нагорода Radiant', 'nav.awardSpark': 'Нагородити Spark', 'nav.approvalCenter': 'Центр погоджень',
+  'nav.taskBoard': 'Дошка оголошень',
   'shell.skip': 'Перейти до вмісту', 'shell.openNavigation': 'Відкрити навігацію', 'shell.closeNavigation': 'Закрити навігацію',
   'shell.navigation': 'Навігація', 'shell.primaryNavigation': 'Основна навігація', 'shell.brandPurpose': 'Визнання зі змістом.',
   'shell.sidebarPurpose': 'Відзначаємо людей, які рухають нас уперед.', 'shell.notifications': 'Відкрити сповіщення: {count} очікують',

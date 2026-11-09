@@ -61,13 +61,14 @@ export const createNotification = async (
   text: string,
   objectType?: string,
   objectId?: string,
+  linkPath?: string,
 ) => {
   const id = randomUUID();
   await db.query(
     `INSERT INTO app.notifications
-      (id, recipient_user_id, notification_type, title, body, object_type, object_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-    [id, userId, type, title, text, objectType ?? null, objectId ?? null],
+      (id, recipient_user_id, notification_type, title, body, object_type, object_id, link_path)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    [id, userId, type, title, text, objectType ?? null, objectId ?? null, linkPath ?? null],
   );
   return id;
 };

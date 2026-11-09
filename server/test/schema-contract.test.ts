@@ -39,6 +39,8 @@ test('the MVP schema is complete and ordered', async () => {
     '0021_security_workflow_and_retention.sql',
     '0022_office_manager_and_employee_coordinators.sql',
     '0023_composite_shop_prices.sql',
+    '0024_task_board.sql',
+    '0025_task_board_composite_rewards.sql',
   ]);
   for (const table of [
     'users', 'employees', 'departments', 'roles', 'role_assignments', 'projects', 'project_members',
@@ -50,8 +52,28 @@ test('the MVP schema is complete and ordered', async () => {
     'notifications', 'media_assets', 'audit_events', 'idempotency_keys', 'outbox_events',
     'external_identities', 'microsoft_auth_requests',
     'reward_fulfillment_contacts', 'reward_fulfillments', 'disenchant_reports', 'disenchant_report_items',
-    'employee_coordinators',
+    'employee_coordinators', 'task_board_approval_sessions', 'task_board_tasks', 'task_board_events',
   ]) assert.match(sql, new RegExp(`CREATE TABLE app\\.${table}\\s*\\(`));
+});
+
+test('Task Board schema enforces approval, state, audit and single-credit invariants', async () => {
+  const migration = await readFile(resolve(migrationsDirectory, '0024_task_board.sql'), 'utf8');
+  assert.match(migration, /reward_amount integer NOT NULL CHECK \(reward_amount > 0/);
+  assert.match(migration, /second_confirmed_at IS NULL OR first_confirmed_at IS NOT NULL/);
+  assert.match(migration, /reward_operation_id uuid UNIQUE/);
+  assert.match(migration, /status IN \('Active', 'Booked', 'Completed', 'Cancelled'\)/);
+  assert.match(migration, /CREATE TRIGGER task_board_events_immutable/);
+  assert.match(migration, /TaskBooked/);
+  assert.match(migration, /TaskRewardFailed/);
+});
+
+test('Task Board rewards support one to three validated spendable Spark components', async () => {
+  const migration = await readFile(resolve(migrationsDirectory, '0025_task_board_composite_rewards.sql'), 'utf8');
+  assert.match(migration, /CREATE FUNCTION app\.valid_spendable_spark_components/);
+  assert.match(migration, /jsonb_array_length\(value\) NOT BETWEEN 1 AND 3/);
+  assert.match(migration, /spark_type NOT IN \('White', 'Yellow', 'Blue'\)/);
+  assert.match(migration, /ALTER TABLE app\.task_board_approval_sessions[\s\S]+ADD COLUMN reward_components jsonb/);
+  assert.match(migration, /ALTER TABLE app\.task_board_tasks[\s\S]+ADD COLUMN reward_components jsonb/);
 });
 
 test('shop prices support one to three atomic Spark components', async () => {

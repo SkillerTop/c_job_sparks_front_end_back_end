@@ -67,6 +67,22 @@ import {
   findMicrosoftAuthRequest,
   safeReturnPath,
 } from './microsoft-auth.js';
+import {
+  TASK_BOARD_FILTERS,
+  bookTaskBoardItem,
+  cancelOrDeleteTaskBoardItem,
+  completeTaskBoardItem,
+  confirmTaskBoardApprovalFirst,
+  confirmTaskBoardApprovalSecond,
+  createTaskBoardItem,
+  listTaskBoardItems,
+  notifyAdministratorsOfTaskRewardFailure,
+  shouldAlertTaskRewardFailure,
+  startTaskBoardApproval,
+  taskBoardHistory,
+  unassignTaskBoardItem,
+  updateTaskBoardItem,
+} from './task-board.js';
 
 const emailSchema = z.string().email().max(320).transform((value) => value.trim().toLowerCase());
 const idSchema = z.string().uuid();
@@ -146,6 +162,17 @@ const performanceThresholdsSchema = z.object({
   if (thresholds.personalCards.some((tier) => tier.minimum > 5))
     context.addIssue({ code: 'custom', path: ['personalCards'],
       message: 'Personal Cards thresholds cannot exceed 5.' });
+});
+const taskBoardDraftSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().min(1).max(10_000),
+  rewardComponents: z.array(z.object({
+    sparkType: z.enum(['White', 'Yellow', 'Blue']),
+    amount: z.number().int().positive().max(1_000_000),
+  })).min(1).max(3).refine((components) =>
+    new Set(components.map((component) => component.sparkType)).size === components.length,
+  { message: 'Each Spark type can be used only once.' }),
+  dueDate: z.string().date().nullable().default(null),
 });
 const idempotencyKey = (request: FastifyRequest) => {
   const value = request.headers['idempotency-key'];
@@ -617,6 +644,109 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       const principal = principalOf(request);
       const { purpose } = z.object({ purpose: z.enum(['recognition', 'award']) }).parse(request.query);
       return withTransaction(app.db, (db) => listEligibleRecipients(db, principal, purpose), { readOnly: true });
+    });
+
+    protectedApp.get('/api/v1/task-board', async (request, reply) => {
+      const principal = principalOf(request);
+      requireWorkspaceSection(principal, 'task-board');
+      const query = z.object({
+        filter: z.enum(TASK_BOARD_FILTERS).default('all'),
+        limit: z.coerce.number().int().min(1).max(100).default(24),
+        cursor: z.string().max(1_024).optional(),
+      }).parse(request.query);
+      void reply.header('cache-control', 'private, no-store');
+      return withTransaction(app.db, (db) => listTaskBoardItems(db, principal, query.filter, query.limit, query.cursor),
+        { readOnly: true });
+    });
+
+    protectedApp.post('/api/v1/task-board/approval-sessions', async (request, reply) => {
+      const principal = principalOf(request);
+      const input = jsonBody(z.object({ taskId: idSchema.nullable().default(null), draft: taskBoardDraftSchema }), request);
+      const result = await withIdempotency(app.db, principal.userId, 'task-board:approval:start',
+        idempotencyKey(request), input, 201,
+        (db) => startTaskBoardApproval(db, principal, input.draft, input.taskId));
+      return sendIdempotent(reply, result);
+    });
+
+    protectedApp.post('/api/v1/task-board/approval-sessions/:id/confirm-first', async (request, reply) => {
+      const principal = principalOf(request);
+      const { id } = z.object({ id: idSchema }).parse(request.params);
+      const result = await withIdempotency(app.db, principal.userId, `task-board:approval:${id}:first`,
+        idempotencyKey(request), {}, 200, (db) => confirmTaskBoardApprovalFirst(db, principal, id));
+      return sendIdempotent(reply, result);
+    });
+
+    protectedApp.post('/api/v1/task-board/approval-sessions/:id/confirm-second', async (request, reply) => {
+      const principal = principalOf(request);
+      const { id } = z.object({ id: idSchema }).parse(request.params);
+      const result = await withIdempotency(app.db, principal.userId, `task-board:approval:${id}:second`,
+        idempotencyKey(request), {}, 200, (db) => confirmTaskBoardApprovalSecond(db, principal, id));
+      return sendIdempotent(reply, result);
+    });
+
+    protectedApp.post('/api/v1/task-board', async (request, reply) => {
+      const principal = principalOf(request);
+      const input = jsonBody(z.object({ draft: taskBoardDraftSchema, approvalSessionId: idSchema }), request);
+      const result = await withIdempotency(app.db, principal.userId, 'task-board:create', idempotencyKey(request), input, 201,
+        (db) => createTaskBoardItem(db, principal, input.draft, input.approvalSessionId, requestMetadata(request)));
+      return sendIdempotent(reply, result);
+    });
+
+    protectedApp.patch('/api/v1/task-board/:id', async (request, reply) => {
+      const principal = principalOf(request);
+      const { id } = z.object({ id: idSchema }).parse(request.params);
+      const input = jsonBody(z.object({ draft: taskBoardDraftSchema, approvalSessionId: idSchema.nullable().default(null) }), request);
+      const result = await withIdempotency(app.db, principal.userId, `task-board:${id}:update`,
+        idempotencyKey(request), input, 200,
+        (db) => updateTaskBoardItem(db, principal, id, input.draft, input.approvalSessionId, requestMetadata(request)));
+      return sendIdempotent(reply, result);
+    });
+
+    protectedApp.post('/api/v1/task-board/:id/book', async (request, reply) => {
+      const principal = principalOf(request);
+      const { id } = z.object({ id: idSchema }).parse(request.params);
+      const result = await withIdempotency(app.db, principal.userId, `task-board:${id}:book`, idempotencyKey(request), {}, 200,
+        (db) => bookTaskBoardItem(db, principal, id, requestMetadata(request)));
+      return sendIdempotent(reply, result);
+    });
+
+    protectedApp.post('/api/v1/task-board/:id/unassign', async (request, reply) => {
+      const principal = principalOf(request);
+      const { id } = z.object({ id: idSchema }).parse(request.params);
+      const input = jsonBody(z.object({ reason: z.string().trim().max(1_000).nullable().default(null) }), request);
+      const result = await withIdempotency(app.db, principal.userId, `task-board:${id}:unassign`,
+        idempotencyKey(request), input, 200,
+        (db) => unassignTaskBoardItem(db, principal, id, input.reason || null, requestMetadata(request)));
+      return sendIdempotent(reply, result);
+    });
+
+    protectedApp.post('/api/v1/task-board/:id/complete', async (request, reply) => {
+      const principal = principalOf(request);
+      const { id } = z.object({ id: idSchema }).parse(request.params);
+      try {
+        const result = await withIdempotency(app.db, principal.userId, `task-board:${id}:complete`,
+          idempotencyKey(request), {}, 200,
+          (db) => completeTaskBoardItem(db, principal, id, requestMetadata(request)));
+        return sendIdempotent(reply, result);
+      } catch (error) {
+        if (shouldAlertTaskRewardFailure(error)) await notifyAdministratorsOfTaskRewardFailure(app.db, id);
+        throw error;
+      }
+    });
+
+    protectedApp.delete('/api/v1/task-board/:id', async (request, reply) => {
+      const principal = principalOf(request);
+      const { id } = z.object({ id: idSchema }).parse(request.params);
+      const result = await withIdempotency(app.db, principal.userId, `task-board:${id}:remove`, idempotencyKey(request), {}, 200,
+        (db) => cancelOrDeleteTaskBoardItem(db, principal, id, requestMetadata(request)));
+      return sendIdempotent(reply, result);
+    });
+
+    protectedApp.get('/api/v1/task-board/:id/history', async (request, reply) => {
+      const principal = principalOf(request);
+      const { id } = z.object({ id: idSchema }).parse(request.params);
+      void reply.header('cache-control', 'private, no-store');
+      return withTransaction(app.db, (db) => taskBoardHistory(db, principal, id), { readOnly: true });
     });
 
     protectedApp.get('/api/v1/recognitions', async (request) => {

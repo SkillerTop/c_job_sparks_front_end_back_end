@@ -10,6 +10,7 @@ export const RU_TRANSLATIONS: Dictionary = {
   'nav.adminSettings': 'Настройки администратора', 'nav.companyTeam': 'Команда компании',
   'nav.departmentTeam': 'Команда отдела', 'nav.departmentWorkspace': 'Пространство отдела', 'nav.rewardFulfillment': 'Выдача наград',
   'nav.radiantAward': 'Награда Radiant', 'nav.awardSpark': 'Наградить Spark', 'nav.approvalCenter': 'Центр согласований',
+  'nav.taskBoard': 'Доска объявлений',
   'shell.skip': 'Перейти к содержимому', 'shell.openNavigation': 'Открыть навигацию', 'shell.closeNavigation': 'Закрыть навигацию',
   'shell.navigation': 'Навигация', 'shell.primaryNavigation': 'Основная навигация', 'shell.brandPurpose': 'Признание со смыслом.',
   'shell.sidebarPurpose': 'Отмечаем людей, которые двигают нас вперёд.', 'shell.notifications': 'Открыть уведомления: {count} ожидают',

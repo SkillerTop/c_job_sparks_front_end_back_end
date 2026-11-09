@@ -28,3 +28,15 @@ test('keeps administrator-entered reasons unchanged', () => {
   assert.equal(localizeNotification('uk', reason), reason);
   assert.equal(localizeNotification('ru', reason), reason);
 });
+
+test('localizes Task Board booking, completion and reward values', () => {
+  assert.equal(localizeNotification('ru', 'Task completed'), 'Задание выполнено');
+  assert.equal(
+    localizeNotification('ru', 'The task “Prepare training” was marked as completed. You received 7 White + 2 Yellow + 1 Blue Sparks.'),
+    'Задание «Prepare training» отмечено как выполненное. Вам начислено 7 White + 2 Yellow + 1 Blue Sparks.',
+  );
+  assert.equal(
+    localizeNotification('uk', 'Alex Stone booked the task “Prepare training”.'),
+    'Alex Stone забронював(-ла) завдання «Prepare training».',
+  );
+});
