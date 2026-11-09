@@ -23,11 +23,11 @@ const iconMap = {
   Reversed: RotateCcw,
 };
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status, className = '' }: { status: string; className?: string }) {
   const { localize } = useUserPreferences();
   const Icon = iconMap[status as keyof typeof iconMap] ?? Clock3;
   return (
-    <span className={`${styles.statusBadge} ${styles[`status${status.replace(/\s/g, '')}`] ?? ''}`}>
+    <span className={`${styles.statusBadge} ${styles[`status${status.replace(/\s/g, '')}`] ?? ''} ${className}`}>
       <Icon size={13} />
       {localize(status)}
     </span>

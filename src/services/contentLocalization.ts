@@ -4,6 +4,9 @@ type PhraseMap = Record<string, string>;
 
 const uk: PhraseMap = {
   'Task Board': 'Дошка оголошень', 'Employee opportunities': 'Можливості для працівників',
+  'Browse tasks': 'Перегляд завдань', 'tasks': 'завдань', 'Task details': 'Деталі завдання',
+  'Describe the work, choose the reward and set an optional deadline.': 'Опишіть роботу, оберіть нагороду та за потреби встановіть строк виконання.',
+  'Reward approval is confirmed in two steps before publication.': 'Перед публікацією нагорода проходить два етапи підтвердження.',
   'Publish task': 'Опублікувати завдання', 'All': 'Усі', 'Booked': 'Заброньовані',
   'Created by me': 'Створені мною', 'Booked by me': 'Заброньовані мною',
   'Author': 'Автор', 'Published': 'Опубліковано', 'Due': 'Строк виконання', 'Assigned employee': 'Виконавець',
@@ -228,6 +231,9 @@ const uk: PhraseMap = {
 
 const ru: PhraseMap = {
   'Task Board': 'Доска объявлений', 'Employee opportunities': 'Возможности для сотрудников',
+  'Browse tasks': 'Просмотр заданий', 'tasks': 'заданий', 'Task details': 'Детали задания',
+  'Describe the work, choose the reward and set an optional deadline.': 'Опишите работу, выберите награду и при необходимости установите срок выполнения.',
+  'Reward approval is confirmed in two steps before publication.': 'Перед публикацией награда проходит два этапа подтверждения.',
   'Publish task': 'Опубликовать задание', 'All': 'Все', 'Booked': 'Забронированные',
   'Created by me': 'Созданные мной', 'Booked by me': 'Забронированные мной',
   'Author': 'Автор', 'Published': 'Опубликовано', 'Due': 'Срок выполнения', 'Assigned employee': 'Исполнитель',

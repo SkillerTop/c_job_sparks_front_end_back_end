@@ -33,6 +33,15 @@ test('Task Board composes rewards from the same spendable Spark types as the sho
   assert.match(backend, /rewardOrder: SpendableSparkType\[\] = \['White', 'Yellow', 'Blue'\]/);
 });
 
+test('Task Board reuses the shared page, card, form and action visual system', () => {
+  const page = source('src/views/pages/TaskBoardPage.tsx');
+  assert.match(page, /appStyles\.panel/);
+  assert.match(page, /appStyles\.segmented/);
+  assert.match(page, /appStyles\.formField/);
+  assert.match(page, /appStyles\.accentButton/);
+  assert.match(page, /<StatusBadge/);
+});
+
 test('Task Board is a private route available to every existing role', () => {
   assert.match(source('src/app/AppRouter.tsx'), /path="task-board"[\s\S]+roles=\{ALL_ROLES\}/);
   assert.match(source('server/src/contracts.ts'), /'task-board': \['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management', 'Office Manager', 'Administrator'\]/);
