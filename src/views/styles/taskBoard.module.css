@@ -289,33 +289,242 @@
   flex-wrap: wrap;
 }
 
-.warning {
-  padding: 1rem;
-  border: 1px solid var(--warning);
+.dialogBody {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.dialogNotice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
   border-radius: 0.82rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.dialogNotice > span {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 0.68rem;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.dialogNotice strong {
+  display: block;
+  margin-bottom: 0.22rem;
+  color: var(--ink);
+  font-size: 0.875rem;
+}
+
+.dialogNotice p {
+  margin: 0;
+  color: var(--muted-strong);
+}
+
+.noticeWarning {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--line));
   color: var(--warning);
   background: var(--warning-soft);
-  line-height: 1.55;
 }
 
-.history {
+.noticeInfo {
+  border-color: var(--info-line);
+  color: var(--info);
+  background: var(--info-soft);
+}
+
+.noticeSuccess {
+  border-color: var(--success-line);
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.noticeDanger {
+  border-color: var(--danger-line);
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.dialogSummary {
   display: grid;
-  gap: 0.65rem;
-  max-height: 60vh;
-  overflow: auto;
-}
-
-.history article {
-  padding: 0.8rem;
+  gap: 0.75rem;
+  padding: 0.85rem;
   border: 1px solid var(--line);
-  border-radius: 0.75rem;
+  border-radius: 0.82rem;
   background: var(--surface-soft);
 }
 
-.history small {
-  display: block;
-  margin-top: 0.3rem;
+.dialogSummaryTitle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.dialogSummaryTitle div {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.dialogSummaryTitle small,
+.dialogSummaryReward > span,
+.dialogSummaryAssignee > span {
   color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.dialogSummaryTitle strong {
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.dialogSummaryReward,
+.dialogSummaryAssignee {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line);
+}
+
+.dialogSummaryAssignee {
+  justify-content: flex-start;
+  color: var(--accent-green);
+}
+
+.dialogSummaryAssignee strong {
+  min-width: 0;
+  margin-left: auto;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.approvalProgress {
+  display: grid;
+  grid-template-columns: 2rem minmax(2rem, 1fr) 2rem;
+  align-items: center;
+  width: min(100%, 15rem);
+  margin-inline: auto;
+}
+
+.approvalProgress span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.approvalProgress i {
+  height: 2px;
+  background: var(--line-strong);
+}
+
+.approvalProgress .stepActive {
+  border-color: var(--brand-gold);
+  color: var(--on-gold);
+  background: var(--brand-gold);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-gold) 16%, transparent);
+}
+
+.approvalProgress .stepComplete {
+  border-color: var(--success);
+  color: var(--on-green);
+  background: var(--brand-green);
+}
+
+.approvalProgress .progressComplete {
+  background: var(--brand-green);
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.historyHeader > div:last-child {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.historyHeader strong { font-size: 0.9rem; }
+.historyHeader small { color: var(--muted); font-size: 0.8125rem; }
+
+.history {
+  display: grid;
+  max-height: min(52vh, 28rem);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.history article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.7rem;
+  padding: 0.82rem 0.2rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.history article:last-child { border-bottom: 0; }
+
+.historyDot {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-top: 0.25rem;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.history article > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.history strong {
+  font-size: 0.8125rem;
+}
+
+.history p,
+.history time,
+.history small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.history small {
+  margin-top: 0.15rem;
+  padding: 0.5rem;
+  border-radius: 0.6rem;
+  background: var(--surface-soft);
+  overflow-wrap: anywhere;
 }
 
 @keyframes taskBoardSpin { to { transform: rotate(360deg); } }
@@ -328,6 +537,8 @@
   .actions, .modalActions { align-items: stretch; flex-direction: column; }
   .actions button, .modalActions button, .loadMore { width: 100%; }
   .rewardBlock { align-items: flex-start; flex-direction: column; }
+  .dialogSummaryReward, .dialogSummaryAssignee { align-items: flex-start; flex-direction: column; }
+  .dialogSummaryAssignee strong { margin-left: 0; text-align: left; }
 }
 
 @media (prefers-reduced-motion: reduce) {

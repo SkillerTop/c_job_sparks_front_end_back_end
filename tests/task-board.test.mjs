@@ -40,6 +40,16 @@ test('Task Board reuses the shared page, card, form and action visual system', (
   assert.match(page, /appStyles\.formField/);
   assert.match(page, /appStyles\.accentButton/);
   assert.match(page, /<StatusBadge/);
+  assert.match(page, /dialogNotice/);
+  assert.match(page, /TaskDialogSummary/);
+});
+
+test('Task Board uses one modal layer at a time during reward approval', () => {
+  const page = source('src/views/pages/TaskBoardPage.tsx');
+  assert.match(page, /const session = await controller\.startApproval[\s\S]+setFormOpen\(false\);[\s\S]+setApproval\(session\)/);
+  assert.match(page, /const closeApproval[\s\S]+setFormOpen\(true\)/);
+  assert.match(page, /dismissible=\{!dialogBusy\}/);
+  assert.match(page, /dialogError && <Feedback tone="error">/);
 });
 
 test('Task Board is a private route available to every existing role', () => {
