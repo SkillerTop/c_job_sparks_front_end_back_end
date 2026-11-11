@@ -129,7 +129,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     : snapshot!.shell?.pendingApprovals ?? visibleApprovalQueueCount;
   const pendingDisenchantCount = snapshot!.shell?.pendingDisenchant ?? pendingDisenchantRequests.length;
   const pending = pendingApprovals + pendingDisenchantCount + pendingRegistrations.length;
-  const notificationCount = pending + notifications.unread;
+  const unreadNotifications = useMemo(
+    () => notifications.items.filter((item) => !item.read_at),
+    [notifications.items],
+  );
+  const notificationCount = notifications.unread;
+  const closeNotifications = () => {
+    setNotificationsOpen(false);
+    void notifications.markAllRead();
+  };
   const roleItems = useMemo<NavItem[]>(() => {
     if (activeRole === 'Administrator')
       return [
@@ -277,7 +285,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button
               className={`${styles.iconButton} ${notificationCount > 0 ? styles.notificationButtonActive : ''}`}
               type="button"
-              onClick={() => { setNotificationsOpen(true); void notifications.markAllRead(); }}
+              onClick={() => setNotificationsOpen(true)}
               aria-label={t('shell.notifications', { count: notificationCount })}
               aria-haspopup="dialog"
               aria-expanded={notificationsOpen}
@@ -314,19 +322,19 @@ export function AppShell({ children }: { children: ReactNode }) {
             ? t('shell.notificationHead')
             : t('shell.notificationEmployee')
         }
-        onClose={() => setNotificationsOpen(false)}
+        onClose={closeNotifications}
       >
-        {pending === 0 && notifications.items.length === 0 ? (
+        {pending === 0 && unreadNotifications.length === 0 ? (
           <EmptyState title={t('shell.upToDate')} description={t('shell.noPending')} />
         ) : (
           <div className={styles.requestList}>
-            {notifications.items.map((item) => (
+            {unreadNotifications.map((item) => (
               <article key={item.id}>
                 <div>
                   <strong>{item.title}</strong>
                   <p>{item.text}</p>
                   {item.link_path && <NavLink className={styles.textLink} to={item.link_path}
-                    onClick={() => setNotificationsOpen(false)}><LocalizedText>Open</LocalizedText></NavLink>}
+                    onClick={closeNotifications}><LocalizedText>Open</LocalizedText></NavLink>}
                 </div>
                 {!item.read_at && <StatusBadge status="New" />}
               </article>
@@ -339,7 +347,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <NavLink
                     className={styles.textLink}
                     to="/admin?tab=access"
-                    onClick={() => setNotificationsOpen(false)}
+                    onClick={closeNotifications}
                   >
                     {t('shell.reviewAccess')}
                   </NavLink>
@@ -355,7 +363,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <NavLink
                     className={styles.textLink}
                     to={activeRole === 'Head' ? '/approvals' : '/recognition'}
-                    onClick={() => setNotificationsOpen(false)}
+                    onClick={closeNotifications}
                   >
                     {t('shell.openRecognition')}
                   </NavLink>
@@ -374,7 +382,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <NavLink
                     className={styles.textLink}
                     to={activeRole === 'Head' ? '/approvals' : '/award'}
-                    onClick={() => setNotificationsOpen(false)}
+                    onClick={closeNotifications}
                   >
                     {t('shell.openAward')}
                   </NavLink>
@@ -393,7 +401,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <NavLink
                     className={styles.textLink}
                     to="/team#department-disenchant-requests"
-                    onClick={() => setNotificationsOpen(false)}
+                    onClick={closeNotifications}
                   >
                     {t('shell.openDepartmentWorkspace')}
                   </NavLink>
