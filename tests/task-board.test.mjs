@@ -56,3 +56,12 @@ test('Task Board is a private route available to every existing role', () => {
   assert.match(source('src/app/AppRouter.tsx'), /path="task-board"[\s\S]+roles=\{ALL_ROLES\}/);
   assert.match(source('server/src/contracts.ts'), /'task-board': \['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management', 'Office Manager', 'Administrator'\]/);
 });
+
+test('Rules publishes the implemented Task Board workflow and safeguards', () => {
+  const rules = source('src/views/pages/RulesPage.tsx');
+  assert.match(rules, /href="#task-board-rules-title"/);
+  assert.match(rules, /How Task Board assignments work/);
+  assert.match(rules, /first request committed by the server becomes the only assignee/);
+  assert.match(rules, /one atomic operation/);
+  assert.match(rules, /recorded in the audit history/);
+});

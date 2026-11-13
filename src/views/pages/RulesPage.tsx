@@ -3,6 +3,7 @@ import {
   CalendarClock,
   CheckCircle2,
   ChevronDown,
+  ClipboardList,
   Coins,
   Gauge,
   Search,
@@ -81,6 +82,7 @@ export function RulesPage() {
           <a href="#peer-rules-title"><LocalizedText>Peer recognition</LocalizedText></a>
           <a href="#role-rules-title"><LocalizedText>Role permissions</LocalizedText></a>
           <a href="#approval-rules-title"><LocalizedText>Approvals</LocalizedText></a>
+          <a href="#task-board-rules-title"><LocalizedText>Task Board</LocalizedText></a>
           <a href="#performance-rules-title"><LocalizedText>Performance rewards</LocalizedText></a>
           <a href="#award-rules-title"><LocalizedText>Award categories</LocalizedText></a>
           <a href="#economy-rules-title"><LocalizedText>Spark economy</LocalizedText></a>
@@ -229,6 +231,30 @@ export function RulesPage() {
               <dd><LocalizedText>Radiant is awarded directly and never requires an additional approval.</LocalizedText></dd>
             </div>
           </dl>
+        </section>
+
+        <section className={styles.panel} aria-labelledby="task-board-rules-title">
+          <div className={styles.panelHeader}>
+            <div>
+              <p className={styles.eyebrow}><LocalizedText>Employee opportunities</LocalizedText></p>
+              <h2 id="task-board-rules-title"><LocalizedText>How Task Board assignments work</LocalizedText></h2>
+            </div>
+            <ClipboardList size={20} />
+          </div>
+          <ul className={rulesStyles.rulesList}>
+            <li><LocalizedText>Heads, Top Management and Administrators can publish tasks. Every task requires a title, a clear description and at least one positive whole-number reward in White, Yellow or Blue Sparks.</LocalizedText></li>
+            <li><LocalizedText>The reward must be agreed with Top Management before publication. Both confirmation steps are mandatory for every publisher.</LocalizedText></li>
+            <li><LocalizedText>Tasks move through Active, Booked and Completed states, or become Cancelled.</LocalizedText></li>
+            <li><LocalizedText>Any active employee can book an Active task except its author. The first request committed by the server becomes the only assignee.</LocalizedText></li>
+            <li><LocalizedText>Before starting, the assignee should review the expected result and deadline and clarify questions with the task author.</LocalizedText></li>
+            <li><LocalizedText>A Booked task remains visible. Only its author or an Administrator can unassign the employee or confirm completion.</LocalizedText></li>
+            <li><LocalizedText>Unassigning the employee returns the task to Active and credits no Sparks.</LocalizedText></li>
+            <li><LocalizedText>Completion and all configured reward credits are committed as one atomic operation. The reward can be credited only once.</LocalizedText></li>
+            <li><LocalizedText>Changing the reward requires both approval confirmations again. A completed task reward can never be changed.</LocalizedText></li>
+            <li><LocalizedText>The author can edit or cancel an unfinished task. An Administrator can manage any task; deleting a completed task never removes its Ledger reward.</LocalizedText></li>
+            <li><LocalizedText>The author is notified when a task is booked. The assignee is notified after unassignment, cancellation or successful completion.</LocalizedText></li>
+            <li><LocalizedText>Task creation, approvals, edits, booking, unassignment, completion, reward credits, cancellation and deletion are recorded in the audit history.</LocalizedText></li>
+          </ul>
         </section>
 
         <section className={styles.panel} aria-labelledby="performance-rules-title">

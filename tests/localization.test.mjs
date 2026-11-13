@@ -37,3 +37,22 @@ test('preserves interpolated business data and surrounding whitespace', () => {
   assert.equal(localizeContent('ru', 'Good morning, Alex.'), 'Доброе утро, Alex.');
   assert.equal(localizeContent('uk', 'Custom administrator text'), 'Custom administrator text');
 });
+
+test('localizes Task Board rules into natural Ukrainian and Russian', () => {
+  assert.equal(
+    localizeContent('uk', 'How Task Board assignments work'),
+    'Як працюють завдання на Дошці оголошень',
+  );
+  assert.equal(
+    localizeContent('ru', 'How Task Board assignments work'),
+    'Как работают задания на Доске объявлений',
+  );
+  assert.match(
+    localizeContent('uk', 'Completion and all configured reward credits are committed as one atomic operation. The reward can be credited only once.'),
+    /атомарна операція/,
+  );
+  assert.match(
+    localizeContent('ru', 'Changing the reward requires both approval confirmations again. A completed task reward can never be changed.'),
+    /обоих этапов согласования/,
+  );
+});
