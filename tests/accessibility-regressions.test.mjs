@@ -60,6 +60,19 @@ test('route loading announcements do not expose pathname strings', async () => {
   assert.doesNotMatch(source, /aria-label=\{`Loading \$\{pathname\}`\}/);
 });
 
+test('restricted and missing routes provide safe back navigation', async () => {
+  const button = await read('src/views/components/common/BackNavigationButton.tsx');
+  const forbidden = await read('src/views/pages/ForbiddenPage.tsx');
+  const notFound = await read('src/views/pages/NotFoundPage.tsx');
+
+  assert.match(button, /window\.history\.state\?\.idx/);
+  assert.match(button, /navigate\(-1\)/);
+  assert.match(button, /navigate\(fallbackTo, \{ replace: true \}\)/);
+  assert.match(button, /type="button"/);
+  assert.match(forbidden, /<BackNavigationButton \/>/);
+  assert.match(notFound, /<BackNavigationButton \/>/);
+});
+
 test('shop cards expose an accessible full-description toggle and square media', async () => {
   const source = await read('src/views/components/shop/ProductCard.tsx');
   const styles = await read('src/views/styles/shop.module.css');
