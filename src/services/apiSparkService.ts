@@ -2,7 +2,9 @@ import type {
   AppSnapshot,
   AwardInput,
   AwardRequest,
+  DisenchantBatchResult,
   DisenchantReportResult,
+  DisenchantSelection,
   ImportPreview,
   PeerRecognition,
   QualityGateInput,
@@ -162,6 +164,11 @@ export const apiSparkService = {
       amount,
     });
     return { request, snapshot: await workspaceWithFreshBalances() };
+  },
+
+  async disenchantMany(_employeeId: string, components: DisenchantSelection[]) {
+    const result = await mutation<DisenchantBatchResult>('/api/v1/disenchant-requests', { components });
+    return { ...result, snapshot: await workspaceWithFreshBalances() };
   },
 
   async cancelDisenchantRequest(_employeeId: string, requestId: string, reason: string) {

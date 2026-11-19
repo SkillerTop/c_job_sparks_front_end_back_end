@@ -377,6 +377,20 @@ export const createTaskBoardItem = async (
   await appendEvent(db, id, principal.userId, 'Created', undefined, taskState(task));
   await writeAudit(db, { actorUserId: principal.userId, action: 'TASK_BOARD_CREATED', objectType: 'TaskBoardItem',
     objectId: id, after: taskState(task), requestId: trace.requestId, ip: trace.ip, userAgent: trace.userAgent });
+  const recipients = await rows<{ user_id: string }>(db, `
+    SELECT employee.user_id
+      FROM app.employees employee
+      LEFT JOIN app.user_preferences preferences ON preferences.user_id=employee.user_id
+     WHERE employee.is_active
+       AND employee.user_id IS NOT NULL
+       AND employee.user_id<>$1
+       AND COALESCE((preferences.notification_settings->>'taskBoard')::boolean,TRUE)
+     ORDER BY employee.id`, [principal.userId]);
+  for (const recipient of recipients) {
+    await createNotification(db, recipient.user_id, 'TaskCreated', 'New Task Board assignment',
+      `The task “${task.title}” was published with a reward of ${rewardText(normalized.rewardComponents)} Sparks.`,
+      'TaskBoardItem', id, '/task-board');
+  }
   await enqueueOutbox(db, 'TaskBoardItemCreated', 'TaskBoardItem', id,
     { taskId: id, authorEmployeeId: principal.employeeId, rewardComponents: normalized.rewardComponents });
   return publicTask(task, principal);

@@ -44,7 +44,11 @@ const saveState = (state: StoredProfileState) => {
 
 const profileFor = (state: StoredProfileState, employeeId: string, accountEmail: string) => {
   const stored = state.profiles[employeeId];
-  return stored ?? {
+  if (stored) return {
+    ...stored,
+    notifications: { ...DEFAULT_NOTIFICATION_PREFERENCES, ...stored.notifications },
+  };
+  return {
     employeeId,
     contactEmail: normalizeEmail(accountEmail),
     language: 'en' as const,

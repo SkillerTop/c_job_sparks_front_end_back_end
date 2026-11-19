@@ -83,6 +83,7 @@ export const RU_TRANSLATIONS: Dictionary = {
   'notifications.rewards': 'Награды', 'notifications.rewardsDescription': 'Новые Sparks, достижения и обновления наград.',
   'notifications.approvals': 'Согласования', 'notifications.approvalsDescription': 'Заявки, требующие решения или изменившие статус.',
   'notifications.purchases': 'Покупки', 'notifications.purchasesDescription': 'Чеки магазина и активации.',
+  'notifications.taskBoard': 'Доска объявлений', 'notifications.taskBoardDescription': 'Новые задания, опубликованные для сотрудников.',
   'notifications.system': 'Системные события', 'notifications.systemDescription': 'Безопасность, аккаунт и важные обновления сервиса.',
   'notifications.saved': 'Настройки уведомлений сохранены.', 'notifications.error': 'Не удалось сохранить уведомления.',
   'notifications.save': 'Сохранить уведомления', 'notifications.saving': 'Сохранение…',

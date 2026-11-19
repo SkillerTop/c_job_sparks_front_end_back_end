@@ -3,6 +3,7 @@ import { DEMO_ROLE_ACTORS, initialSnapshot } from '@/data/mockData';
 import type {
   AppSnapshot,
   AwardInput,
+  DisenchantSelection,
   ImportPreview,
   QualityGateInput,
   RecognitionInput,
@@ -701,6 +702,65 @@ const demoSparkService = {
     });
     addAudit('DISENCHANT_CREATED', employeeId, request.id, `${amount} ${sparkType} disenchanted.`);
     return { request, snapshot: clone() };
+  },
+
+  async disenchantMany(employeeId: string, components: DisenchantSelection[]) {
+    await wait(720);
+    const employee = requireActor(employeeId, ['Employee', 'Coordinator']);
+    if (components.length < 1 || components.length > 3)
+      throw new Error('Choose one to three Spark types.');
+    const uniqueTypes = new Set(components.map((component) => component.sparkType));
+    if (uniqueTypes.size !== components.length)
+      throw new Error('Choose each Spark type only once.');
+    const balances = calculateBalances(database.transactions, employeeId);
+    for (const component of components) {
+      if (!['White', 'Yellow', 'Blue'].includes(component.sparkType))
+        throw new Error('Radiant Sparks cannot be disenchanted.');
+      if (!Number.isInteger(component.amount) || component.amount <= 0)
+        throw new Error('Enter a positive whole number of Sparks.');
+      if (balances[component.sparkType] < component.amount)
+        throw new Error(`You only have ${balances[component.sparkType]} ${component.sparkType} Sparks available.`);
+    }
+    return atomic(() => {
+      const requests = components.map((component) => {
+        const base = database.settings.sparkMoneyValues[component.sparkType];
+        const moneyValue = Math.round(base * component.amount * database.settings.disenchantRate * 100) / 100;
+        const request = {
+          id: makeId('dis'),
+          employeeId,
+          departmentId: employee.departmentId,
+          sparkType: component.sparkType,
+          amount: component.amount,
+          rate: database.settings.disenchantRate,
+          moneyValue,
+          currency: database.settings.currency,
+          createdAt: new Date().toISOString(),
+          accountingPeriod: new Date().toISOString().slice(0, 7),
+          status: 'Created' as const,
+        };
+        database.disenchantRequests.unshift(request);
+        addTransaction({
+          employeeId,
+          sparkType: component.sparkType,
+          amount: -component.amount,
+          transactionType: 'Debit',
+          source: 'Disenchant',
+          category: 'Disenchant request',
+          description: `Created payout request at ${Math.round(request.rate * 100)}% of the configured value.`,
+          quarter: database.settings.currentQuarter,
+          relatedRequestId: request.id,
+        });
+        addAudit('DISENCHANT_CREATED', employeeId, request.id,
+          `${component.amount} ${component.sparkType} disenchanted.`);
+        return request;
+      });
+      return {
+        requests,
+        totalMoneyValue: Math.round(requests.reduce((total, request) => total + request.moneyValue, 0) * 100) / 100,
+        currency: database.settings.currency,
+        snapshot: clone(),
+      };
+    });
   },
 
   async cancelDisenchantRequest(employeeId: string, requestId: string, reason: string) {

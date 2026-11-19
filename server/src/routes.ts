@@ -547,6 +547,7 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
           rewards: row.notification_settings.rewards ?? true,
           approvals: row.notification_settings.approvals ?? true,
           purchases: row.notification_settings.purchases ?? true,
+          taskBoard: row.notification_settings.taskBoard ?? true,
           system: row.notification_settings.system ?? true,
         },
         avatarDataUrl: row.accessibility_settings.avatarDataUrl,
@@ -558,7 +559,13 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       const input = jsonBody(
         z.object({
           language: z.enum(['en', 'uk', 'ru']),
-          notifications: z.object({ rewards: z.boolean(), approvals: z.boolean(), purchases: z.boolean(), system: z.boolean() }),
+          notifications: z.object({
+            rewards: z.boolean(),
+            approvals: z.boolean(),
+            purchases: z.boolean(),
+            taskBoard: z.boolean(),
+            system: z.boolean(),
+          }),
         }),
         request,
       );
@@ -966,22 +973,47 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
     });
     protectedApp.post('/api/v1/disenchant-requests', async (request, reply) => {
       const principal = principalOf(request);
-      const input = jsonBody(z.object({ sparkType: z.enum(['White', 'Yellow', 'Blue']), amount: z.number().int().positive() }), request);
-      const result = await withIdempotency(app.db, principal.userId, 'disenchant:create', idempotencyKey(request), input, 201,
+      const componentSchema = z.object({
+        sparkType: z.enum(['White', 'Yellow', 'Blue']),
+        amount: z.number().int().positive(),
+      });
+      const input = jsonBody(z.union([
+        componentSchema,
+        z.object({ components: z.array(componentSchema).min(1).max(3) }),
+      ]), request);
+      const components = 'components' in input ? input.components : [input];
+      if (new Set(components.map((component) => component.sparkType)).size !== components.length)
+        throw badRequest('DUPLICATE_SPARK_TYPE', 'Choose each Spark type only once.');
+      const batchRequest = 'components' in input;
+      const result = await withIdempotency(app.db, principal.userId,
+        batchRequest ? 'disenchant:create:batch' : 'disenchant:create', idempotencyKey(request), input, 201,
         async (db) => {
-          const created = await createDisenchantRequest(db, principal, input.sparkType, input.amount, request.id);
-          const id = String(created.id);
-          const response = disenchantResponse(created);
+          const responses = [];
+          for (const component of components) {
+            const created = await createDisenchantRequest(db, principal, component.sparkType, component.amount, request.id);
+            const id = String(created.id);
+            const response = disenchantResponse(created);
+            responses.push(response);
+            await enqueueOutbox(db, 'DisenchantRequested', 'Disenchant', id, response);
+            await writeAudit(db, { actorUserId: principal.userId, action: 'DISENCHANT_REQUESTED', objectType: 'DisenchantRequest',
+              objectId: id, after: component, requestId: request.id, ip: request.ip,
+              userAgent: request.headers['user-agent'] });
+          }
+          const first = responses[0]!;
           const head = await maybeOne<{ user_id: string }>(db, `SELECT employee.user_id FROM app.departments department
             JOIN app.employees employee ON employee.id=department.head_employee_id
             WHERE department.id=$1 AND employee.user_id IS NOT NULL`, [principal.departmentId]);
           if (head) await createNotification(db, head.user_id, 'ApprovalRequested', 'New Disenchant request',
-            'A new department Disenchant request is ready for review.', 'Disenchant', id);
-          await enqueueOutbox(db, 'DisenchantRequested', 'Disenchant', id, response);
-          await writeAudit(db, { actorUserId: principal.userId, action: 'DISENCHANT_REQUESTED', objectType: 'DisenchantRequest',
-            objectId: id, after: input, requestId: request.id, ip: request.ip,
-            userAgent: request.headers['user-agent'] });
-          return response;
+            components.length === 1
+              ? 'A new department Disenchant request is ready for review.'
+              : `${components.length} new department Disenchant requests are ready for review.`,
+            'Disenchant', String(first.id));
+          if (!batchRequest) return first;
+          return {
+            requests: responses,
+            totalMoneyValue: Math.round(responses.reduce((total, item) => total + Number(item.moneyValue), 0) * 100) / 100,
+            currency: first.currency,
+          };
         });
       return sendIdempotent(reply, result);
     });

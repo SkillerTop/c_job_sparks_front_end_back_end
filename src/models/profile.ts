@@ -4,6 +4,7 @@ export interface NotificationPreferences {
   rewards: boolean;
   approvals: boolean;
   purchases: boolean;
+  taskBoard: boolean;
   system: boolean;
 }
 

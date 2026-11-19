@@ -83,6 +83,7 @@ export const UK_TRANSLATIONS: Dictionary = {
   'notifications.rewards': 'Нагороди', 'notifications.rewardsDescription': 'Нові Sparks, досягнення та оновлення нагород.',
   'notifications.approvals': 'Погодження', 'notifications.approvalsDescription': 'Запити, що потребують рішення або змінили статус.',
   'notifications.purchases': 'Покупки', 'notifications.purchasesDescription': 'Чеки магазину та активації.',
+  'notifications.taskBoard': 'Дошка оголошень', 'notifications.taskBoardDescription': 'Нові завдання, опубліковані для працівників.',
   'notifications.system': 'Системні події', 'notifications.systemDescription': 'Безпека, обліковий запис і важливі оновлення сервісу.',
   'notifications.saved': 'Налаштування сповіщень збережено.', 'notifications.error': 'Не вдалося зберегти сповіщення.',
   'notifications.save': 'Зберегти сповіщення', 'notifications.saving': 'Збереження…',

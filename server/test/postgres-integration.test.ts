@@ -307,10 +307,24 @@ if (!sourceDatabaseUrl) {
       assert.equal((await authenticated('Head', 'POST',
         `/api/v1/task-board/approval-sessions/${approvalId}/confirm-second`, {}, randomUUID())).statusCode, 200);
 
+      const taskNotificationOptOut = await authenticated('Coordinator', 'PATCH', '/api/v1/me/preferences', {
+        language: 'en',
+        notifications: { rewards: true, approvals: true, purchases: true, taskBoard: false, system: true },
+      });
+      assert.equal(taskNotificationOptOut.statusCode, 200, taskNotificationOptOut.body);
+
       const create = await authenticated('Head', 'POST', '/api/v1/task-board',
         { draft, approvalSessionId: approvalId }, randomUUID());
       assert.equal(create.statusCode, 201, create.body);
       const taskId = create.json<{ id: string }>().id;
+      assert.equal(await count(`SELECT count(*) FROM app.notifications notification
+        JOIN app.users account_user ON account_user.id=notification.recipient_user_id
+        WHERE notification.object_id=$1 AND notification.notification_type='TaskCreated'
+          AND account_user.email='alex.stone@c-job.test'`, [taskId]), 1);
+      assert.equal(await count(`SELECT count(*) FROM app.notifications notification
+        JOIN app.users account_user ON account_user.id=notification.recipient_user_id
+        WHERE notification.object_id=$1 AND notification.notification_type='TaskCreated'
+          AND account_user.email='samuel.park@c-job.test'`, [taskId]), 0);
 
       const changedDraft = { ...draft, rewardComponents: [
         { sparkType: 'White', amount: 9 },
@@ -514,6 +528,41 @@ if (!sourceDatabaseUrl) {
       assert.equal('money_amount' in body, false);
 
       const requestId = String(body.id);
+
+      const balancesBeforeBatch = await databasePool.query<{ spark_type: string; balance: string }>(`
+        SELECT spark_type,balance::text FROM app.spark_accounts
+         WHERE employee_id=$1 AND spark_type=ANY($2::text[])
+         ORDER BY spark_type`, [employeeIds.employee, ['White', 'Blue']]);
+      const batch = await authenticated('Employee', 'POST', '/api/v1/disenchant-requests', {
+        components: [{ sparkType: 'White', amount: 1 }, { sparkType: 'Blue', amount: 1 }],
+      }, `disenchant-batch-${randomUUID()}`);
+      assert.equal(batch.statusCode, 201, batch.body);
+      const batchBody = batch.json<{
+        requests: Array<{ id: string; sparkType: string; moneyValue: number; currency: string }>;
+        totalMoneyValue: number;
+        currency: string;
+      }>();
+      assert.equal(batchBody.requests.length, 2);
+      assert.equal(batchBody.totalMoneyValue,
+        Math.round(batchBody.requests.reduce((total, item) => total + item.moneyValue, 0) * 100) / 100);
+      const failedBatch = await authenticated('Employee', 'POST', '/api/v1/disenchant-requests', {
+        components: [{ sparkType: 'White', amount: 1 }, { sparkType: 'Blue', amount: 999_999 }],
+      }, `disenchant-batch-failure-${randomUUID()}`);
+      assert.equal(failedBatch.statusCode, 409, failedBatch.body);
+      const balancesAfterFailure = await databasePool.query<{ spark_type: string; balance: string }>(`
+        SELECT spark_type,balance::text FROM app.spark_accounts
+         WHERE employee_id=$1 AND spark_type=ANY($2::text[])
+         ORDER BY spark_type`, [employeeIds.employee, ['White', 'Blue']]);
+      assert.deepEqual(
+        balancesAfterFailure.rows.map((row) => ({ ...row, balance: String(Number(row.balance) + 1) })),
+        balancesBeforeBatch.rows,
+      );
+      for (const request of batchBody.requests) {
+        const cancellation = await authenticated('Employee', 'POST',
+          `/api/v1/disenchant-requests/${request.id}/cancel`,
+          { reason: 'Clean up the composite integration request.' }, `disenchant-batch-cancel-${randomUUID()}`);
+        assert.equal(cancellation.statusCode, 200, cancellation.body);
+      }
       const headWorkspace = await authenticated('Head', 'GET', '/api/v1/workspace');
       assert.equal(headWorkspace.statusCode, 200, headWorkspace.body);
       assert.equal(headWorkspace.json<{ disenchantRequests: Array<{ id: string; employeeName?: string }> }>()

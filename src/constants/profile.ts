@@ -14,6 +14,7 @@ export const PROFILE_NOTIFICATION_OPTIONS: ReadonlyArray<{
   { key: 'rewards', label: 'Rewards', description: 'New Sparks, achievements and reward updates.' },
   { key: 'approvals', label: 'Approvals', description: 'Requests that need a decision or change status.' },
   { key: 'purchases', label: 'Purchases', description: 'Reward Shop receipts and activations.' },
+  { key: 'taskBoard', label: 'Task Board', description: 'New assignments published for employees.' },
   { key: 'system', label: 'System events', description: 'Security, account and important service updates.' },
 ];
 
@@ -21,5 +22,6 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   rewards: true,
   approvals: true,
   purchases: true,
+  taskBoard: true,
   system: true,
 };

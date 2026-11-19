@@ -26,6 +26,7 @@ const uk: Record<string, string> = {
   'Your Disenchant request is now Exported.': 'Ваш запит на розпилення експортовано.',
   'Performance recorded': 'Результати роботи збережено',
   'Performance reward recorded': 'Нагороду за результати роботи збережено',
+  'New Task Board assignment': 'Нове завдання на Дошці оголошень',
   'Task booked': 'Завдання заброньовано', 'You were unassigned from a task': 'Вас відкріпили від завдання',
   'Task completed': 'Завдання виконано', 'Task cancelled': 'Завдання скасовано',
   'Task reward could not be credited': 'Не вдалося нарахувати нагороду за завдання',
@@ -57,6 +58,7 @@ const ru: Record<string, string> = {
   'Your Disenchant request is now Exported.': 'Ваш запрос на распыление экспортирован.',
   'Performance recorded': 'Результаты работы сохранены',
   'Performance reward recorded': 'Награда за результаты работы сохранена',
+  'New Task Board assignment': 'Новое задание на Доске объявлений',
   'Task booked': 'Задание забронировано', 'You were unassigned from a task': 'Вас открепили от задания',
   'Task completed': 'Задание выполнено', 'Task cancelled': 'Задание отменено',
   'Task reward could not be credited': 'Не удалось начислить награду за задание',
@@ -142,6 +144,11 @@ export const localizeNotification = (
     ? `Статус вашого запиту на розпилення: ${status(match[1]!, language)}.`
     : `Статус вашего запроса на распыление: ${status(match[1]!, language)}.`;
 
+  match = value.match(/^(\d+) new department Disenchant requests are ready for review\.$/);
+  if (match) return language === 'uk'
+    ? `${match[1]} нові запити на розпилення у відділі готові до перевірки.`
+    : `${match[1]} новых запроса на распыление в отделе готовы к проверке.`;
+
   match = value.match(/^Access request (approved|rejected)$/i);
   if (match) return language === 'uk'
     ? `Запит на доступ ${decision(match[1]!, language)}`
@@ -166,6 +173,11 @@ export const localizeNotification = (
   if (match) return language === 'uk'
     ? `${match[1]} забронював(-ла) завдання «${match[2]}».`
     : `${match[1]} забронировал(а) задание «${match[2]}».`;
+
+  match = value.match(/^The task “(.+)” was published with a reward of (.+) Sparks\.$/);
+  if (match) return language === 'uk'
+    ? `Опубліковано завдання «${match[1]}» із нагородою ${match[2]} Sparks.`
+    : `Опубликовано задание «${match[1]}» с наградой ${match[2]} Sparks.`;
 
   match = value.match(/^You were unassigned from the task “(.+)”\.$/);
   if (match) return language === 'uk'

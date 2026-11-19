@@ -515,6 +515,39 @@ test('Disenchant debits immediately and snapshots accounting terms', async () =>
   assert.equal((await snapshot()).disenchantRequests.find((item) => item.id === result.request.id).rate, 0.8);
   await assert.rejects(sparkService.disenchant('emp-alex', 'White', 0.5), /whole|integer/i);
 });
+test('Disenchant accepts multiple Spark types atomically and returns the combined value', async () => {
+  const before = await snapshot();
+  const beforeBalances = calculateBalances(before.transactions, 'emp-alex');
+  const result = await sparkService.disenchantMany('emp-alex', [
+    { sparkType: 'White', amount: 2 },
+    { sparkType: 'Yellow', amount: 1 },
+    { sparkType: 'Blue', amount: 1 },
+  ]);
+  assert.equal(result.requests.length, 3);
+  assert.equal(result.totalMoneyValue,
+    result.requests.reduce((total, request) => Math.round((total + request.moneyValue) * 100) / 100, 0));
+  const afterBalances = calculateBalances(result.snapshot.transactions, 'emp-alex');
+  assert.equal(afterBalances.White, beforeBalances.White - 2);
+  assert.equal(afterBalances.Yellow, beforeBalances.Yellow - 1);
+  assert.equal(afterBalances.Blue, beforeBalances.Blue - 1);
+
+  const beforeFailure = calculateBalances((await snapshot()).transactions, 'emp-alex');
+  await assert.rejects(
+    sparkService.disenchantMany('emp-alex', [
+      { sparkType: 'White', amount: 1 },
+      { sparkType: 'Yellow', amount: 999_999 },
+    ]),
+    /available/i,
+  );
+  assert.deepEqual(calculateBalances((await snapshot()).transactions, 'emp-alex'), beforeFailure);
+  await assert.rejects(
+    sparkService.disenchantMany('emp-alex', [
+      { sparkType: 'White', amount: 1 },
+      { sparkType: 'White', amount: 1 },
+    ]),
+    /only once/i,
+  );
+});
 test('Employee can cancel an unexported Disenchant request and receives an exact reversal', async () => {
   const created = await sparkService.disenchant('emp-alex', 'White', 2);
   const afterDebit = calculateBalances(created.snapshot.transactions, 'emp-alex').White;

@@ -2467,6 +2467,82 @@
   border-radius: 0.9rem;
   background: var(--accent-soft);
 }
+
+.disenchantAmountGrid,
+.disenchantReviewList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.disenchantAmountGrid {
+  margin-bottom: 1rem;
+}
+
+.disenchantAmountRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(8rem, 12rem);
+  align-items: end;
+  gap: 1rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+
+.disenchantAmountRow > span:first-child,
+.disenchantAmountInput {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.disenchantAmountRow small {
+  color: var(--muted);
+}
+
+.disenchantAmountInput {
+  color: var(--muted-strong);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.disenchantAmountInput input {
+  width: 100%;
+}
+
+.disenchantReviewList {
+  padding: 0.2rem 0;
+}
+
+.disenchantReviewRow,
+.disenchantReviewTotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.disenchantReviewRow {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+
+.disenchantReviewTotal {
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+.disenchantReviewTotal strong {
+  font-size: 1.25rem;
+}
+
+@media (max-width: 36rem) {
+  .disenchantAmountRow {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+}
 .payoutCopy {
   display: grid;
   min-width: 0;

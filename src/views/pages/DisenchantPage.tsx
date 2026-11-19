@@ -8,19 +8,19 @@ import { PageTransition } from '@/views/components/common/PageTransition';
 import { SparkBadge } from '@/views/components/common/SparkBadge';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
-import type { SparkType } from '@/models';
+import type { DisenchantSelection, SparkType } from '@/models';
 import { formatMoney } from '@/utils/sparkRules';
 import { selectAuthoritativeBalances } from '@/utils/personalBalances';
 import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
 
 
 type DisenchantType = Exclude<SparkType, 'Radiant'>;
+const DISENCHANT_TYPES: DisenchantType[] = ['White', 'Yellow', 'Blue'];
 
 export function DisenchantPage() {
   const { localize } = useUserPreferences();
   const { snapshot, currentUserId, disenchant, cancelDisenchantRequest } = useSpark();
-  const [type, setType] = useState<DisenchantType>('White');
-  const [amount, setAmount] = useState(1);
+  const [amounts, setAmounts] = useState<Record<DisenchantType, number>>({ White: 1, Yellow: 0, Blue: 0 });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
@@ -35,28 +35,50 @@ export function DisenchantPage() {
     () => selectAuthoritativeBalances(snapshot!, currentUserId),
     [snapshot, currentUserId],
   );
-  const availableForType = balances[type];
   const settings = snapshot!.settings;
   const cancellableRequests = snapshot!.disenchantRequests.filter(
     (request) => request.employeeId === currentUserId && request.status === 'Created',
   );
   useEffect(() => {
-    setAmount((current) => Math.min(Math.max(availableForType > 0 ? 1 : 0, current), availableForType));
-  }, [availableForType]);
-  const moneyValue = useMemo(
-    () => Math.round(settings.sparkMoneyValues[type] * amount * settings.disenchantRate * 100) / 100,
-    [settings, type, amount],
+    setAmounts((current) => Object.fromEntries(DISENCHANT_TYPES.map((sparkType) => [
+      sparkType,
+      Math.min(Math.max(0, current[sparkType]), balances[sparkType]),
+    ])) as Record<DisenchantType, number>);
+  }, [balances]);
+  const components = useMemo<DisenchantSelection[]>(
+    () => DISENCHANT_TYPES
+      .filter((sparkType) => amounts[sparkType] > 0)
+      .map((sparkType) => ({ sparkType, amount: amounts[sparkType] })),
+    [amounts],
   );
+  const moneyValues = useMemo(
+    () => Object.fromEntries(DISENCHANT_TYPES.map((sparkType) => [
+      sparkType,
+      Math.round(settings.sparkMoneyValues[sparkType] * amounts[sparkType] * settings.disenchantRate * 100) / 100,
+    ])) as Record<DisenchantType, number>,
+    [settings, amounts],
+  );
+  const totalMoneyValue = useMemo(
+    () => Math.round(components.reduce((total, component) => total + moneyValues[component.sparkType], 0) * 100) / 100,
+    [components, moneyValues],
+  );
+  const toggleType = (sparkType: DisenchantType) => {
+    setAmounts((current) => ({
+      ...current,
+      [sparkType]: current[sparkType] > 0 ? 0 : Math.min(1, balances[sparkType]),
+    }));
+    setMessage(null);
+  };
   const confirm = async () => {
     setProcessing(true);
     setMessage(null);
     try {
-      const result = await disenchant(type, amount);
+      const result = await disenchant(components);
       setConfirmOpen(false);
       setCelebrate(true);
       setMessage({
         tone: 'success',
-        text: `Request created for ${formatMoney(result.moneyValue, result.currency)}. Sparks were deducted immediately and added to the monthly accounting list.`,
+        text: `${localize(result.requests.length === 1 ? 'Disenchant request created for' : 'Disenchant requests created for')} ${formatMoney(result.totalMoneyValue, result.currency)}. ${localize('Sparks were deducted immediately and added to the monthly accounting list.')}`,
       });
     } catch (caught) {
       setConfirmOpen(false);
@@ -79,21 +101,20 @@ export function DisenchantPage() {
       <div className={styles.operationLayout}>
         <section className={`${styles.panel} ${styles.operationPanel}`}>
           <div className={styles.formField}>
-            <span><LocalizedText>Spark type</LocalizedText></span>
-            <div className={styles.sparkTypeOptions} role="group" aria-label={localize('Spark type')}>
-              {(['White', 'Yellow', 'Blue'] as DisenchantType[]).map((spark) => (
+            <span><LocalizedText>Spark types</LocalizedText></span>
+            <small><LocalizedText>Select every Spark type you want to include in this request.</LocalizedText></small>
+            <div className={styles.sparkTypeOptions} role="group" aria-label={localize('Spark types')}>
+              {DISENCHANT_TYPES.map((spark) => (
                 <button
                   type="button"
                   key={spark}
-                  aria-pressed={type === spark}
-                  className={type === spark ? styles.sparkTypeActive : ''}
-                  onClick={() => {
-                    setType(spark);
-                    setAmount(Math.min(1, balances[spark]));
-                    setMessage(null);
-                  }}
+                  aria-pressed={amounts[spark] > 0}
+                  className={amounts[spark] > 0 ? styles.sparkTypeActive : ''}
+                  disabled={balances[spark] === 0}
+                  onClick={() => toggleType(spark)}
                 >
                   <SparkBadge type={spark} />
+                  <small>{balances[spark]} <LocalizedText>available</LocalizedText></small>
                 </button>
               ))}
               <button type="button" disabled title={localize('Radiant Sparks are permanent')}>
@@ -102,32 +123,45 @@ export function DisenchantPage() {
               </button>
             </div>
           </div>
-          <label className={styles.formField}>
-            <span><LocalizedText>Amount</LocalizedText></span>
-            <input
-              type="number"
-              min={balances[type] > 0 ? 1 : 0}
-              step="1"
-              max={balances[type]}
-              value={amount}
-              onChange={(event) => {
-                const next = Math.floor(Number(event.target.value));
-                const minimum = balances[type] > 0 ? 1 : 0;
-                setAmount(Number.isFinite(next) ? Math.min(balances[type], Math.max(minimum, next)) : minimum);
-                setMessage(null);
-              }}
-            />
-            <small>
-              {balances[type]} {type} <LocalizedText>Sparks available
-            </LocalizedText></small>
-          </label>
+          {components.length > 0 ? (
+            <div className={styles.disenchantAmountGrid} aria-label={localize('Selected Spark amounts')}>
+              {components.map((component) => (
+                <label className={styles.disenchantAmountRow} key={component.sparkType}>
+                  <span>
+                    <SparkBadge type={component.sparkType} />
+                    <small>{balances[component.sparkType]} <LocalizedText>available</LocalizedText></small>
+                  </span>
+                  <span className={styles.disenchantAmountInput}>
+                    <LocalizedText>Amount</LocalizedText>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      max={balances[component.sparkType]}
+                      value={component.amount || ''}
+                      onChange={(event) => {
+                        const parsed = Math.floor(Number(event.target.value));
+                        const next = event.target.value === '' || !Number.isFinite(parsed)
+                          ? 0
+                          : Math.min(balances[component.sparkType], Math.max(0, parsed));
+                        setAmounts((current) => ({ ...current, [component.sparkType]: next }));
+                        setMessage(null);
+                      }}
+                    />
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.infoNote}><Info size={17} /><p><LocalizedText>Choose at least one available Spark type.</LocalizedText></p></div>
+          )}
           <div className={styles.payoutCard}>
             <div className={styles.payoutCopy}>
-              <p><LocalizedText>Estimated money value</LocalizedText></p>
-              <strong>{formatMoney(moneyValue, settings.currency)}</strong>
+              <p><LocalizedText>Total estimated money value</LocalizedText></p>
+              <strong>{formatMoney(totalMoneyValue, settings.currency)}</strong>
               <span><LocalizedText>Calculated according to the current C-Job policy</LocalizedText></span>
             </div>
-            <span className={`${styles.largeIcon} ${styles[`tone${type}`]}`}>
+            <span className={`${styles.largeIcon} ${styles.toneWhite}`}>
               <Coins size={24} />
             </span>
           </div>
@@ -141,7 +175,7 @@ export function DisenchantPage() {
           <button
             className={styles.primaryButtonWide}
             type="button"
-            disabled={balances[type] === 0 || amount < 1 || amount > balances[type]}
+            disabled={components.length === 0}
             onClick={() => setConfirmOpen(true)}
           >
             <Flame size={17} /> <LocalizedText>Review disenchant
@@ -243,13 +277,20 @@ export function DisenchantPage() {
       <Modal
         open={confirmOpen}
         title="Confirm disenchant"
-        description="Sparks are deducted immediately. The payout is processed later by Accounting."
+        description="Review every selected Spark amount and the total value. Sparks are deducted immediately."
         onClose={() => !processing && setConfirmOpen(false)}
       >
-        <div className={styles.confirmSummary}>
-          <SparkBadge type={type} amount={-amount} />
-          <span className={styles.confirmEquals}>=</span>
-          <strong>{formatMoney(moneyValue, settings.currency)}</strong>
+        <div className={styles.disenchantReviewList}>
+          {components.map((component) => (
+            <div className={styles.disenchantReviewRow} key={component.sparkType}>
+              <SparkBadge type={component.sparkType} amount={-component.amount} />
+              <strong>{formatMoney(moneyValues[component.sparkType], settings.currency)}</strong>
+            </div>
+          ))}
+          <div className={styles.disenchantReviewTotal}>
+            <span><LocalizedText>Total selected value</LocalizedText></span>
+            <strong>{formatMoney(totalMoneyValue, settings.currency)}</strong>
+          </div>
         </div>
         <div className={styles.modalActions}>
           <button

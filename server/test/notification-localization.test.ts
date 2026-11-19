@@ -30,6 +30,11 @@ test('keeps administrator-entered reasons unchanged', () => {
 });
 
 test('localizes Task Board booking, completion and reward values', () => {
+  assert.equal(localizeNotification('uk', 'New Task Board assignment'), 'Нове завдання на Дошці оголошень');
+  assert.equal(
+    localizeNotification('ru', 'The task “Prepare training” was published with a reward of 7 White + 2 Yellow Sparks.'),
+    'Опубликовано задание «Prepare training» с наградой 7 White + 2 Yellow Sparks.',
+  );
   assert.equal(localizeNotification('ru', 'Task completed'), 'Задание выполнено');
   assert.equal(
     localizeNotification('ru', 'The task “Prepare training” was marked as completed. You received 7 White + 2 Yellow + 1 Blue Sparks.'),

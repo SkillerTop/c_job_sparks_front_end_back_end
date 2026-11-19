@@ -2,7 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import type {
   AppSnapshot,
   AwardInput,
+  DisenchantBatchResult,
   DisenchantReportResult,
+  DisenchantSelection,
   ImportPreview,
   QualityGateInput,
   RecognitionInput,
@@ -36,10 +38,7 @@ interface SparkContextValue {
     fee: number;
     totalDebited: number;
   }>;
-  disenchant: (
-    type: Exclude<SparkType, 'Radiant'>,
-    amount: number,
-  ) => Promise<{ moneyValue: number; currency: string }>;
+  disenchant: (components: DisenchantSelection[]) => Promise<DisenchantBatchResult>;
   cancelDisenchantRequest: (requestId: string, reason: string) => Promise<void>;
   exportDisenchantRequests: (requestIds: string[], exportReference: string) => Promise<{ fileName: string; csv: string }>;
   markDisenchantPaid: (requestId: string) => Promise<void>;
@@ -252,11 +251,15 @@ export function SparkProvider({ children }: { children: ReactNode }) {
         totalDebited: result.totalDebited,
       };
     });
-  const disenchant = (type: Exclude<SparkType, 'Radiant'>, amount: number) =>
+  const disenchant = (components: DisenchantSelection[]) =>
     executeAuthorized(async () => {
-      const result = await sparkService.disenchant(currentUserId, type, amount);
+      const result = await sparkService.disenchantMany(currentUserId, components);
       updateSnapshot(result.snapshot);
-      return { moneyValue: result.request.moneyValue, currency: result.request.currency };
+      return {
+        requests: result.requests,
+        totalMoneyValue: result.totalMoneyValue,
+        currency: result.currency,
+      };
     });
   const cancelDisenchantRequest = (requestId: string, reason: string) =>
     executeAuthorized(async () =>

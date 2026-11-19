@@ -41,6 +41,7 @@ test('the MVP schema is complete and ordered', async () => {
     '0023_composite_shop_prices.sql',
     '0024_task_board.sql',
     '0025_task_board_composite_rewards.sql',
+    '0026_task_board_creation_notifications.sql',
   ]);
   for (const table of [
     'users', 'employees', 'departments', 'roles', 'role_assignments', 'projects', 'project_members',
@@ -74,6 +75,12 @@ test('Task Board rewards support one to three validated spendable Spark componen
   assert.match(migration, /spark_type NOT IN \('White', 'Yellow', 'Blue'\)/);
   assert.match(migration, /ALTER TABLE app\.task_board_approval_sessions[\s\S]+ADD COLUMN reward_components jsonb/);
   assert.match(migration, /ALTER TABLE app\.task_board_tasks[\s\S]+ADD COLUMN reward_components jsonb/);
+});
+
+test('Task Board creation notifications have a dedicated notification type migration', async () => {
+  const migration = await readFile(resolve(migrationsDirectory, '0026_task_board_creation_notifications.sql'), 'utf8');
+  assert.match(migration, /TaskCreated/);
+  assert.match(migration, /notifications_notification_type_check/);
 });
 
 test('shop prices support one to three atomic Spark components', async () => {

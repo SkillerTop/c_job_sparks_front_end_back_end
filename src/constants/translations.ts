@@ -174,6 +174,8 @@ const en = {
   'notifications.approvalsDescription': 'Requests that need a decision or change status.',
   'notifications.purchases': 'Purchases',
   'notifications.purchasesDescription': 'Reward Shop receipts and activations.',
+  'notifications.taskBoard': 'Task Board',
+  'notifications.taskBoardDescription': 'New assignments published for employees.',
   'notifications.system': 'System events',
   'notifications.systemDescription': 'Security, account and important service updates.',
   'notifications.saved': 'Notification preferences saved.',

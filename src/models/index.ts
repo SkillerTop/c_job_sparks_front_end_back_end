@@ -152,6 +152,17 @@ export interface DisenchantRequest {
   status: 'Created' | 'Exported' | 'Paid' | 'Cancelled';
 }
 
+export interface DisenchantSelection {
+  sparkType: Exclude<SparkType, 'Radiant'>;
+  amount: number;
+}
+
+export interface DisenchantBatchResult {
+  requests: DisenchantRequest[];
+  totalMoneyValue: number;
+  currency: string;
+}
+
 export interface FulfillmentContact {
   id: string;
   name: string;
