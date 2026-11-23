@@ -269,6 +269,7 @@
 
 .rulesDisclosure li > div {
   min-width: 0;
+  flex: 1 1 12rem;
 }
 
 .rulesDisclosure li p {
@@ -278,8 +279,11 @@
 }
 
 .rulesDisclosure li span {
-  flex: none;
+  max-width: 46%;
+  flex: 0 1 46%;
   color: var(--muted);
+  line-height: 1.4;
+  overflow-wrap: break-word;
   text-align: right;
 }
 
@@ -295,6 +299,18 @@
 
 .rulesListSpaced {
   margin-top: 0.9rem;
+}
+
+@media (max-width: 42rem) {
+  .rulesDisclosure li {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rulesDisclosure li span {
+    max-width: none;
+    text-align: left;
+  }
 }
 
 @media (min-width: 46rem) {

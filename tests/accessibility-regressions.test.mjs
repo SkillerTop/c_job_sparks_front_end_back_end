@@ -49,10 +49,14 @@ test('Employee Recognition history is not role-limited', async () => {
 
 test('Rules uses configured Yellow limit and progressive category disclosure', async () => {
   const source = await read('src/views/pages/RulesPage.tsx');
+  const styles = await read('src/views/styles/rules.module.css');
   assert.match(source, /settings\.yellowQuarterlyLimit/);
   assert.doesNotMatch(source, />7 <LocalizedText>per employee per quarter/);
   assert.match(source, /Search award categories/);
   assert.match(source, /open=\{normalizedCategoryQuery \? true : undefined\}/);
+  assert.match(styles, /\.rulesDisclosure li > div\s*\{[^}]*flex:\s*1 1 12rem;/s);
+  assert.match(styles, /\.rulesDisclosure li span\s*\{[^}]*max-width:\s*46%;[^}]*flex:\s*0 1 46%;/s);
+  assert.match(styles, /@media \(max-width:\s*42rem\)[^]*\.rulesDisclosure li[^]*flex-direction:\s*column;/);
 });
 
 test('route loading announcements do not expose pathname strings', async () => {
