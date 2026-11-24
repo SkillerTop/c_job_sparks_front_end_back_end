@@ -347,7 +347,7 @@ test('Peer Recognition blocks self, privileged and cross-department recipients',
   await assert.rejects(sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-victor')), /eligible/);
   await assert.rejects(
     sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-daniel')),
-    /your departments/i,
+    /primary department/i,
   );
   await sparkService.reviewRecognition('rec-002', 'Rejected', 'Needs a specific contribution.', HEAD);
   const result = await sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-nora'));

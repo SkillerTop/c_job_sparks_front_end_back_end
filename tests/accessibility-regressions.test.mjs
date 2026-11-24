@@ -110,6 +110,15 @@ test('employee administration exposes one department selector and no membership 
   assert.match(registration, /ariaLabel="Employee department"/);
 });
 
+test('Peer Recognition derives the primary department without an extra selector', async () => {
+  const page = await read('src/views/pages/RecognitionPage.tsx');
+  const controller = await read('src/controllers/useRecognitionController.ts');
+
+  assert.doesNotMatch(page, /ariaLabel="Recognition department"|Choose a department/);
+  assert.doesNotMatch(controller, /selectDepartment|setDepartmentId/);
+  assert.match(controller, /employee\.departmentId === currentDepartmentId/);
+});
+
 test('modal form grids respond to their container and never stretch short controls', async () => {
   const appStyles = await read('src/views/styles/app.module.css');
   const shopStyles = await read('src/views/styles/shop.module.css');

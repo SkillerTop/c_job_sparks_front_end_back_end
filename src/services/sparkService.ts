@@ -371,7 +371,7 @@ const demoSparkService = {
       throw new Error('Choose an eligible active colleague.');
     if (senderId === input.recipientId) throw new Error('Self-recognition is not allowed.');
     if (sender.departmentId !== recipient.departmentId)
-      throw new Error('Choose a colleague from one of your departments.');
+      throw new Error('Choose a colleague from your primary department.');
     const reservedThisQuarter = database.recognitions.filter(
       (item) =>
         item.senderId === senderId &&

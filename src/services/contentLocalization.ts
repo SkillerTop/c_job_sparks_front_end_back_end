@@ -221,7 +221,6 @@ const uk: PhraseMap = {
   'Gate is outside your departments.': 'Quality Gate не належить до ваших підрозділів.',
   'Choose an active employee with the Head role.': 'Оберіть активного працівника з роллю Head.',
   'No active coordinators are available.': 'Немає доступних активних координаторів.', 'Open': 'Відкрити',
-  'Choose a department, then select an eligible colleague.': 'Оберіть відділ, а потім доступного колегу.',
   'Peer recognition and White/Yellow award requests with department-based recipient selection.': 'Peer Recognition і запити на нагороди White/Yellow із вибором одержувачів за відділом.',
   'Company-wide team view and White/Yellow award requests. GPM White allocation is based on active Coordinators and registrars under their control. GPMs can also review company achievements and browse the Reward Shop in view-only mode.': 'Перегляд команди всієї компанії та запити на White/Yellow нагороди. Ліміт White для GPM залежить від активних координаторів і реєстраторів під їхнім керівництвом. GPM також можуть переглядати досягнення компанії та магазин нагород у режимі лише для читання.',
   'Department approvals, direct White/Yellow/Blue awards, Quality Gates and the monthly Accounting list, plus view-only Reward Shop access.': 'Погодження відділу, прямі White/Yellow/Blue нагороди, Quality Gates, щомісячний список для бухгалтерії та перегляд магазину нагород без редагування.',
@@ -496,7 +495,6 @@ const ru: PhraseMap = {
   'Gate is outside your departments.': 'Quality Gate не относится к вашим подразделениям.',
   'Choose an active employee with the Head role.': 'Выберите активного сотрудника с ролью Head.',
   'No active coordinators are available.': 'Нет доступных активных координаторов.', 'Open': 'Открыть',
-  'Choose a department, then select an eligible colleague.': 'Выберите отдел, затем доступного коллегу.',
   'Peer recognition and White/Yellow award requests with department-based recipient selection.': 'Peer Recognition и запросы на награды White/Yellow с выбором получателей по отделу.',
   'Company-wide team view and White/Yellow award requests. GPM White allocation is based on active Coordinators and registrars under their control. GPMs can also review company achievements and browse the Reward Shop in view-only mode.': 'Просмотр команды всей компании и запросы на White/Yellow награды. Лимит White для GPM зависит от активных координаторов и регистраторов под их управлением. GPM также могут просматривать достижения компании и магазин наград в режиме только для чтения.',
   'Department approvals, direct White/Yellow/Blue awards, Quality Gates and the monthly Accounting list, plus view-only Reward Shop access.': 'Согласования отдела, прямые White/Yellow/Blue награды, Quality Gates, ежемесячный список для бухгалтерии и просмотр магазина наград без редактирования.',
@@ -546,7 +544,7 @@ const ru: PhraseMap = {
 };
 
 const supplementalUk: PhraseMap = {
-  'Recognize an eligible Employee, Coordinator or GPM from one of your departments. The selected category controls the White Spark amount; approval also creates a permanent achievement card.': 'Відзначте доступного працівника, координатора або GPM з одного зі своїх відділів. Вибрана категорія визначає кількість White Sparks, а після погодження також створюється постійна картка досягнення.',
+  'Recognize an eligible Employee, Coordinator or GPM from your primary department. The selected category controls the White Spark amount; approval also creates a permanent achievement card.': 'Відзначте доступного працівника, координатора або GPM зі свого основного відділу. Вибрана категорія визначає кількість White Sparks, а після погодження також створюється постійна картка досягнення.',
   'Peer Recognition is limited to eligible colleagues in the selected department.': 'Peer Recognition доступне лише для відповідних колег у вибраному відділі.',
   'Every Peer Recognition sender chooses a colleague from their primary department.': 'Кожен автор Peer Recognition обирає колегу зі свого основного відділу.',
   'This department no longer exists. Refresh the directory.': 'Цього відділу більше не існує. Оновіть довідник.',
@@ -705,7 +703,7 @@ const supplementalUk: PhraseMap = {
 };
 
 const supplementalRu: PhraseMap = {
-  'Recognize an eligible Employee, Coordinator or GPM from one of your departments. The selected category controls the White Spark amount; approval also creates a permanent achievement card.': 'Отметьте доступного сотрудника, координатора или GPM из одного из своих отделов. Выбранная категория определяет количество White Sparks, а после согласования также создаётся постоянная карточка достижения.',
+  'Recognize an eligible Employee, Coordinator or GPM from your primary department. The selected category controls the White Spark amount; approval also creates a permanent achievement card.': 'Отметьте доступного сотрудника, координатора или GPM из своего основного отдела. Выбранная категория определяет количество White Sparks, а после согласования также создаётся постоянная карточка достижения.',
   'Peer Recognition is limited to eligible colleagues in the selected department.': 'Peer Recognition доступно только для подходящих коллег в выбранном отделе.',
   'Every Peer Recognition sender chooses a colleague from their primary department.': 'Каждый автор Peer Recognition выбирает коллегу из своего основного отдела.',
   'This department no longer exists. Refresh the directory.': 'Этого отдела больше не существует. Обновите справочник.',
@@ -1991,7 +1989,7 @@ const serverErrorRu: PhraseMap = {
   'This file was already imported.': 'Этот файл уже импортирован.',
   'Describe the contribution.': 'Опишите вклад.',
   'Peer recognition must use a White category.': 'Для признания коллег нужно выбрать категорию White.',
-  'Choose a colleague from one of your departments.': 'Выберите коллегу из одного из своих отделов.',
+  'Choose a colleague from your primary department.': 'Выберите коллегу из своего основного отдела.',
   'Your Peer Recognition quota is used or reserved for this quarter.': 'Ваша квота признания коллег за этот квартал использована или зарезервирована.',
   'This request is outside your department.': 'Этот запрос не относится к вашему отделу.',
   'The nominator is no longer eligible for Peer Recognition.': 'Автор представления больше не имеет права отмечать коллег.',
@@ -2100,7 +2098,7 @@ const serverErrorUk: PhraseMap = {
   'This file was already imported.': 'Цей файл уже імпортовано.',
   'Describe the contribution.': 'Опишіть внесок.',
   'Peer recognition must use a White category.': 'Для визнання колег потрібно вибрати категорію White.',
-  'Choose a colleague from one of your departments.': 'Виберіть колегу з одного зі своїх відділів.',
+  'Choose a colleague from your primary department.': 'Виберіть колегу зі свого основного відділу.',
   'Your Peer Recognition quota is used or reserved for this quarter.': 'Вашу квоту визнання колег за цей квартал використано або зарезервовано.',
   'This request is outside your department.': 'Цей запит не належить до вашого відділу.',
   'The nominator is no longer eligible for Peer Recognition.': 'Автор подання більше не має права відзначати колег.',

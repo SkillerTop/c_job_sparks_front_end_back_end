@@ -11,17 +11,12 @@ export function useRecognitionController() {
   const { snapshot, currentUserId, activeRole, createRecognition } = useSpark();
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState<RecognitionInput>(emptyForm);
-  const [departmentId, setDepartmentId] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
 
   const currentEmployee = snapshot?.employees.find((employee) => employee.id === currentUserId);
-  const ownDepartmentIds = useMemo(
-    () => currentEmployee?.departmentId ? [currentEmployee.departmentId] : [],
-    [currentEmployee],
-  );
-  const activeDepartmentId = departmentId || currentEmployee?.departmentId || ownDepartmentIds[0] || '';
+  const currentDepartmentId = currentEmployee?.departmentId ?? '';
   const recipients = useMemo(() => {
     if (!snapshot) return [];
     return snapshot.employees.filter(
@@ -29,29 +24,20 @@ export function useRecognitionController() {
         employee.active &&
         employee.id !== currentUserId &&
         ['Employee', 'Coordinator', 'GPM'].includes(employee.role) &&
-        Boolean(activeDepartmentId) &&
-        employee.departmentId === activeDepartmentId,
+        Boolean(currentDepartmentId) &&
+        employee.departmentId === currentDepartmentId,
     );
-  }, [snapshot, currentUserId, activeDepartmentId]);
+  }, [snapshot, currentUserId, currentDepartmentId]);
   const requestedRecipient = searchParams.get('recipient');
   useEffect(() => {
     if (!requestedRecipient || !snapshot) return;
     const requested = snapshot.employees.find((employee) => employee.id === requestedRecipient && employee.active);
     if (!requested || !['Employee', 'Coordinator', 'GPM'].includes(requested.role)) return;
-    const sharedDepartmentId = ownDepartmentIds.find((id) => id === requested.departmentId);
-    if (!sharedDepartmentId) return;
-    if (sharedDepartmentId !== activeDepartmentId) setDepartmentId(sharedDepartmentId);
+    if (!currentDepartmentId || requested.departmentId !== currentDepartmentId) return;
     setForm((current) =>
       current.recipientId ? current : { ...current, recipientId: requestedRecipient },
     );
-  }, [requestedRecipient, snapshot, activeDepartmentId, ownDepartmentIds]);
-
-  const selectDepartment = (value: string) => {
-    setDepartmentId(value);
-    setForm((current) => ({ ...current, recipientId: '' }));
-    setErrors((current) => ({ ...current, recipientId: '' }));
-    setMessage(null);
-  };
+  }, [requestedRecipient, snapshot, currentDepartmentId]);
   const ownRecognitions = useMemo(
     () =>
       snapshot?.recognitions
@@ -114,10 +100,6 @@ export function useRecognitionController() {
     submitting,
     message,
     recipients,
-    departmentId: activeDepartmentId,
-    departments: snapshot?.departments.filter((department) =>
-      department.active && ownDepartmentIds.includes(department.id)) ?? [],
-    selectDepartment,
     ownRecognitions,
     quota,
     usedCount,
