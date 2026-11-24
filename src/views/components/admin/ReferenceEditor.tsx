@@ -4,6 +4,7 @@ import { ALL_ROLES } from '@/constants/app';
 import { Modal } from '@/views/components/common/Modal';
 import { Feedback } from '@/views/components/common/Feedback';
 import { SelectField } from '@/views/components/ui/SelectField';
+import { DepartmentMembershipPicker } from './DepartmentMembershipPicker';
 import { useAuth } from '@/controllers/AuthContext';
 import type { AppSnapshot, Department, Employee, ReferenceDraft, SparkCategory } from '@/models';
 import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
@@ -140,36 +141,12 @@ export function ReferenceEditor({
                   required
                 />
               </label>
-               <fieldset className={`${styles.formField} ${styles.fieldFull}`}>
-                 <legend><LocalizedText>Department memberships</LocalizedText></legend>
-                 <small><LocalizedText>Choose every department this employee belongs to. The primary department remains selected above.</LocalizedText></small>
-                 <div className={styles.multiCheckGrid}>
-                   {snapshot.departments.map((department) => {
-                     const checked = (draft.data.departmentIds ?? [draft.data.departmentId]).includes(department.id);
-                     const primary = draft.data.departmentId === department.id;
-                     return (
-                       <label className={styles.coordinatorOption} key={department.id}>
-                         <input
-                           type="checkbox"
-                           checked={checked || primary}
-                           disabled={primary}
-                           onChange={(event) => {
-                             const current = draft.data.departmentIds ?? [draft.data.departmentId];
-                             update('departmentIds', event.target.checked
-                               ? [...new Set([...current, department.id])]
-                               : current.filter((id) => id !== department.id));
-                           }}
-                         />
-                         <span className={styles.coordinatorIdentity}>
-                           <strong>{department.name}</strong>
-                           <small><LocalizedText>{department.active ? 'Active department' : 'Inactive department'}</LocalizedText></small>
-                         </span>
-                         {primary ? <span className={styles.coordinatorRole}><LocalizedText>Primary</LocalizedText></span> : null}
-                       </label>
-                     );
-                   })}
-                 </div>
-               </fieldset>
+              <DepartmentMembershipPicker
+                departments={snapshot.departments}
+                primaryDepartmentId={draft.data.departmentId}
+                selectedDepartmentIds={draft.data.departmentIds ?? [draft.data.departmentId]}
+                onChange={(departmentIds) => update('departmentIds', departmentIds)}
+              />
               <label className={styles.formField}>
                 <span><LocalizedText>Business role</LocalizedText></span>
                 <SelectField

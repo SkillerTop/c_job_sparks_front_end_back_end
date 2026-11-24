@@ -13,6 +13,7 @@ import { formatDateTime } from '@/utils/formatters';
 import { useAppMode } from '@/controllers/useAppMode';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { SelectField } from '@/views/components/ui/SelectField';
+import { DepartmentMembershipPicker } from './DepartmentMembershipPicker';
 import styles from '@/views/styles/app.module.css';
 import accessStyles from '@/views/styles/access.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
 
@@ -294,33 +295,16 @@ export function RegistrationManager() {
                   <small><LocalizedText>Microsoft department: </LocalizedText>{selected.suggestedDepartmentName}</small>
                 )}
               </label>
-              <fieldset className={`${styles.formField} ${styles.fieldFull}`}>
-                <legend><LocalizedText>Department memberships</LocalizedText></legend>
-                <small><LocalizedText>Choose every department this employee belongs to.</LocalizedText></small>
-                <div className={styles.multiCheckGrid}>
-                  {snapshot!.departments.filter((department) => department.active).map((department) => {
-                    const primary = employeeProfile?.departmentId === department.id;
-                    const checked = (employeeProfile?.departmentIds ?? []).includes(department.id);
-                    return (
-                      <label className={styles.coordinatorOption} key={department.id}>
-                        <input
-                          type="checkbox"
-                          checked={checked || primary}
-                          disabled={processing || primary}
-                          onChange={(event) => setEmployeeProfile((current) => current ? {
-                            ...current,
-                            departmentIds: event.target.checked
-                              ? [...new Set([...(current.departmentIds ?? []), department.id])]
-                              : (current.departmentIds ?? []).filter((id) => id !== department.id),
-                          } : current)}
-                        />
-                        <span className={styles.coordinatorIdentity}><strong>{department.name}</strong></span>
-                        {primary ? <span className={styles.coordinatorRole}><LocalizedText>Primary</LocalizedText></span> : null}
-                      </label>
-                    );
-                  })}
-                </div>
-              </fieldset>
+              <DepartmentMembershipPicker
+                departments={snapshot!.departments.filter((department) => department.active)}
+                primaryDepartmentId={employeeProfile?.departmentId ?? ''}
+                selectedDepartmentIds={employeeProfile?.departmentIds ?? []}
+                disabled={processing}
+                helpText="Choose every department this employee belongs to."
+                onChange={(departmentIds) => setEmployeeProfile((current) => current
+                  ? { ...current, departmentIds }
+                  : current)}
+              />
               <label className={styles.formField}>
                 <span><LocalizedText>Business role </LocalizedText><b>*</b></span>
                 <SelectField

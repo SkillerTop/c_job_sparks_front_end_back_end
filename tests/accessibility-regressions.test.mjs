@@ -99,3 +99,14 @@ test('shop location disclaimer is prominent and exposed as a note', async () => 
   assert.match(dialog, /shopLocationDisclaimer[^]*role="note"/);
   assert.match(constants, /actual product design may differ from the image shown/);
 });
+
+test('department memberships use a compact searchable disclosure with a fixed primary option', async () => {
+  const source = await read('src/views/components/admin/DepartmentMembershipPicker.tsx');
+  const styles = await read('src/views/styles/app.module.css');
+
+  assert.match(source, /<details className=\{styles\.membershipPicker\}>/);
+  assert.match(source, /<summary className=\{styles\.membershipSummary\}>/);
+  assert.match(source, /type="search"/);
+  assert.match(source, /disabled=\{disabled \|\| primary\}/);
+  assert.match(styles, /\.membershipOptions\s*\{[^}]*max-height:\s*11rem;/s);
+});
