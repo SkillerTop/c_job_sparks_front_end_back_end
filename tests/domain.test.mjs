@@ -340,13 +340,17 @@ test('Coordinator quota counts unique active colleagues in shared project teams 
   state = await updateEmployee('emp-nora', { active: false });
   assert.equal(recognitionQuota('emp-sam', 'Coordinator', state.settings, state.employees, state.projectTeams), 1);
 });
-test('Peer Recognition blocks self and Admin recipients but allows cross-department colleagues', async () => {
+test('Peer Recognition blocks self, privileged and cross-department recipients', async () => {
   await assert.rejects(sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-alex')), /Self-recognition/);
   await assert.rejects(sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-ida')), /eligible/);
   await assert.rejects(sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-maya')), /eligible/);
   await assert.rejects(sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-victor')), /eligible/);
+  await assert.rejects(
+    sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-daniel')),
+    /your departments/i,
+  );
   await sparkService.reviewRecognition('rec-002', 'Rejected', 'Needs a specific contribution.', HEAD);
-  const result = await sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-daniel'));
+  const result = await sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-nora'));
   assert.equal(result.recognition.status, 'Pending');
   assert.equal(Object.hasOwn(result.recognition, 'projectId'), false);
 });
@@ -418,9 +422,9 @@ test('Award recipient selectors enforce economy roles, scope and no self-awards'
 });
 test('Calendar rollover resets quota selection without allowing unlimited submissions', async () => {
   mock.timers.setTime(new Date('2026-10-01T12:00:00Z').getTime());
-  await sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-alex'));
-  await sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-daniel'));
-  await assert.rejects(sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-alex')), /allocation/);
+  await sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-elena'));
+  await sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-elena'));
+  await assert.rejects(sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-elena')), /allocation/);
   assert.equal((await snapshot()).settings.currentQuarter, 'Q4 2026');
 });
 test('Direct Yellow cap is unchanged by spending or conversion', async () => {

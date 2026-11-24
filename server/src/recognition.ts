@@ -86,6 +86,14 @@ const assertPeerRecipient = (principal: AuthenticatedPrincipal, recipient: Emplo
     throw badRequest('RECIPIENT_NOT_ELIGIBLE', 'Choose an eligible active colleague.');
   if (principal.employeeId === recipient.id)
     throw badRequest('SELF_RECOGNITION', 'Self-recognition is not allowed.');
+  const sharedDepartmentId = employeeDepartmentIds(recipient)
+    .find((departmentId) => principalDepartmentIds(principal).includes(departmentId));
+  if (!sharedDepartmentId)
+    throw badRequest(
+      'RECIPIENT_OUTSIDE_DEPARTMENT',
+      'Choose a colleague from one of your departments.',
+    );
+  return sharedDepartmentId;
 };
 
 const sharedWorkedColleagues = async (db: PoolClient, employeeId: string) => {
@@ -111,7 +119,7 @@ export const createRecognition = async (
   const description = input.description.trim();
   if (!description) throw badRequest('DESCRIPTION_REQUIRED', 'Describe the contribution.');
   const recipient = await employeeWithRole(db, input.recipientId);
-  assertPeerRecipient(principal, recipient);
+  const recipientDepartmentId = assertPeerRecipient(principal, recipient);
   const category = await activeCategory(db, input.categoryId, ['PeerRecognition']);
   if (category.spark_type !== 'White') throw badRequest('INVALID_CATEGORY', 'Peer recognition must use a White category.');
   const rules = await effectiveRuleSet(db);
@@ -148,7 +156,7 @@ export const createRecognition = async (
       id,
       principal.employeeId,
       recipient.id,
-      recipient.department_id,
+      recipientDepartmentId,
       category.category_version_id,
       rules.id,
       description,
@@ -703,7 +711,14 @@ export const listEligibleRecipients = async (
      WHERE employee.is_active
        AND employee.id<>$1
        AND (
-         ($4='recognition' AND active_role.code=ANY(ARRAY['Employee','Coordinator','GPM']::text[]))
+         ($4='recognition'
+           AND active_role.code=ANY(ARRAY['Employee','Coordinator','GPM']::text[])
+           AND EXISTS (
+             SELECT 1
+               FROM app.employee_departments recognition_membership
+              WHERE recognition_membership.employee_id=employee.id
+                AND recognition_membership.department_id=ANY($3::uuid[])
+           ))
          OR
          ($4='award' AND (
            ($2='Top Management' AND active_role.code<>'Administrator')

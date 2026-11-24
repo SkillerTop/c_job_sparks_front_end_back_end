@@ -165,9 +165,11 @@ export const buildWorkspace = async (
 ) => {
   const include = (dataset: WorkspaceDataset) => dataset === 'directory' || section === 'all' ||
     sectionDatasets[section].includes(dataset);
+  const departmentDirectory = section === 'recognition' &&
+    ['Employee', 'Coordinator', 'GPM'].includes(principal.role);
   const wideDirectory = principal.role === 'Administrator' || principal.role === 'Office Manager' ||
     (['Coordinator','GPM','Head','Top Management'].includes(principal.role) &&
-      ['recognition','company-achievements','team','award','approvals'].includes(section));
+      ['company-achievements','team','award','approvals'].includes(section));
   const [categoriesRaw, employeesRaw, departmentsRaw, projectsRaw, transactionsRaw, lifetimeEarningsRaw,
     yellowAwardUsageRaw, departmentBalancesRaw,
     recognitionsRaw, awardsRaw,
@@ -207,8 +209,19 @@ export const buildWorkspace = async (
            WHERE ra.user_id=u.id AND ra.starts_at<=clock_timestamp()
              AND (ra.ends_at IS NULL OR ra.ends_at>clock_timestamp()) LIMIT 1
         ) role ON true
-       WHERE e.is_active AND ($2 OR e.id=$1 OR e.id=(SELECT manager_employee_id FROM app.employees WHERE id=$1))
-       ORDER BY e.display_name`, [principal.employeeId, wideDirectory]) : Promise.resolve([]),
+       WHERE e.is_active AND (
+         $2
+         OR ($3 AND EXISTS (
+           SELECT 1
+             FROM app.employee_departments recognition_membership
+            WHERE recognition_membership.employee_id=e.id
+              AND recognition_membership.department_id=ANY($4::uuid[])
+         ))
+         OR e.id=$1
+         OR e.id=(SELECT manager_employee_id FROM app.employees WHERE id=$1)
+       )
+       ORDER BY e.display_name`, [principal.employeeId, wideDirectory, departmentDirectory,
+        principal.departmentIds ?? [principal.departmentId]]) : Promise.resolve([]),
     () => include('directory') ? rows<any>(db, `SELECT id,name,head_employee_id,is_active FROM app.departments
       WHERE $1 OR id=ANY($2::uuid[]) ORDER BY name`, [wideDirectory, principal.departmentIds ?? [principal.departmentId]]) : Promise.resolve([]),
     () => include('projects') ? rows<any>(db, `

@@ -140,6 +140,7 @@ export function RulesPage() {
             <li><LocalizedText>Recipients are active Employees, Coordinators or GPMs; self-recognition is blocked.</LocalizedText></li>
             <li><LocalizedText>Pending requests reserve a nomination. Rejection releases it.</LocalizedText></li>
             <li><LocalizedText>Unused peer recognition expires on the last day of each quarter.</LocalizedText></li>
+            <li><LocalizedText>Peer Recognition is limited to eligible colleagues in the selected department.</LocalizedText></li>
             <li><LocalizedText>The recipient’s Head approves or rejects the request. A rejection always includes a reason.</LocalizedText></li>
             <li>
               <LocalizedText>The sender must fill in all required details during Peer recognition, including the work, the
@@ -454,7 +455,7 @@ export function RulesPage() {
             <Users size={20} />
           </div>
           <ul className={rulesStyles.rulesList}>
-            <li><LocalizedText>A Coordinator chooses a department directly in Peer recognition.</LocalizedText></li>
+            <li><LocalizedText>Every Peer Recognition sender chooses one of their departments before selecting a colleague.</LocalizedText></li>
             <li>
               <LocalizedText>A Coordinator can award eligible colleagues from any of their departments; project and team membership are not required.
             </LocalizedText></li>

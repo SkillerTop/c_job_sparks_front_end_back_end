@@ -874,10 +874,10 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       const result = await withIdempotency(app.db, principal.userId, 'recognitions:create', idempotencyKey(request), input, 201,
         async (db) => {
           const recognition = await createRecognition(db, principal, input, request.id);
-          const approver = await maybeOne<{ user_id: string }>(db, `SELECT head.user_id FROM app.employees recipient
-            JOIN app.departments department ON department.id=recipient.department_id
+          const approver = await maybeOne<{ user_id: string }>(db, `SELECT head.user_id FROM app.recognitions recognition
+            JOIN app.departments department ON department.id=recognition.recipient_department_id
             JOIN app.employees head ON head.id=department.head_employee_id
-            WHERE recipient.id=$1 AND head.user_id IS NOT NULL`, [input.recipientId]);
+            WHERE recognition.id=$1 AND head.user_id IS NOT NULL`, [recognition.id]);
           if (approver) await createNotification(db, approver.user_id, 'ApprovalRequested', 'Peer Recognition approval',
             'A new Peer Recognition request needs your decision.', 'Recognition', recognition.id);
           await enqueueOutbox(db, 'RecognitionRequested', 'Recognition', recognition.id, recognition);

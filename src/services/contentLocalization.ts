@@ -558,7 +558,11 @@ const ru: PhraseMap = {
 };
 
 const supplementalUk: PhraseMap = {
-  'Recognize an active Employee, Coordinator or GPM. The selected category controls the White Spark amount; approval also creates a permanent achievement card.': 'Відзначте активного працівника, координатора або GPM. Вибрана категорія визначає кількість White Sparks, а після погодження також створюється постійна картка досягнення.',
+  'Recognize an eligible Employee, Coordinator or GPM from one of your departments. The selected category controls the White Spark amount; approval also creates a permanent achievement card.': 'Відзначте доступного працівника, координатора або GPM з одного зі своїх відділів. Вибрана категорія визначає кількість White Sparks, а після погодження також створюється постійна картка досягнення.',
+  'Peer Recognition is limited to eligible colleagues in the selected department.': 'Peer Recognition доступне лише для відповідних колег у вибраному відділі.',
+  'Every Peer Recognition sender chooses one of their departments before selecting a colleague.': 'Кожен автор Peer Recognition спочатку обирає один зі своїх відділів, а потім колегу.',
+  'This department no longer exists. Refresh the directory.': 'Цього відділу більше не існує. Оновіть довідник.',
+  'Could not delete this record.': 'Не вдалося видалити цей запис.',
   'My Sparks': 'Мої Sparks', 'Transaction history': 'Історія транзакцій', 'Search ledger': 'Пошук у реєстрі',
   'All': 'Усі', 'Credit': 'Нарахування', 'Debit': 'Списання',
   'Filter ledger by Spark type': 'Фільтрувати реєстр за типом Spark',
@@ -713,7 +717,11 @@ const supplementalUk: PhraseMap = {
 };
 
 const supplementalRu: PhraseMap = {
-  'Recognize an active Employee, Coordinator or GPM. The selected category controls the White Spark amount; approval also creates a permanent achievement card.': 'Отметьте активного сотрудника, координатора или GPM. Выбранная категория определяет количество White Sparks, а после согласования также создаётся постоянная карточка достижения.',
+  'Recognize an eligible Employee, Coordinator or GPM from one of your departments. The selected category controls the White Spark amount; approval also creates a permanent achievement card.': 'Отметьте доступного сотрудника, координатора или GPM из одного из своих отделов. Выбранная категория определяет количество White Sparks, а после согласования также создаётся постоянная карточка достижения.',
+  'Peer Recognition is limited to eligible colleagues in the selected department.': 'Peer Recognition доступно только для подходящих коллег в выбранном отделе.',
+  'Every Peer Recognition sender chooses one of their departments before selecting a colleague.': 'Каждый автор Peer Recognition сначала выбирает один из своих отделов, а затем коллегу.',
+  'This department no longer exists. Refresh the directory.': 'Этого отдела больше не существует. Обновите справочник.',
+  'Could not delete this record.': 'Не удалось удалить эту запись.',
   'My Sparks': 'Мои Sparks', 'Transaction history': 'История транзакций', 'Search ledger': 'Поиск по реестру',
   'All': 'Все', 'Credit': 'Начисление', 'Debit': 'Списание',
   'Filter ledger by Spark type': 'Фильтровать реестр по типу Spark', 'Filter ledger by transaction direction': 'Фильтровать реестр по направлению транзакции',
@@ -1995,6 +2003,7 @@ const serverErrorRu: PhraseMap = {
   'This file was already imported.': 'Этот файл уже импортирован.',
   'Describe the contribution.': 'Опишите вклад.',
   'Peer recognition must use a White category.': 'Для признания коллег нужно выбрать категорию White.',
+  'Choose a colleague from one of your departments.': 'Выберите коллегу из одного из своих отделов.',
   'Your Peer Recognition quota is used or reserved for this quarter.': 'Ваша квота признания коллег за этот квартал использована или зарезервирована.',
   'This request is outside your department.': 'Этот запрос не относится к вашему отделу.',
   'The nominator is no longer eligible for Peer Recognition.': 'Автор представления больше не имеет права отмечать коллег.',
@@ -2103,6 +2112,7 @@ const serverErrorUk: PhraseMap = {
   'This file was already imported.': 'Цей файл уже імпортовано.',
   'Describe the contribution.': 'Опишіть внесок.',
   'Peer recognition must use a White category.': 'Для визнання колег потрібно вибрати категорію White.',
+  'Choose a colleague from one of your departments.': 'Виберіть колегу з одного зі своїх відділів.',
   'Your Peer Recognition quota is used or reserved for this quarter.': 'Вашу квоту визнання колег за цей квартал використано або зарезервовано.',
   'This request is outside your department.': 'Цей запит не належить до вашого відділу.',
   'The nominator is no longer eligible for Peer Recognition.': 'Автор подання більше не має права відзначати колег.',

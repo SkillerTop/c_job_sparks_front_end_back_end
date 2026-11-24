@@ -32,7 +32,7 @@ export function RecognitionPage() {
       <PageHeader
         eyebrow="Peer recognition"
         title="Make great work visible"
-        description="Recognize an active Employee, Coordinator or GPM. The selected category controls the White Spark amount; approval also creates a permanent achievement card."
+        description="Recognize an eligible Employee, Coordinator or GPM from one of your departments. The selected category controls the White Spark amount; approval also creates a permanent achievement card."
       />
       <div className={styles.formLayout}>
         <form
@@ -59,7 +59,7 @@ export function RecognitionPage() {
             <Feedback tone={controller.message.tone}>{controller.message.text}</Feedback>
           )}
           <div className={styles.fieldGrid}>
-            {activeRole === 'Coordinator' && (
+            {['Employee', 'Coordinator', 'GPM'].includes(activeRole) && (
               <label className={`${styles.formField} ${styles.fieldFull}`}>
                 <span><LocalizedText>Department </LocalizedText><b aria-hidden="true">*</b></span>
                 <SelectField

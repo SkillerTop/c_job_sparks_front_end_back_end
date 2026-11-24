@@ -419,6 +419,33 @@ if (!sourceDatabaseUrl) {
       assert.equal(beforeLayoutResponse.statusCode, 200, beforeLayoutResponse.body);
       const beforePending = beforeLayoutResponse.json<{ shell: { pendingApprovals: number } }>()
         .shell.pendingApprovals;
+      const originalGpmDepartment = await databasePool.query<{ department_id: string }>(
+        `SELECT department_id FROM app.employees WHERE id=$1`, [employeeIds.gpm]);
+      const outsideDepartment = await databasePool.query<{ id: string }>(
+        `SELECT id FROM app.departments WHERE code='OPS'`);
+      await databasePool.query(`DELETE FROM app.employee_departments WHERE employee_id=$1`, [employeeIds.gpm]);
+      await databasePool.query(`UPDATE app.employees SET department_id=$2 WHERE id=$1`,
+        [employeeIds.gpm, outsideDepartment.rows[0]!.id]);
+      await databasePool.query(`INSERT INTO app.employee_departments (employee_id,department_id,is_primary)
+        VALUES ($1,$2,true)`, [employeeIds.gpm, outsideDepartment.rows[0]!.id]);
+      const departmentRecipients = await authenticated('Employee', 'GET',
+        '/api/v1/eligible-recipients?purpose=recognition');
+      assert.equal(departmentRecipients.statusCode, 200, departmentRecipients.body);
+      assert.equal(
+        departmentRecipients.json<Array<{ id: string }>>().some((employee) => employee.id === employeeIds.gpm),
+        false,
+      );
+      const crossDepartmentRecognition = await authenticated('Employee', 'POST', '/api/v1/recognitions', {
+        recipientId: employeeIds.gpm,
+        categoryId: categoryIds.peer,
+        description: 'A cross-department request must be rejected by the API.',
+      }, `recognition-cross-department-${randomUUID()}`);
+      assert.equal(crossDepartmentRecognition.statusCode, 400, crossDepartmentRecognition.body);
+      await databasePool.query(`DELETE FROM app.employee_departments WHERE employee_id=$1`, [employeeIds.gpm]);
+      await databasePool.query(`UPDATE app.employees SET department_id=$2 WHERE id=$1`,
+        [employeeIds.gpm, originalGpmDepartment.rows[0]!.department_id]);
+      await databasePool.query(`INSERT INTO app.employee_departments (employee_id,department_id,is_primary)
+        VALUES ($1,$2,true)`, [employeeIds.gpm, originalGpmDepartment.rows[0]!.department_id]);
       const response = await authenticated('Employee', 'POST', '/api/v1/recognitions', {
         recipientId: employeeIds.coordinator,
         categoryId: categoryIds.peer,
