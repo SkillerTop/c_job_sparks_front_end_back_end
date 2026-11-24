@@ -218,7 +218,13 @@ export const buildWorkspace = async (
         FROM app.projects p LEFT JOIN app.project_teams team ON team.project_id=p.id AND team.is_active
         LEFT JOIN app.project_members member ON member.project_id=p.id AND member.is_active
        WHERE $1='Administrator' OR p.department_id=ANY($2::uuid[]) OR p.manager_employee_id=$3
-          OR team.gpm_employee_id=$3 OR member.employee_id=$3
+          OR team.gpm_employee_id=$3 OR EXISTS (
+            SELECT 1
+              FROM app.project_members actor_member
+             WHERE actor_member.project_id=p.id
+               AND actor_member.employee_id=$3
+               AND actor_member.is_active
+          )
        ORDER BY p.name`, [principal.role, principal.departmentIds ?? [principal.departmentId], principal.employeeId]) : Promise.resolve([]),
     () => include('transactions') ? rows<any>(db, `
       SELECT le.id::text, sa.employee_id, e.department_id, le.occurred_at, sa.spark_type,

@@ -15,7 +15,8 @@ test('the notification indicator counts only unread notifications', () => {
 
 test('viewed notifications remain readable until the panel closes and then disappear', () => {
   assert.match(source, /unreadNotifications = useMemo[\s\S]+!item\.read_at/);
-  assert.match(source, /onClick=\{\(\) => setNotificationsOpen\(true\)\}/);
+  assert.match(source, /const openNotifications = \(\) => \{[\s\S]+setNotificationsOpen\(true\);[\s\S]+notifications\.reload\(\)/);
+  assert.match(source, /onClick=\{openNotifications\}/);
   assert.match(source, /const closeNotifications = \(\) => \{[\s\S]+setNotificationsOpen\(false\);[\s\S]+notifications\.markAllRead\(\)/);
   assert.match(source, /unreadNotifications\.map/);
   assert.match(source, /onClose=\{closeNotifications\}/);

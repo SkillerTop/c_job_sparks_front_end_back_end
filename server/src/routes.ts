@@ -944,10 +944,9 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
             });
           }
           if (award.status === 'Pending') {
-            const approver = await maybeOne<{ user_id: string }>(db, `SELECT head.user_id FROM app.employees recipient
-              JOIN app.departments department ON department.id=recipient.department_id
+            const approver = await maybeOne<{ user_id: string }>(db, `SELECT head.user_id FROM app.departments department
               JOIN app.employees head ON head.id=department.head_employee_id
-              WHERE recipient.id=$1 AND head.user_id IS NOT NULL`, [input.recipientId]);
+              WHERE department.id=$1 AND head.user_id IS NOT NULL`, [award.recipientDepartmentId]);
             if (approver) await createNotification(db, approver.user_id, 'ApprovalRequested', 'Spark award approval',
               'A new Spark award request needs your decision.', 'Award', award.id);
           } else {

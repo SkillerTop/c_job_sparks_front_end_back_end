@@ -335,17 +335,8 @@ const canTargetAwardRecipient = async (
   if (!['Employee', 'Coordinator'].includes(recipient.role)) return false;
   if (principal.role === 'Head')
     return employeeDepartmentIds(recipient).some((id) => principalDepartmentIds(principal).includes(id));
-  if (principal.role === 'Coordinator') {
-    const result = await db.query(
-      `SELECT 1 FROM app.project_members actor
-        JOIN app.projects p ON p.id=actor.project_id AND p.is_active AND p.status='Active'
-        JOIN app.project_members target ON target.project_id=actor.project_id
-       WHERE actor.employee_id=$1 AND target.employee_id=$2
-         AND actor.is_active AND target.is_active AND actor.worked_hours>0 AND target.worked_hours>0 LIMIT 1`,
-      [principal.employeeId, recipient.id],
-    );
-    return Boolean(result.rowCount);
-  }
+  if (principal.role === 'Coordinator')
+    return employeeDepartmentIds(recipient).some((id) => principalDepartmentIds(principal).includes(id));
   if (principal.role === 'GPM') {
     const result = await db.query(
       `SELECT 1 FROM app.project_teams team
@@ -379,7 +370,7 @@ export const createAward = async (
   if (allowed.length === 0) throw forbidden();
   const recipient = await employeeWithRole(db, input.recipientId);
   if (!(await canTargetAwardRecipient(db, principal, recipient))) throw forbidden('This employee is outside your award scope.');
-  const recipientDepartmentId = principal.role === 'Head'
+  const recipientDepartmentId = principal.role === 'Head' || principal.role === 'Coordinator'
     ? employeeDepartmentIds(recipient).find((id) => principalDepartmentIds(principal).includes(id)) ?? recipient.department_id
     : recipient.department_id;
   const radiant = principal.role === 'Top Management';
@@ -542,6 +533,7 @@ export const createAward = async (
   return {
     id,
     employeeId: recipient.id,
+    recipientDepartmentId,
     awardedBy: principal.employeeId,
     sparkType,
     amount,
@@ -725,19 +717,9 @@ export const listEligibleRecipients = async (
              OR
              ($2='Coordinator' AND EXISTS (
                SELECT 1
-                 FROM app.project_members actor
-                 JOIN app.projects project
-                   ON project.id=actor.project_id
-                  AND project.is_active
-                  AND project.status='Active'
-                 JOIN app.project_members target
-                   ON target.project_id=actor.project_id
-                  AND target.employee_id=employee.id
-                  AND target.is_active
-                  AND target.worked_hours>0
-                WHERE actor.employee_id=$1
-                  AND actor.is_active
-                  AND actor.worked_hours>0
+                  FROM app.employee_departments membership
+                 WHERE membership.employee_id=employee.id
+                   AND membership.department_id=ANY($3::uuid[])
              ))
              OR
              ($2='GPM' AND EXISTS (

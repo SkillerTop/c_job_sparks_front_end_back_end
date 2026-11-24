@@ -169,7 +169,7 @@ export const BLUE_CATEGORY_DESCRIPTIONS: Record<string, string> = Object.fromEnt
 
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   Employee: 'Personal workspace and peer recognition',
-  Coordinator: 'Team recognition and project-based Yellow awards',
+  Coordinator: 'Department recognition and Yellow awards',
   GPM: 'Company team and White/Yellow awards',
   Head: 'Approvals, department awards and quality',
   'Top Management': 'Company-wide Radiant recognition',

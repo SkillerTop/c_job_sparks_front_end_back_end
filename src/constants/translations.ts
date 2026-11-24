@@ -35,7 +35,7 @@ const en = {
   'shell.notificationTitle': 'Your notifications',
   'shell.notificationAdmin': 'New account requests awaiting administrator review.',
   'shell.notificationHead': 'Pending requests in your department.',
-  'shell.notificationEmployee': 'Pending requests created by this employee.',
+  'shell.notificationEmployee': 'Updates about your requests, rewards and account.',
   'shell.upToDate': 'You are up to date',
   'shell.noPending': 'There are no pending requests in your scope.',
   'shell.registrationRequest': 'Registration request',

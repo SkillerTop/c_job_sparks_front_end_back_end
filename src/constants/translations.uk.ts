@@ -15,7 +15,7 @@ export const UK_TRANSLATIONS: Dictionary = {
   'shell.navigation': 'Навігація', 'shell.primaryNavigation': 'Основна навігація', 'shell.brandPurpose': 'Визнання зі змістом.',
   'shell.sidebarPurpose': 'Відзначаємо людей, які рухають нас уперед.', 'shell.notifications': 'Відкрити сповіщення: {count} очікують',
   'shell.notificationTitle': 'Ваші сповіщення', 'shell.notificationAdmin': 'Нові запити на реєстрацію очікують перевірки адміністратора.',
-  'shell.notificationHead': 'Запити вашого відділу, що очікують.', 'shell.notificationEmployee': 'Запити, створені цим працівником.',
+  'shell.notificationHead': 'Запити вашого відділу, що очікують.', 'shell.notificationEmployee': 'Оновлення щодо ваших запитів, нагород і облікового запису.',
   'shell.upToDate': 'Усе актуально', 'shell.noPending': 'У вашій зоні відповідальності немає запитів, що очікують.',
   'shell.registrationRequest': 'Запит на реєстрацію', 'shell.reviewAccess': 'Перевірити доступ', 'shell.forEmployee': 'Для {name}',
   'shell.openRecognition': 'Відкрити визнання', 'shell.openAward': 'Відкрити простір нагород',

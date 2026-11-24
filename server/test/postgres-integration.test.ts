@@ -428,6 +428,34 @@ if (!sourceDatabaseUrl) {
         approvedLayoutResponse.json<{ shell: { pendingApprovals: number } }>().shell.pendingApprovals,
         beforePending,
       );
+
+      const rejectedResponse = await authenticated('Employee', 'POST', '/api/v1/recognitions', {
+        recipientId: employeeIds.coordinator,
+        categoryId: categoryIds.peer,
+        description: 'Recognition request used to verify the rejection notification.',
+      }, `recognition-reject-${randomUUID()}`);
+      assert.equal(rejectedResponse.statusCode, 201, rejectedResponse.body);
+      const rejectedRecognition = rejectedResponse.json<{ id: string }>();
+      const rejectionReason = 'The contribution needs more supporting detail.';
+      const rejectedDecision = await authenticated('Head', 'POST',
+        `/api/v1/recognitions/${rejectedRecognition.id}/decision`, {
+          decision: 'Rejected', reason: rejectionReason,
+        }, `recognition-reject-decision-${randomUUID()}`);
+      assert.equal(rejectedDecision.statusCode, 200, rejectedDecision.body);
+      const rejectionNotification = await databasePool.query<{
+        notification_type: string;
+        title: string;
+        body: string;
+      }>(`SELECT notification_type,title,body FROM app.notifications
+          WHERE object_type='Recognition' AND object_id=$1 AND notification_type='AwardRejected'`,
+      [rejectedRecognition.id]);
+      assert.deepEqual(rejectionNotification.rows, [{
+        notification_type: 'AwardRejected',
+        title: 'Peer Recognition rejected',
+        body: rejectionReason,
+      }]);
+      assert.equal(await count(`SELECT count(*) FROM app.spark_ledger_entries
+        WHERE source_type='Recognition' AND source_id=$1`, [rejectedRecognition.id]), 0);
     });
 
     test('Award supports Coordinator, GPM, Head and Top Management scenarios', async () => {
@@ -489,12 +517,16 @@ if (!sourceDatabaseUrl) {
         Number(employeeWhite.rows[0]!.balance));
       assert.ok(headSnapshot.transactions.every((transaction) => transaction.sparkType === 'Radiant'));
 
+      await databasePool.query(`UPDATE app.project_members SET is_active=false WHERE employee_id=$1`,
+        [employeeIds.employee]);
       const coordinatorRecipients = await authenticated('Coordinator', 'GET',
         '/api/v1/eligible-recipients?purpose=award');
       assert.equal(coordinatorRecipients.statusCode, 200, coordinatorRecipients.body);
       const eligible = coordinatorRecipients.json<Array<{ id: string; role: string }>>();
       assert.ok(eligible.every((recipient) => ['Employee', 'Coordinator'].includes(recipient.role)));
       assert.ok(eligible.every((recipient) => recipient.id !== employeeIds.coordinator));
+      assert.equal(eligible.some((recipient) => recipient.id === employeeIds.employee), true,
+        'A department colleague remains eligible without active project membership.');
       assert.equal(eligible.some((recipient) => recipient.id === employeeIds.gpm), false);
       assert.equal(eligible.some((recipient) => recipient.id === employeeIds.head), false);
 

@@ -15,7 +15,7 @@ export const RU_TRANSLATIONS: Dictionary = {
   'shell.navigation': 'Навигация', 'shell.primaryNavigation': 'Основная навигация', 'shell.brandPurpose': 'Признание со смыслом.',
   'shell.sidebarPurpose': 'Отмечаем людей, которые двигают нас вперёд.', 'shell.notifications': 'Открыть уведомления: {count} ожидают',
   'shell.notificationTitle': 'Ваши уведомления', 'shell.notificationAdmin': 'Новые заявки на регистрацию ожидают проверки администратора.',
-  'shell.notificationHead': 'Ожидающие заявки вашего отдела.', 'shell.notificationEmployee': 'Заявки, созданные этим сотрудником.',
+  'shell.notificationHead': 'Ожидающие заявки вашего отдела.', 'shell.notificationEmployee': 'Обновления по вашим запросам, наградам и аккаунту.',
   'shell.upToDate': 'Всё актуально', 'shell.noPending': 'В вашей области нет ожидающих заявок.',
   'shell.registrationRequest': 'Заявка на регистрацию', 'shell.reviewAccess': 'Проверить доступ', 'shell.forEmployee': 'Для {name}',
   'shell.openRecognition': 'Открыть признание', 'shell.openAward': 'Открыть раздел наград',

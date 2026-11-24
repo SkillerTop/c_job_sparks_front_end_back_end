@@ -528,7 +528,7 @@ const demoSparkService = {
       .some((employee) => employee.id === recipient.id);
     if (!canTarget) {
       if (role === 'Coordinator')
-        throw new Error('Coordinators can award only eligible colleagues in a shared active project who have recorded project hours.');
+        throw new Error('Coordinators can award only eligible colleagues in their departments.');
       if (role === 'GPM') throw new Error('GPMs can award only eligible Employees or Coordinators in managed teams.');
       if (role === 'Head') throw new Error('Heads can award only eligible Employees or Coordinators within their department.');
       throw new Error('Choose an eligible award recipient.');

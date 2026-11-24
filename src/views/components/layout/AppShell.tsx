@@ -138,6 +138,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     setNotificationsOpen(false);
     void notifications.markAllRead();
   };
+  const openNotifications = () => {
+    setNotificationsOpen(true);
+    void notifications.reload();
+  };
   const roleItems = useMemo<NavItem[]>(() => {
     if (activeRole === 'Administrator')
       return [
@@ -285,7 +289,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button
               className={`${styles.iconButton} ${notificationCount > 0 ? styles.notificationButtonActive : ''}`}
               type="button"
-              onClick={() => setNotificationsOpen(true)}
+              onClick={openNotifications}
               aria-label={t('shell.notifications', { count: notificationCount })}
               aria-haspopup="dialog"
               aria-expanded={notificationsOpen}

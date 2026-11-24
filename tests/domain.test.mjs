@@ -10,7 +10,7 @@ import {
 import { isValidIsoDate, quarterForDate, quarterOrder } from '../src/utils/quarter.ts';
 import { parseCsv } from '../src/utils/parseCsv.ts';
 import { normalizeConversionAmount, parseConversionAmount } from '../src/utils/conversionAmount.ts';
-import { selectAwardTargets, selectPendingDepartmentDisenchantRequests, selectPendingRequests, selectTeamMembers } from '../src/models/selectors.ts';
+import { selectApprovalQueue, selectAwardTargets, selectPendingDepartmentDisenchantRequests, selectPendingRequests, selectTeamMembers } from '../src/models/selectors.ts';
 
 const ADMIN = 'emp-ida';
 const HEAD = 'emp-maya';
@@ -374,10 +374,13 @@ test('Department and role scopes are checked in the service', async () => {
   await assert.rejects(sparkService.createAward(HEAD, 'Head', award('emp-daniel', 'Blue', BLUE_CATEGORIES[1])), /department/);
 });
 test('Award recipient selectors enforce economy roles, scope and no self-awards', async () => {
+  const departmentColleague = await addEmployee({ departmentId: 'dep-ops' });
   const state = await snapshot();
   const coordinator = selectAwardTargets(state, 'emp-sam', 'Coordinator');
   assert.ok(coordinator.every((employee) => ['Employee', 'Coordinator'].includes(employee.role)));
   assert.equal(coordinator.some((employee) => employee.id === 'emp-sam'), false);
+  assert.equal(coordinator.some((employee) => employee.id === departmentColleague.id), true);
+  assert.equal(coordinator.some((employee) => employee.id === 'emp-alex'), false);
   assert.equal(coordinator.some((employee) => employee.id === 'emp-maya'), false);
 
   const gpm = selectAwardTargets(state, 'emp-elena', 'GPM');
@@ -418,19 +421,27 @@ test('Yellow request reserves its category and approval creates the configured a
   assert.equal(calculateBalances(state.transactions, employeeId).Yellow, beforeYellow + 1);
   assert.ok(state.achievements.some((item) => item.employeeId === employeeId && item.title === input.category));
 });
-test('Coordinator awards require a shared project with worked hours and no longer expose a department team view', async () => {
-  const employee = await addEmployee({ departmentId: 'dep-ops' });
-  await assert.rejects(sparkService.createAward('emp-sam', 'Coordinator', award(employee.id, 'Yellow', YELLOW_CATEGORIES[0].label)), /shared active project/);
-  await sparkService.reviewAward('award-001', 'Rejected', 'Replace the seeded request for this test.', HEAD);
-  const projectColleague = await sparkService.createAward('emp-sam', 'Coordinator', award('emp-nora', 'Yellow', YELLOW_CATEGORIES[0].label));
-  assert.equal(projectColleague.request.status, 'Pending');
+test('Coordinator awards use department membership without exposing a department team view', async () => {
+  const departmentColleague = await addEmployee({ departmentId: 'dep-ops' });
+  const outsideDepartment = await addEmployee({ departmentId: 'dep-eng' });
+  const departmentAward = await sparkService.createAward(
+    'emp-sam',
+    'Coordinator',
+    award(departmentColleague.id, 'Yellow', YELLOW_CATEGORIES[0].label),
+  );
+  assert.equal(departmentAward.request.status, 'Pending');
+  await assert.rejects(
+    sparkService.createAward('emp-sam', 'Coordinator', award(outsideDepartment.id, 'Yellow', YELLOW_CATEGORIES[0].label)),
+    /departments/,
+  );
   const state = await snapshot();
   assert.deepEqual(selectTeamMembers(state, 'emp-sam', 'Coordinator'), []);
-  assert.equal(selectAwardTargets(state, 'emp-sam', 'Coordinator').some((item) => item.id === employee.id), false);
+  assert.equal(selectAwardTargets(state, 'emp-sam', 'Coordinator').some((item) => item.id === departmentColleague.id), true);
+  assert.equal(selectAwardTargets(state, 'emp-sam', 'Coordinator').some((item) => item.id === outsideDepartment.id), false);
   assert.equal(selectAwardTargets(state, 'emp-sam', 'Coordinator').some((item) => item.id === 'emp-maya'), false);
-  assert.equal(selectAwardTargets(state, 'emp-elena', 'GPM').some((item) => item.id === employee.id), false);
+  assert.equal(selectAwardTargets(state, 'emp-elena', 'GPM').some((item) => item.id === outsideDepartment.id), false);
   await assert.rejects(
-    sparkService.createAward('emp-elena', 'GPM', award(employee.id, 'Yellow', YELLOW_CATEGORIES[0].label)),
+    sparkService.createAward('emp-elena', 'GPM', award(outsideDepartment.id, 'Yellow', YELLOW_CATEGORIES[0].label)),
     /eligible|scope|target/i,
   );
   const result = await sparkService.createAward('emp-elena', 'GPM', award('emp-sam', 'Yellow', YELLOW_CATEGORIES[0].label));
@@ -733,4 +744,23 @@ test('Queue selectors expose Head department requests and no Admin approval queu
   assert.ok(queue.recognitions.every((request) => state.employees.find((employee) => employee.id === request.recipientId).departmentId === 'dep-eng'));
   const admin = selectPendingRequests(state, ADMIN, 'Administrator');
   assert.equal(admin.recognitions.length + admin.awards.length, 0);
+});
+test('Approval queue preserves the configured Peer Recognition amount', async () => {
+  const before = await snapshot();
+  const category = before.categories.find(
+    (item) => item.active && item.usageType === 'PeerRecognition',
+  );
+  await updateCategory(category.id, { amount: 2 });
+  await sparkService.reviewRecognition('rec-002', 'Rejected', 'Replaced by a new request.', HEAD);
+  const created = await sparkService.createRecognition(
+    'emp-alex',
+    'Employee',
+    { recipientId: 'emp-nora', category: category.name, description: 'Verified contribution.' },
+  );
+  const queue = selectApprovalQueue(created.snapshot, HEAD);
+
+  assert.equal(
+    queue.find((item) => item.id === created.recognition.id)?.amount,
+    2,
+  );
 });

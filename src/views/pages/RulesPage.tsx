@@ -164,7 +164,7 @@ export function RulesPage() {
             <div>
               <dt><LocalizedText>Coordinator</LocalizedText></dt>
               <dd>
-                <LocalizedText>Peer recognition with department filtering plus Yellow award requests only for colleagues in a shared active project who have recorded project hours.
+                <LocalizedText>Peer recognition and Yellow award requests with department-based recipient selection.
               </LocalizedText></dd>
             </div>
             <div>
@@ -456,8 +456,7 @@ export function RulesPage() {
           <ul className={rulesStyles.rulesList}>
             <li><LocalizedText>A Coordinator chooses a department directly in Peer recognition.</LocalizedText></li>
             <li>
-              <LocalizedText>A Coordinator can award only colleagues in a shared active project team who have recorded hours on
-              that project.
+              <LocalizedText>A Coordinator can award eligible colleagues from any of their departments; project and team membership are not required.
             </LocalizedText></li>
             <li><LocalizedText>A GPM sees active colleagues across the whole company.</LocalizedText></li>
             <li><LocalizedText>A Head works with their own department and can see the balances needed for management.</LocalizedText></li>

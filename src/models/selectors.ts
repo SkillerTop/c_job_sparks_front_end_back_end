@@ -53,11 +53,6 @@ export const selectGpmControlledCoordinators = (snapshot: AppSnapshot, gpmId: st
 
 export const selectAwardTargets = (snapshot: AppSnapshot, actorId: string, role: Role) => {
   const actorDepartments = departmentScopeFor(snapshot, actorId, role);
-  const activeProjectColleagueIds = new Set(
-    role === 'Coordinator'
-      ? selectActiveProjectColleagues(snapshot, actorId).map((employee) => employee.id)
-      : [],
-  );
   const gpmTeamMemberIds = new Set(
     role === 'GPM'
       ? snapshot.projectTeams
@@ -69,7 +64,8 @@ export const selectAwardTargets = (snapshot: AppSnapshot, actorId: string, role:
     if (!employee.active || employee.role === 'Administrator' || employee.id === actorId) return false;
     if (role === 'Top Management') return true;
     if (!['Employee', 'Coordinator'].includes(employee.role)) return false;
-    if (role === 'Coordinator') return activeProjectColleagueIds.has(employee.id);
+    if (role === 'Coordinator') return (employee.departmentIds ?? [employee.departmentId])
+      .some((departmentId) => actorDepartments.has(departmentId));
     if (role === 'Head') return (employee.departmentIds ?? [employee.departmentId])
       .some((departmentId) => actorDepartments.has(departmentId));
     if (role === 'GPM') return gpmTeamMemberIds.has(employee.id);
@@ -108,6 +104,43 @@ export const selectPendingRequests = (snapshot: AppSnapshot, actorId: string, ro
         (role === 'Head' ? inDepartment(item.employeeId) : item.awardedBy === actorId),
     ),
   };
+};
+
+export type ApprovalQueueItem = {
+  id: string;
+  kind: 'Recognition' | 'Yellow Award';
+  employeeId: string;
+  awardedBy: string;
+  category: string;
+  description: string;
+  amount: number;
+  createdAt: string;
+};
+
+export const selectApprovalQueue = (snapshot: AppSnapshot, actorId: string): ApprovalQueueItem[] => {
+  const pending = selectPendingRequests(snapshot, actorId, 'Head');
+  const recognitions = pending.recognitions.map((item) => ({
+    id: item.id,
+    kind: 'Recognition' as const,
+    employeeId: item.recipientId,
+    awardedBy: item.senderId,
+    category: item.category,
+    description: item.description,
+    amount: item.amount,
+    createdAt: item.createdAt,
+  }));
+  const awards = pending.awards.map((item) => ({
+    id: item.id,
+    kind: 'Yellow Award' as const,
+    employeeId: item.employeeId,
+    awardedBy: item.awardedBy,
+    category: item.category,
+    description: item.description,
+    amount: item.amount,
+    createdAt: item.createdAt,
+  }));
+  return [...recognitions, ...awards].sort((left, right) =>
+    right.createdAt.localeCompare(left.createdAt));
 };
 
 export const selectPendingDepartmentDisenchantRequests = (
