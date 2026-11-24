@@ -29,9 +29,11 @@ export function AwardPage() {
       ? ['Radiant']
       : activeRole === 'Head'
         ? ['White', 'Yellow', 'Blue']
-        : activeRole === 'GPM'
-          ? ['White', 'Yellow']
-          : ['Yellow'],
+        : activeRole === 'Coordinator'
+          ? ['Yellow', 'White']
+          : activeRole === 'GPM'
+            ? ['White', 'Yellow']
+            : ['Yellow'],
     [activeRole],
   );
   const [form, setForm] = useState<AwardInput>({
@@ -167,7 +169,7 @@ export function AwardPage() {
         eyebrow={`${activeRole} workspace`}
         title={activeRole === 'Top Management' ? 'Award a Radiant Spark' : 'Award a Spark'}
         description={activeRole === 'Coordinator'
-            ? 'Yellow awards are available for eligible colleagues in your departments and are submitted to the recipient’s Head.'
+            ? 'White and Yellow awards are available for eligible colleagues in your departments and are submitted to the recipient’s Head.'
             : activeRole === 'GPM'
               ? 'White and Yellow awards are submitted to the recipient’s Head. White allocation is based on the Coordinators and registrars under your control.'
             : 'Direct awards create an immediate, permanent transaction and achievement record.'}

@@ -430,6 +430,13 @@ test('Coordinator awards use department membership without exposing a department
     award(departmentColleague.id, 'Yellow', YELLOW_CATEGORIES[0].label),
   );
   assert.equal(departmentAward.request.status, 'Pending');
+  const whiteDepartmentAward = await sparkService.createAward(
+    'emp-sam',
+    'Coordinator',
+    award(departmentColleague.id, 'White', RECOGNITION_CATEGORIES[0]),
+  );
+  assert.equal(whiteDepartmentAward.request.status, 'Pending');
+  assert.equal(whiteDepartmentAward.request.sparkType, 'White');
   await assert.rejects(
     sparkService.createAward('emp-sam', 'Coordinator', award(outsideDepartment.id, 'Yellow', YELLOW_CATEGORIES[0].label)),
     /departments/,

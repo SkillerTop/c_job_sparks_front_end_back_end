@@ -465,6 +465,11 @@ if (!sourceDatabaseUrl) {
           description: 'Successful referral contribution.', expectedStatus: 'Pending', expectedType: 'Yellow',
         },
         {
+          role: 'Coordinator', recipientId: employeeIds.employee, categoryId: categoryIds.whiteAward,
+          description: 'Department White recognition.', expectedStatus: 'Pending', expectedType: 'White',
+          releaseAfterCreation: true,
+        },
+        {
           role: 'GPM', recipientId: employeeIds.coordinator, categoryId: categoryIds.whiteAward,
           description: 'Smart solution delivered by the coordinator.', expectedStatus: 'Pending', expectedType: 'White',
         },
@@ -494,6 +499,13 @@ if (!sourceDatabaseUrl) {
         assert.equal(award.status, scenario.expectedStatus);
         assert.equal(award.sparkType, scenario.expectedType);
         assert.equal(await count(`SELECT count(*) FROM app.audit_events WHERE entity_type='Award' AND entity_id=$1`, [award.id]), 1);
+        if ('releaseAfterCreation' in scenario && scenario.releaseAfterCreation) {
+          const release = await authenticated('Head', 'POST', `/api/v1/award-requests/${award.id}/decision`, {
+            decision: 'Rejected',
+            reason: 'Release the category reservation after the Coordinator White integration check.',
+          }, `release-coordinator-white-${randomUUID()}`);
+          assert.equal(release.statusCode, 200, release.body);
+        }
         if (scenario.role === 'Top Management') {
           assert.equal(await count(`SELECT count(*) FROM app.reward_fulfillments WHERE award_request_id=$1`, [award.id]), 1);
           assert.equal(await count(`SELECT count(*) FROM app.outbox_events

@@ -57,7 +57,7 @@ test('quota formulas preserve the frontend business contract', () => {
 });
 
 test('roles determine award type on the server', () => {
-  assert.deepEqual(allowedAwardTypes('Coordinator'), ['Yellow']);
+  assert.deepEqual(allowedAwardTypes('Coordinator'), ['White', 'Yellow']);
   assert.deepEqual(allowedAwardTypes('GPM'), ['White', 'Yellow']);
   assert.deepEqual(allowedAwardTypes('Head'), ['White', 'Yellow', 'Blue']);
   assert.deepEqual(allowedAwardTypes('Top Management'), ['Radiant']);

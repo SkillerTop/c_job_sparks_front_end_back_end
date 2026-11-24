@@ -495,8 +495,8 @@ const demoSparkService = {
     const authorizedActor = requireActor(actorId, ['Coordinator', 'GPM', 'Head', 'Top Management']);
     if (authorizedActor.role !== role)
       throw new Error('The selected demo role no longer matches this employee.');
-    if (role === 'Coordinator' && input.sparkType !== 'Yellow')
-      throw new Error('Coordinators can only request Yellow awards.');
+    if (role === 'Coordinator' && !['White', 'Yellow'].includes(input.sparkType))
+      throw new Error('Coordinators can only request White or Yellow awards.');
     if (role === 'GPM' && !['White', 'Yellow'].includes(input.sparkType))
       throw new Error('GPMs can only request White or Yellow awards.');
     if (role === 'Head' && input.sparkType === 'Radiant')

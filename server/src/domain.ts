@@ -123,7 +123,7 @@ export const hasFullPersonalLedger = (role: Role) =>
   role === 'Employee' || role === 'Coordinator';
 
 export const allowedAwardTypes = (role: Role): readonly SparkType[] => {
-  if (role === 'Coordinator') return ['Yellow'];
+  if (role === 'Coordinator') return ['White', 'Yellow'];
   if (role === 'GPM') return ['White', 'Yellow'];
   if (role === 'Head') return ['White', 'Yellow', 'Blue'];
   if (role === 'Top Management') return ['Radiant'];

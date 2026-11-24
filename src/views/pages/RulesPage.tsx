@@ -164,7 +164,7 @@ export function RulesPage() {
             <div>
               <dt><LocalizedText>Coordinator</LocalizedText></dt>
               <dd>
-                <LocalizedText>Peer recognition and Yellow award requests with department-based recipient selection.
+                <LocalizedText>Peer recognition and White/Yellow award requests with department-based recipient selection.
               </LocalizedText></dd>
             </div>
             <div>
@@ -213,7 +213,7 @@ export function RulesPage() {
               </LocalizedText></dd>
             </div>
             <div>
-              <dt><LocalizedText>Coordinator Yellow and GPM White/Yellow awards</LocalizedText></dt>
+              <dt><LocalizedText>Coordinator and GPM White/Yellow awards</LocalizedText></dt>
               <dd>
                 <LocalizedText>They remain Pending until the recipient’s Head approves them. Rejections always include a
                 reason.

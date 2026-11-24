@@ -18,6 +18,14 @@ test('lazy interface dictionaries preserve the stable English key contract', asy
 test('localizes interface copy into natural Ukrainian and Russian', () => {
   assert.equal(localizeContent('uk', 'Peer recognition'), 'Визнання колег');
   assert.equal(localizeContent('ru', 'Peer recognition'), 'Признание коллег');
+  assert.match(
+    localizeContent('uk', 'White and Yellow awards are available for eligible colleagues in your departments and are submitted to the recipient’s Head.'),
+    /White і Yellow/,
+  );
+  assert.match(
+    localizeContent('ru', 'Coordinator and GPM White/Yellow awards'),
+    /White\/Yellow/,
+  );
   const source = 'Disenchant requests from employees in this department will appear here. This frontend does not send payments.';
   assert.equal(localizeContent('uk', source), 'Тут з’являться запити на розпилення від працівників цього відділу. Цей інтерфейс не здійснює виплат.');
   assert.equal(localizeContent('ru', source), 'Здесь появятся запросы на распыление от сотрудников этого отдела. Этот интерфейс не выполняет выплаты.');

@@ -4,6 +4,7 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 const password = 'SparkDemo2026!';
 const recognitionDescription = `UI E2E recognition ${randomUUID()}`;
 const coordinatorAwardDescription = `UI E2E coordinator award ${randomUUID()}`;
+const coordinatorWhiteAwardDescription = `UI E2E coordinator White award ${randomUUID()}`;
 const gpmAwardDescription = `UI E2E GPM award ${randomUUID()}`;
 
 async function signIn(page: Page, email: string) {
@@ -43,12 +44,19 @@ test('Employee submits Peer Recognition through the form', async ({ page }) => {
   await expect(page.getByText('Recognition sent to the Head for approval.')).toBeVisible();
 });
 
-test('Coordinator submits a scoped award through the form', async ({ page }) => {
+test('Coordinator submits scoped Yellow and White awards through the form', async ({ page }) => {
   await signIn(page, 'samuel.park@c-job.test');
   await page.goto('/award');
   await choose(page, 'Employee', /Alex Stone/);
   await choose(page, 'Award category', /Recorded internal training/);
   await page.getByLabel(/^Description/).fill(coordinatorAwardDescription);
+  await page.getByRole('button', { name: 'Submit request' }).click();
+  await expect(page.getByText('Award request sent to the Head for approval.')).toBeVisible();
+
+  await choose(page, 'Employee', /Alex Stone/);
+  await choose(page, 'Spark type', /^White$/);
+  await choose(page, 'Award category', /Attention to Detail/);
+  await page.getByLabel(/^Description/).fill(coordinatorWhiteAwardDescription);
   await page.getByRole('button', { name: 'Submit request' }).click();
   await expect(page.getByText('Award request sent to the Head for approval.')).toBeVisible();
 });
@@ -68,11 +76,12 @@ test('GPM submits a scoped Yellow award through the form', async ({ page }) => {
   await expect(success).toBeVisible();
 });
 
-test('Head approves the three pending UI requests', async ({ page }) => {
+test('Head approves the pending UI requests', async ({ page }) => {
   await signIn(page, 'maya.chen@c-job.test');
   await page.goto('/approvals');
   await approveCard(page.locator('article').filter({ hasText: recognitionDescription }));
   await approveCard(page.locator('article').filter({ hasText: coordinatorAwardDescription }));
+  await approveCard(page.locator('article').filter({ hasText: coordinatorWhiteAwardDescription }));
   await approveCard(page.locator('article').filter({ hasText: gpmAwardDescription }));
 });
 
