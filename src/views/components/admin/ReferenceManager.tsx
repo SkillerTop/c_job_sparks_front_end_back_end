@@ -24,7 +24,7 @@ const labels: Record<VisibleReferenceKind, string> = {
 export function ReferenceManager() {
   const { localize } = useUserPreferences();
   const { isApiMode } = useAppMode();
-  const { snapshot, saveReference, deleteEmployee } = useSpark();
+  const { snapshot, saveReference, deleteCategory, deleteDepartment, deleteEmployee } = useSpark();
   const [kind, setKind] = useState<VisibleReferenceKind>('employees');
   const [query, setQuery] = useState('');
   const [draft, setDraft] = useState<ReferenceDraft | null>(null);
@@ -170,12 +170,23 @@ export function ReferenceManager() {
           initialDraft={draft}
           snapshot={snapshot!}
           onSave={save}
-          onDelete={draft.kind === 'employees' && Boolean(draft.data.id)
-            ? async () => {
-                await deleteEmployee(draft.data.id);
-                setMessage(`${draft.data.name} was deleted from Employee Directory.`);
-              }
-            : undefined}
+          onDelete={!draft.data.id || ('active' in draft.data && !draft.data.active) ||
+            (draft.kind === 'categories' && !['PeerRecognition', 'Award'].includes(draft.data.usageType))
+            ? undefined
+            : async () => {
+                if (draft.kind === 'employees') {
+                  await deleteEmployee(draft.data.id);
+                  setMessage(`${draft.data.name} was deleted from Employee Directory.`);
+                  return;
+                }
+                if (draft.kind === 'departments') {
+                  await deleteDepartment(draft.data.id);
+                  setMessage(`${draft.data.name} was removed from future use. Historical references were preserved.`);
+                  return;
+                }
+                await deleteCategory(draft.data.id);
+                setMessage(`${draft.data.name} was removed from future awards. Existing history was preserved.`);
+              }}
           onClose={() => setDraft(null)}
         />
       )}

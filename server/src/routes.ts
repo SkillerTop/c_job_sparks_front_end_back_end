@@ -2054,6 +2054,19 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
         const routeId = (request.params as { id?: string }).id;
         const id = routeId ?? (input.id || randomUUID());
         await withTransaction(app.db, async (db) => {
+          if (routeId && !input.active) {
+            const activeMemberships = await one<{ count: string }>(db, `
+              SELECT count(*)::text AS count
+                FROM app.employee_departments membership
+                JOIN app.employees employee ON employee.id=membership.employee_id
+               WHERE membership.department_id=$1
+                 AND employee.is_active`, [id]);
+            if (Number(activeMemberships.count) > 0)
+              throw conflict(
+                'DEPARTMENT_IN_USE',
+                'Move or delete this department’s active employees first.',
+              );
+          }
           if (input.headId) {
             const head = await maybeOne<{ id: string }>(db, `
               SELECT employee.id
@@ -2086,6 +2099,45 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       };
       adminApp.post('/api/v1/admin/departments', saveDepartment);
       adminApp.patch('/api/v1/admin/departments/:id', saveDepartment);
+      adminApp.delete('/api/v1/admin/departments/:id', async (request, reply) => {
+        const principal = principalOf(request);
+        const { id } = z.object({ id: idSchema }).parse(request.params);
+        await withTransaction(app.db, async (db) => {
+          const department = await maybeOne<any>(db, `
+            SELECT id,code,name,head_employee_id,is_active
+              FROM app.departments
+             WHERE id=$1
+             FOR UPDATE`, [id]);
+          if (!department) throw notFound('Department');
+          if (!department.is_active) return;
+          const activeMemberships = await one<{ count: string }>(db, `
+            SELECT count(*)::text AS count
+              FROM app.employee_departments membership
+              JOIN app.employees employee ON employee.id=membership.employee_id
+             WHERE membership.department_id=$1
+               AND employee.is_active`, [id]);
+          if (Number(activeMemberships.count) > 0)
+            throw conflict(
+              'DEPARTMENT_IN_USE',
+              'Move or delete this department’s active employees first.',
+            );
+          await db.query(`UPDATE app.departments
+            SET is_active=false,head_employee_id=NULL
+            WHERE id=$1`, [id]);
+          await writeAudit(db, {
+            actorUserId: principal.userId,
+            action: 'DEPARTMENT_DELETED',
+            objectType: 'Department',
+            objectId: id,
+            before: department,
+            after: { active: false, historyPreserved: true },
+            requestId: request.id,
+            ip: request.ip,
+            userAgent: request.headers['user-agent'],
+          });
+        });
+        return reply.status(204).send();
+      });
 
       const categoryInput = z.object({
         id: z.string().uuid().or(z.literal('')).optional(), name: z.string().min(1).max(200),

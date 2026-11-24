@@ -52,16 +52,19 @@ export function ReferenceEditor({
     }
   };
   const remove = async () => {
-    if (!onDelete || deleting || !window.confirm(
-      `Delete ${draft.data.name} from Employee Directory? Access will be disabled. Ledger and audit history will be preserved. This cannot be undone.`,
-    )) return;
+    const confirmation = draft.kind === 'employees'
+      ? `Delete ${draft.data.name} from Employee Directory? Access will be disabled. Ledger and audit history will be preserved. This cannot be undone.`
+      : draft.kind === 'departments'
+        ? `Delete ${draft.data.name} from future use? Active employees must be moved first. Historical references will be preserved.`
+        : `Delete ${draft.data.name} from future awards? Existing requests, Ledger entries and audit history will be preserved.`;
+    if (!onDelete || deleting || !window.confirm(confirmation)) return;
     setDeleting(true);
     setError('');
     try {
       await onDelete();
       onClose();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not delete this employee.');
+      setError(caught instanceof Error ? caught.message : 'Could not delete this record.');
     } finally {
       setDeleting(false);
     }
@@ -346,7 +349,7 @@ export function ReferenceEditor({
           {onDelete && (
             <button type="button" className={styles.rejectButton} onClick={() => void remove()} disabled={saving || deleting}>
               {deleting ? <span className={styles.spinner} /> : <Trash2 size={16} />}
-              <LocalizedText>{deleting ? 'Deleting…' : 'Delete employee'}</LocalizedText>
+              <LocalizedText>{deleting ? 'Deleting…' : 'Delete'}</LocalizedText>
             </button>
           )}
           <button type="button" className={styles.secondaryButton} onClick={onClose} disabled={saving || deleting}>

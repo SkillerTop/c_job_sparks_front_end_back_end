@@ -1345,6 +1345,33 @@ const demoSparkService = {
     });
   },
 
+  async deleteDepartment(actorId: string, departmentId: string) {
+    await wait();
+    requireActor(actorId, ['Administrator']);
+    const department = database.departments.find((item) => item.id === departmentId);
+    if (!department) throw new Error('This department no longer exists. Refresh the directory.');
+    if (
+      database.employees.some(
+        (employee) => employee.active &&
+          (employee.departmentIds ?? [employee.departmentId]).includes(departmentId),
+      )
+    )
+      throw new Error('Move or delete this department’s active employees first.');
+    if (!department.active) return clone();
+    return atomic(() => {
+      database.departments = database.departments.map((item) =>
+        item.id === departmentId ? { ...item, active: false, headId: '' } : item,
+      );
+      addAudit(
+        'DEPARTMENT_DELETED',
+        actorId,
+        departmentId,
+        `Deleted ${department.name} from future use. Historical records are unchanged.`,
+      );
+      return clone();
+    });
+  },
+
   async deleteCategory(actorId: string, categoryId: string) {
     await wait();
     requireActor(actorId, ['Administrator']);

@@ -298,6 +298,25 @@ test('Administrator can remove Peer Recognition and Award categories without rew
   await assert.rejects(sparkService.deleteCategory(ADMIN, 'missing-category'), /no longer exists/i);
   await assert.rejects(sparkService.deleteCategory('emp-alex', peer.id), /cannot perform this action/i);
 });
+test('Administrator can remove an unused department without rewriting references', async () => {
+  const before = await snapshot();
+  await sparkService.saveReference(ADMIN, {
+    kind: 'departments',
+    data: { id: '', name: 'Temporary Department', headId: '', active: true },
+  });
+  const created = (await snapshot()).departments.find((item) =>
+    !before.departments.some((existing) => existing.id === item.id));
+  assert.ok(created);
+
+  const removed = await sparkService.deleteDepartment(ADMIN, created.id);
+  assert.equal(removed.departments.find((item) => item.id === created.id).active, false);
+  assert.equal(
+    removed.auditEvents.some((item) => item.action === 'DEPARTMENT_DELETED' && item.subjectId === created.id),
+    true,
+  );
+  await assert.rejects(sparkService.deleteDepartment(ADMIN, before.departments[0].id), /active employees/i);
+  await assert.rejects(sparkService.deleteDepartment('emp-alex', created.id), /cannot perform this action/i);
+});
 test('Lifetime earnings count recognition credits without double-counting conversions', async () => {
   const before = calculateLifetimeEarnings((await snapshot()).transactions, 'emp-alex');
   await sparkService.convert('emp-alex', 'White', 10);

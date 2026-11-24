@@ -251,6 +251,13 @@ export const apiSparkService = {
     return workspace();
   },
 
+  async deleteDepartment(_actorId: string, departmentId: string) {
+    await apiRequest<void>(`/api/v1/admin/departments/${encodeURIComponent(departmentId)}`, {
+      method: 'DELETE',
+    });
+    return workspace();
+  },
+
   async deleteEmployee(_actorId: string, employeeId: string) {
     await apiRequest<void>(`/api/v1/admin/employees/${encodeURIComponent(employeeId)}`, { method: 'DELETE' });
     return workspace();

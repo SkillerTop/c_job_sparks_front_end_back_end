@@ -252,6 +252,27 @@ if (!sourceDatabaseUrl) {
       const createdDepartmentId = department.json<{ id: string }>().id;
       assert.equal(await count(`SELECT count(*) FROM app.departments
         WHERE id=$1 AND name=$2 AND head_employee_id IS NULL`, [createdDepartmentId, departmentName]), 1);
+      const forbiddenDepartmentDelete = await authenticated('Employee', 'DELETE',
+        `/api/v1/admin/departments/${encodeURIComponent(createdDepartmentId)}`);
+      assert.equal(forbiddenDepartmentDelete.statusCode, 403, forbiddenDepartmentDelete.body);
+      const deletedDepartment = await authenticated('Administrator', 'DELETE',
+        `/api/v1/admin/departments/${encodeURIComponent(createdDepartmentId)}`);
+      assert.equal(deletedDepartment.statusCode, 204, deletedDepartment.body);
+      assert.equal(await count(`SELECT count(*) FROM app.departments
+        WHERE id=$1 AND is_active=false`, [createdDepartmentId]), 1);
+      assert.equal(await count(`SELECT count(*) FROM app.audit_events
+        WHERE entity_id=$1 AND action='DEPARTMENT_DELETED'`, [createdDepartmentId]), 1);
+      const occupiedDepartment = await databasePool.query<{ id: string }>(`
+        SELECT department.id
+          FROM app.departments department
+          JOIN app.employee_departments membership ON membership.department_id=department.id
+          JOIN app.employees employee ON employee.id=membership.employee_id AND employee.is_active
+         WHERE department.is_active
+         LIMIT 1`);
+      assert.ok(occupiedDepartment.rows[0]);
+      const occupiedDepartmentDelete = await authenticated('Administrator', 'DELETE',
+        `/api/v1/admin/departments/${encodeURIComponent(occupiedDepartment.rows[0]!.id)}`);
+      assert.equal(occupiedDepartmentDelete.statusCode, 409, occupiedDepartmentDelete.body);
 
       const removableCategoryName = `Temporary category ${randomUUID()}`;
       const removableCategory = await authenticated('Administrator', 'POST', '/api/v1/admin/spark-categories', {
