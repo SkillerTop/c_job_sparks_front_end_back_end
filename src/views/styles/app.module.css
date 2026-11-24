@@ -1793,7 +1793,12 @@
 }
 .fieldGrid {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  align-items: start;
   gap: 0.9rem;
+}
+.fieldFull {
+  grid-column: 1 / -1;
 }
 .settingsSection {
   display: grid;
@@ -1861,6 +1866,8 @@
 }
 .formField {
   display: grid;
+  align-self: start;
+  align-content: start;
   gap: 0.42rem;
   min-width: 0;
   color: var(--ink);
@@ -3617,14 +3624,8 @@
   .panelHeaderStack .filters {
     width: auto;
   }
-  .fieldGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .thresholdGroups {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .fieldFull {
-    grid-column: 1 / -1;
   }
   .formFooter {
     flex-direction: row;

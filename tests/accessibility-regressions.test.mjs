@@ -110,3 +110,24 @@ test('department memberships use a compact searchable disclosure with a fixed pr
   assert.match(source, /disabled=\{disabled \|\| primary\}/);
   assert.match(styles, /\.membershipOptions\s*\{[^}]*max-height:\s*11rem;/s);
 });
+
+test('modal form grids respond to their container and never stretch short controls', async () => {
+  const appStyles = await read('src/views/styles/app.module.css');
+  const shopStyles = await read('src/views/styles/shop.module.css');
+  const taskBoardStyles = await read('src/views/styles/taskBoard.module.css');
+
+  assert.match(
+    appStyles,
+    /\.fieldGrid\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*18rem\),\s*1fr\)\);/s,
+  );
+  assert.match(appStyles, /\.formField\s*\{[^}]*align-self:\s*start;[^}]*align-content:\s*start;/s);
+  assert.match(appStyles, /\.fieldFull\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;/s);
+  assert.match(
+    shopStyles,
+    /\.editorGrid\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*14rem\),\s*1fr\)\);/s,
+  );
+  assert.match(
+    taskBoardStyles,
+    /\.rewardComposer > div\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*9rem\),\s*1fr\)\);/s,
+  );
+});

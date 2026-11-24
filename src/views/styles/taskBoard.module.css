@@ -246,7 +246,7 @@
 
 .rewardComposer > div {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
   gap: 0.55rem;
 }
 
@@ -533,7 +533,7 @@
   .filterIntro { align-items: stretch; flex-direction: column; }
   .filterPanel > div:last-child { width: 100%; }
   .filterPanel > div:last-child button { flex: 1 0 auto; }
-  .metaGrid, .rewardComposer > div { grid-template-columns: minmax(0, 1fr); }
+  .metaGrid { grid-template-columns: minmax(0, 1fr); }
   .actions, .modalActions { align-items: stretch; flex-direction: column; }
   .actions button, .modalActions button, .loadMore { width: 100%; }
   .rewardBlock { align-items: flex-start; flex-direction: column; }
