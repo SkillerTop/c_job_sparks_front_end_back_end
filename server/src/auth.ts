@@ -36,9 +36,7 @@ const principalQuery = `
              WHERE department.head_employee_id=e.id AND department.is_active
              ORDER BY department.name,department.id)
          ELSE
-           ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
-             WHERE membership.employee_id=e.id
-             ORDER BY membership.is_primary DESC,membership.assigned_at,membership.department_id)
+           ARRAY[e.department_id::text]
          END AS department_ids,
          r.code AS role, s.expires_at
     FROM app.sessions s

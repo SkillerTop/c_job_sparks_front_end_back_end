@@ -240,7 +240,10 @@ export const apiSparkService = {
           ? '/api/v1/admin/departments'
           : '/api/v1/admin/spark-categories';
     const id = draft.data.id;
-    await mutation(id ? `${route}/${encodeURIComponent(id)}` : route, draft.data, id ? 'PATCH' : 'POST', 0);
+    const payload = draft.kind === 'employees'
+      ? Object.fromEntries(Object.entries(draft.data).filter(([key]) => key !== 'departmentIds'))
+      : draft.data;
+    await mutation(id ? `${route}/${encodeURIComponent(id)}` : route, payload, id ? 'PATCH' : 'POST', 0);
     return workspace();
   },
 

@@ -28,10 +28,14 @@ interface EmployeeRow {
 }
 
 const employeeDepartmentIds = (employee: EmployeeRow) =>
-  employee.department_ids?.length ? employee.department_ids : [employee.department_id];
+  employee.role === 'Head' && employee.department_ids?.length
+    ? employee.department_ids
+    : [employee.department_id];
 
 const principalDepartmentIds = (principal: AuthenticatedPrincipal) =>
-  principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId];
+  principal.role === 'Head' && principal.departmentIds?.length
+    ? principal.departmentIds
+    : [principal.departmentId];
 
 const activeCategory = async (db: PoolClient, categoryId: string, usageTypes: string[]) => {
   const result = await db.query<CategoryRow>(
@@ -55,9 +59,11 @@ const activeCategory = async (db: PoolClient, categoryId: string, usageTypes: st
 const employeeWithRole = async (db: PoolClient, employeeId: string) => {
   const result = await db.query<EmployeeRow>(
     `SELECT e.id, e.department_id, e.display_name, role.code AS role,
-            ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
-              WHERE membership.employee_id=e.id
-              ORDER BY membership.is_primary DESC,membership.assigned_at,membership.department_id) AS department_ids
+            CASE WHEN role.code='Head'
+              THEN ARRAY(SELECT department.id::text FROM app.departments department
+                WHERE department.head_employee_id=e.id AND department.is_active ORDER BY department.name,department.id)
+              ELSE ARRAY[e.department_id::text]
+            END AS department_ids
        FROM app.employees e
        JOIN app.users u ON u.id=e.user_id AND u.account_status='Approved'
        JOIN LATERAL (
@@ -407,9 +413,7 @@ export const createAward = async (
   }
   if (category?.code === 'employee-of-year') {
     const departmentSize = await one<{ count: string | number }>(db, `SELECT count(*) AS count FROM app.employees
-      WHERE EXISTS (SELECT 1 FROM app.employee_departments membership
-        WHERE membership.employee_id=employees.id AND membership.department_id=$1)
-        AND is_active AND provisioned_role_code<>'Administrator'`, [recipientDepartmentId]);
+      WHERE department_id=$1 AND is_active AND provisioned_role_code<>'Administrator'`, [recipientDepartmentId]);
     const quota = Math.floor(Number(departmentSize.count) / 10);
     const used = await one<{ count: string | number }>(db, `SELECT count(*) AS count
       FROM app.quota_reservations reservation JOIN app.award_requests award
@@ -691,9 +695,11 @@ export const listEligibleRecipients = async (
 ) => {
   return rows<EmployeeRow>(db, `
     SELECT employee.id, employee.department_id, employee.display_name, active_role.code AS role,
-           ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
-             WHERE membership.employee_id=employee.id
-             ORDER BY membership.is_primary DESC,membership.assigned_at,membership.department_id) AS department_ids
+           CASE WHEN active_role.code='Head'
+             THEN ARRAY(SELECT department.id::text FROM app.departments department
+               WHERE department.head_employee_id=employee.id AND department.is_active ORDER BY department.name,department.id)
+             ELSE ARRAY[employee.department_id::text]
+           END AS department_ids
       FROM app.employees employee
       JOIN app.users account_user
         ON account_user.id=employee.user_id
@@ -713,29 +719,15 @@ export const listEligibleRecipients = async (
        AND (
          ($4='recognition'
            AND active_role.code=ANY(ARRAY['Employee','Coordinator','GPM']::text[])
-           AND EXISTS (
-             SELECT 1
-               FROM app.employee_departments recognition_membership
-              WHERE recognition_membership.employee_id=employee.id
-                AND recognition_membership.department_id=ANY($3::uuid[])
-           ))
+           AND employee.department_id=ANY($3::uuid[]))
          OR
          ($4='award' AND (
            ($2='Top Management' AND active_role.code<>'Administrator')
            OR
            (active_role.code=ANY(ARRAY['Employee','Coordinator']::text[]) AND (
-             ($2='Head' AND EXISTS (
-               SELECT 1 FROM app.employee_departments membership
-                WHERE membership.employee_id=employee.id
-                  AND membership.department_id=ANY($3::uuid[])
-             ))
+             ($2='Head' AND employee.department_id=ANY($3::uuid[]))
              OR
-             ($2='Coordinator' AND EXISTS (
-               SELECT 1
-                  FROM app.employee_departments membership
-                 WHERE membership.employee_id=employee.id
-                   AND membership.department_id=ANY($3::uuid[])
-             ))
+             ($2='Coordinator' AND employee.department_id=ANY($3::uuid[]))
              OR
              ($2='GPM' AND EXISTS (
                SELECT 1

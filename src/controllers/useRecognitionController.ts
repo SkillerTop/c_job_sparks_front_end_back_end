@@ -18,8 +18,7 @@ export function useRecognitionController() {
 
   const currentEmployee = snapshot?.employees.find((employee) => employee.id === currentUserId);
   const ownDepartmentIds = useMemo(
-    () => currentEmployee?.departmentIds ??
-      (currentEmployee?.departmentId ? [currentEmployee.departmentId] : []),
+    () => currentEmployee?.departmentId ? [currentEmployee.departmentId] : [],
     [currentEmployee],
   );
   const activeDepartmentId = departmentId || currentEmployee?.departmentId || ownDepartmentIds[0] || '';
@@ -31,7 +30,7 @@ export function useRecognitionController() {
         employee.id !== currentUserId &&
         ['Employee', 'Coordinator', 'GPM'].includes(employee.role) &&
         Boolean(activeDepartmentId) &&
-        (employee.departmentIds ?? [employee.departmentId]).includes(activeDepartmentId),
+        employee.departmentId === activeDepartmentId,
     );
   }, [snapshot, currentUserId, activeDepartmentId]);
   const requestedRecipient = searchParams.get('recipient');
@@ -39,8 +38,7 @@ export function useRecognitionController() {
     if (!requestedRecipient || !snapshot) return;
     const requested = snapshot.employees.find((employee) => employee.id === requestedRecipient && employee.active);
     if (!requested || !['Employee', 'Coordinator', 'GPM'].includes(requested.role)) return;
-    const requestedDepartmentIds = requested.departmentIds ?? [requested.departmentId];
-    const sharedDepartmentId = ownDepartmentIds.find((id) => requestedDepartmentIds.includes(id));
+    const sharedDepartmentId = ownDepartmentIds.find((id) => id === requested.departmentId);
     if (!sharedDepartmentId) return;
     if (sharedDepartmentId !== activeDepartmentId) setDepartmentId(sharedDepartmentId);
     setForm((current) =>

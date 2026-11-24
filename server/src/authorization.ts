@@ -17,7 +17,7 @@ export const requireDepartmentScope = (principal: AuthenticatedPrincipal, depart
 };
 
 export const departmentScopeIds = (principal: AuthenticatedPrincipal) => {
-  const explicit = (principal.departmentIds ?? []).filter(Boolean);
+  const explicit = principal.role === 'Head' ? (principal.departmentIds ?? []).filter(Boolean) : [];
   return [...new Set(explicit.length ? explicit : [principal.departmentId])];
 };
 

@@ -31,7 +31,6 @@ export interface AccessApprovalEmployeeInput {
   name: string;
   title: string;
   departmentId: string;
-  departmentIds?: string[];
   role: Role;
   managerId?: string;
   coordinatorIds?: string[];

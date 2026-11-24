@@ -98,7 +98,6 @@ const employeeInput = z.object({
   name: z.string().trim().min(1).max(200),
   title: z.string().trim().min(1).max(200),
   departmentId: idSchema,
-  departmentIds: z.array(idSchema).min(1).max(50).optional(),
   role: roleSchema,
   email: emailSchema,
   active: z.boolean(),
@@ -110,7 +109,6 @@ const accessApprovalEmployeeInput = employeeInput.pick({
   name: true,
   title: true,
   departmentId: true,
-  departmentIds: true,
   role: true,
   managerId: true,
   coordinatorIds: true,
@@ -120,19 +118,20 @@ const replaceEmployeeDepartments = async (
   db: PoolClient,
   employeeId: string,
   primaryDepartmentId: string,
-  departmentIds: readonly string[] | undefined,
+  role: z.infer<typeof roleSchema>,
 ) => {
-  const headed = await rows<{ id: string }>(db,
-    `SELECT id FROM app.departments WHERE head_employee_id=$1 AND is_active`, [employeeId]);
+  const headed = role === 'Head'
+    ? await rows<{ id: string }>(db,
+        `SELECT id FROM app.departments WHERE head_employee_id=$1 AND is_active`, [employeeId])
+    : [];
   const uniqueIds = [...new Set([
     primaryDepartmentId,
-    ...(departmentIds ?? []),
     ...headed.map((department) => department.id),
   ])];
   const valid = await rows<{ id: string }>(db,
     `SELECT id FROM app.departments WHERE id=ANY($1::uuid[]) AND is_active`, [uniqueIds]);
   if (valid.length !== uniqueIds.length)
-    throw badRequest('INVALID_DEPARTMENT', 'Choose only active departments.');
+    throw badRequest('INVALID_DEPARTMENT', 'Choose an active primary department.');
   await db.query(`DELETE FROM app.employee_departments WHERE employee_id=$1`, [employeeId]);
   await db.query(`INSERT INTO app.employee_departments (employee_id,department_id,is_primary)
     SELECT $1,value,value=$2 FROM unnest($3::uuid[]) value`, [employeeId, primaryDepartmentId, uniqueIds]);
@@ -1148,12 +1147,10 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       const result = await withIdempotency(app.db, principal.userId, 'quality-gates:create', idempotencyKey(request), input, 201,
         async (db) => {
           const employee = await one<{ department_id: string; user_id: string | null }>(db,
-            `SELECT membership.department_id,employee.user_id
+            `SELECT employee.department_id,employee.user_id
                FROM app.employees employee
-               JOIN app.employee_departments membership ON membership.employee_id=employee.id
               WHERE employee.id=$1 AND employee.is_active
-                AND membership.department_id=ANY($2::uuid[])
-              ORDER BY membership.is_primary DESC,membership.assigned_at
+                AND employee.department_id=ANY($2::uuid[])
               LIMIT 1`, [input.employeeId, departmentScopeIds(principal)])
             .catch(() => { throw new ApiError(403, 'FORBIDDEN', 'Employee is outside your departments.'); });
           const gate = await one<any>(db, `INSERT INTO app.quality_gates
@@ -1399,8 +1396,11 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
       adminApp.get('/api/v1/admin/employees', async () => rows<any>(app.db, `SELECT employee.id,employee.display_name AS name,
         COALESCE(position.title,'') AS title,employee.department_id,employee.manager_employee_id,employee.is_active,
         COALESCE(employee.contact_email,account_user.email)::text AS email,COALESCE(role.code,employee.provisioned_role_code) AS role,
-        ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
-          WHERE membership.employee_id=employee.id ORDER BY membership.is_primary DESC,membership.assigned_at) AS department_ids,
+        CASE WHEN COALESCE(role.code,employee.provisioned_role_code)='Head'
+          THEN ARRAY(SELECT department.id::text FROM app.departments department
+            WHERE department.head_employee_id=employee.id AND department.is_active ORDER BY department.name,department.id)
+          ELSE ARRAY[employee.department_id::text]
+        END AS department_ids,
         ARRAY(SELECT assignment.coordinator_employee_id::text FROM app.employee_coordinators assignment
           WHERE assignment.employee_id=employee.id ORDER BY assignment.coordinator_employee_id) AS coordinator_ids
         FROM app.employees employee LEFT JOIN app.users account_user ON account_user.id=employee.user_id
@@ -1770,18 +1770,12 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
           const account = await one<{ email: string; auth_provider: 'local' | 'entra' }>(db,
             `SELECT email::text,auth_provider FROM app.users WHERE id=$1 FOR UPDATE`, [id]);
           let employee = await maybeOne<any>(db, `SELECT employee.*,COALESCE(position.title,'') AS title,
-            ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
-              WHERE membership.employee_id=employee.id
-              ORDER BY membership.is_primary DESC,membership.assigned_at) AS department_ids,
             ARRAY(SELECT assignment.coordinator_employee_id::text FROM app.employee_coordinators assignment
               WHERE assignment.employee_id=employee.id ORDER BY assignment.coordinator_employee_id) AS coordinator_ids
             FROM app.employees employee LEFT JOIN app.positions position ON position.id=employee.position_id
             WHERE employee.user_id=$1 FOR UPDATE OF employee`, [id]);
           if (!employee)
             employee = await maybeOne<any>(db, `SELECT employee.*,COALESCE(position.title,'') AS title,
-              ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
-                WHERE membership.employee_id=employee.id
-                ORDER BY membership.is_primary DESC,membership.assigned_at) AS department_ids,
               ARRAY(SELECT assignment.coordinator_employee_id::text FROM app.employee_coordinators assignment
                 WHERE assignment.employee_id=employee.id ORDER BY assignment.coordinator_employee_id) AS coordinator_ids
               FROM app.employees employee LEFT JOIN app.positions position ON position.id=employee.position_id
@@ -1798,7 +1792,6 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
               name: employee.display_name,
               title: employee.title,
               departmentId: employee.department_id,
-              departmentIds: employee.department_ids?.length ? employee.department_ids : [employee.department_id],
               role: employee.provisioned_role_code,
               managerId: employee.manager_employee_id ?? undefined,
               coordinatorIds: employee.coordinator_ids ?? [],
@@ -1838,7 +1831,14 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
               [employeeId, id, `EMP-${employeeId.slice(0,8)}`, firstName, lastName, profile.name, account.email,
                 profile.departmentId, position.id, profile.managerId || null, profile.role]);
             }
-            await replaceEmployeeDepartments(db, employeeId, profile.departmentId, profile.departmentIds);
+            if (profile.role !== 'Head') {
+              const headed = await maybeOne<{ id: string }>(db,
+                `SELECT id FROM app.departments WHERE head_employee_id=$1 AND is_active LIMIT 1`, [employeeId]);
+              if (headed)
+                throw conflict('DEPARTMENT_HEAD_ROLE_REQUIRED',
+                  'Assign a replacement department Head before changing this employee’s role.');
+            }
+            await replaceEmployeeDepartments(db, employeeId, profile.departmentId, profile.role);
             await db.query(`UPDATE app.role_assignments SET ends_at=clock_timestamp()
               WHERE user_id=$1 AND ends_at IS NULL`, [id]);
             await db.query(`INSERT INTO app.role_assignments (user_id,role_id,assigned_by_user_id)
@@ -1946,7 +1946,14 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
               [employeeId, `EMP-${employeeId.slice(0,8)}`, firstName, lastName, input.name.trim(), input.email,
                 input.departmentId, positionId, input.managerId ?? null, input.active, input.role]);
           }
-          await replaceEmployeeDepartments(db, employeeId, input.departmentId, input.departmentIds);
+          if (input.role !== 'Head') {
+            const headed = await maybeOne<{ id: string }>(db,
+              `SELECT id FROM app.departments WHERE head_employee_id=$1 AND is_active LIMIT 1`, [employeeId]);
+            if (headed)
+              throw conflict('DEPARTMENT_HEAD_ROLE_REQUIRED',
+                'Assign a replacement department Head before changing this employee’s role.');
+          }
+          await replaceEmployeeDepartments(db, employeeId, input.departmentId, input.role);
           await replaceEmployeeCoordinators(db, employeeId, input.coordinatorIds);
           if (input.role !== 'Coordinator')
             await db.query(`DELETE FROM app.employee_coordinators WHERE coordinator_employee_id=$1`, [employeeId]);
@@ -2054,13 +2061,19 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
         const routeId = (request.params as { id?: string }).id;
         const id = routeId ?? (input.id || randomUUID());
         await withTransaction(app.db, async (db) => {
+          const previous = routeId
+            ? await one<{ head_employee_id: string | null }>(db,
+                `SELECT head_employee_id FROM app.departments WHERE id=$1 FOR UPDATE`, [id])
+            : null;
           if (routeId && !input.active) {
             const activeMemberships = await one<{ count: string }>(db, `
               SELECT count(*)::text AS count
-                FROM app.employee_departments membership
-                JOIN app.employees employee ON employee.id=membership.employee_id
-               WHERE membership.department_id=$1
-                 AND employee.is_active`, [id]);
+                FROM app.employees employee
+               WHERE employee.is_active
+                 AND (
+                   employee.department_id=$1
+                   OR employee.id=(SELECT head_employee_id FROM app.departments WHERE id=$1)
+                 )`, [id]);
             if (Number(activeMemberships.count) > 0)
               throw conflict(
                 'DEPARTMENT_IN_USE',
@@ -2091,6 +2104,15 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
           if (input.headId)
             await db.query(`INSERT INTO app.employee_departments (employee_id,department_id,is_primary)
               VALUES ($1,$2,false) ON CONFLICT (employee_id,department_id) DO NOTHING`, [input.headId, id]);
+          const affectedHeadIds = [...new Set([
+            previous?.head_employee_id ?? '',
+            input.headId ?? '',
+          ].filter(Boolean))];
+          for (const headId of affectedHeadIds) {
+            const head = await maybeOne<{ department_id: string }>(db,
+              `SELECT department_id FROM app.employees WHERE id=$1`, [headId]);
+            if (head) await replaceEmployeeDepartments(db, headId, head.department_id, 'Head');
+          }
           await writeAudit(db, { actorUserId: principal.userId, action: routeId ? 'DEPARTMENT_UPDATED' : 'DEPARTMENT_CREATED',
             objectType: 'Department', objectId: id, after: input, requestId: request.id, ip: request.ip,
             userAgent: request.headers['user-agent'] });
@@ -2112,10 +2134,12 @@ export const registerRoutes = async (app: FastifyInstance, environment: Environm
           if (!department.is_active) return;
           const activeMemberships = await one<{ count: string }>(db, `
             SELECT count(*)::text AS count
-              FROM app.employee_departments membership
-              JOIN app.employees employee ON employee.id=membership.employee_id
-             WHERE membership.department_id=$1
-               AND employee.is_active`, [id]);
+              FROM app.employees employee
+             WHERE employee.is_active
+               AND (
+                 employee.department_id=$1
+                 OR employee.id=(SELECT head_employee_id FROM app.departments WHERE id=$1)
+               )`, [id]);
           if (Number(activeMemberships.count) > 0)
             throw conflict(
               'DEPARTMENT_IN_USE',

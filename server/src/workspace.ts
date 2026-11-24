@@ -24,8 +24,11 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
     () => rows<any>(db, `
       SELECT e.id,e.display_name,e.first_name,e.last_name,COALESCE(position.title,'') AS title,
              e.department_id,
-             ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
-               WHERE membership.employee_id=e.id ORDER BY membership.is_primary DESC,membership.assigned_at) AS department_ids,
+             CASE WHEN COALESCE(active_role.code,e.provisioned_role_code)='Head'
+               THEN ARRAY(SELECT department.id::text FROM app.departments department
+                 WHERE department.head_employee_id=e.id AND department.is_active ORDER BY department.name,department.id)
+               ELSE ARRAY[e.department_id::text]
+             END AS department_ids,
              COALESCE(active_role.code,e.provisioned_role_code) AS role,
              COALESCE(e.contact_email,account_user.email)::text AS email,e.is_active,e.manager_employee_id,
              microsoft_identity.claims#>>'{manager,displayName}' AS microsoft_manager_name,
@@ -81,9 +84,11 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
       initials: `${row.first_name?.[0] ?? ''}${row.last_name?.[0] ?? ''}`.toUpperCase(),
       title: row.title,
       departmentId: row.department_id,
-      departmentIds: row.id === principal.employeeId && principal.role === 'Head'
-        ? (principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId])
-        : (row.department_ids?.length ? row.department_ids : [row.department_id]),
+      departmentIds: row.role === 'Head'
+        ? (row.id === principal.employeeId && principal.role === 'Head'
+            ? (principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId])
+            : (row.department_ids?.length ? row.department_ids : [row.department_id]))
+        : [row.department_id],
       role: row.role ?? 'Employee',
       email: row.email ?? '',
       active: row.is_active,
@@ -189,8 +194,11 @@ export const buildWorkspace = async (
     () => include('directory') ? rows<any>(db, `
       SELECT e.id, e.display_name, e.first_name, e.last_name, COALESCE(pos.title,'') AS title,
              e.department_id,
-             ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
-               WHERE membership.employee_id=e.id ORDER BY membership.is_primary DESC,membership.assigned_at) AS department_ids,
+             CASE WHEN COALESCE(role.code,e.provisioned_role_code)='Head'
+               THEN ARRAY(SELECT department.id::text FROM app.departments department
+                 WHERE department.head_employee_id=e.id AND department.is_active ORDER BY department.name,department.id)
+               ELSE ARRAY[e.department_id::text]
+             END AS department_ids,
              COALESCE(role.code,e.provisioned_role_code) AS role, COALESCE(e.contact_email,u.email)::text AS email,
              e.is_active, e.manager_employee_id,
              microsoft_identity.claims#>>'{manager,displayName}' AS microsoft_manager_name,
@@ -211,12 +219,7 @@ export const buildWorkspace = async (
         ) role ON true
        WHERE e.is_active AND (
          $2
-         OR ($3 AND EXISTS (
-           SELECT 1
-             FROM app.employee_departments recognition_membership
-            WHERE recognition_membership.employee_id=e.id
-              AND recognition_membership.department_id=ANY($4::uuid[])
-         ))
+         OR ($3 AND e.department_id=ANY($4::uuid[]))
          OR e.id=$1
          OR e.id=(SELECT manager_employee_id FROM app.employees WHERE id=$1)
        )
@@ -281,11 +284,10 @@ export const buildWorkspace = async (
       ? rows<any>(db, `
           SELECT DISTINCT employee.id AS employee_id, spark_type.value AS spark_type, COALESCE(account.balance,0) AS balance
             FROM app.employees employee
-            JOIN app.employee_departments membership ON membership.employee_id=employee.id
             CROSS JOIN unnest(ARRAY['White','Yellow','Blue','Radiant']::text[]) AS spark_type(value)
             LEFT JOIN app.spark_accounts account
               ON account.employee_id=employee.id AND account.spark_type=spark_type.value
-           WHERE membership.department_id=ANY($1::uuid[]) AND employee.is_active
+           WHERE employee.department_id=ANY($1::uuid[]) AND employee.is_active
            ORDER BY employee.id, spark_type.value`, [principal.departmentIds ?? [principal.departmentId]])
       : Promise.resolve([]),
     () => include('recognitions') ? rows<any>(db, `
@@ -401,9 +403,11 @@ export const buildWorkspace = async (
       initials: `${row.first_name?.[0] ?? ''}${row.last_name?.[0] ?? ''}`.toUpperCase(),
       title: row.title,
       departmentId: row.department_id,
-      departmentIds: row.id === principal.employeeId && principal.role === 'Head'
-        ? (principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId])
-        : (row.department_ids?.length ? row.department_ids : [row.department_id]),
+      departmentIds: row.role === 'Head'
+        ? (row.id === principal.employeeId && principal.role === 'Head'
+            ? (principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId])
+            : (row.department_ids?.length ? row.department_ids : [row.department_id]))
+        : [row.department_id],
       role: row.role ?? 'Employee',
       email: row.email ?? '',
       active: row.is_active,

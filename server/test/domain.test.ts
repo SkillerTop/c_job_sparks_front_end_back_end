@@ -97,6 +97,21 @@ test('department authorization accepts every explicit Head scope without widenin
   assert.equal(hasDepartmentScope(principal, 'department-primary'), false);
 });
 
+test('department authorization ignores extra memberships for non-Head roles', () => {
+  const principal = {
+    userId: 'user-coordinator',
+    accountId: 'user-coordinator',
+    employeeId: 'employee-coordinator',
+    email: 'coordinator@example.test',
+    role: 'Coordinator' as const,
+    departmentId: 'department-primary',
+    departmentIds: ['department-primary', 'department-other'],
+    sessionId: 'session-coordinator',
+  };
+  assert.deepEqual(departmentScopeIds(principal), ['department-primary']);
+  assert.equal(hasDepartmentScope(principal, 'department-other'), false);
+});
+
 test('quarters use UTC calendar boundaries', () => {
   assert.equal(quarterForDate('2026-10-05T00:00:00.000Z'), 'Q4 2026');
   const bounds = quarterBounds('Q4 2026');

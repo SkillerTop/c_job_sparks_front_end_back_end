@@ -13,7 +13,6 @@ import { formatDateTime } from '@/utils/formatters';
 import { useAppMode } from '@/controllers/useAppMode';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { SelectField } from '@/views/components/ui/SelectField';
-import { DepartmentMembershipPicker } from './DepartmentMembershipPicker';
 import styles from '@/views/styles/app.module.css';
 import accessStyles from '@/views/styles/access.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
 
@@ -68,7 +67,6 @@ export function RegistrationManager() {
       name: employee?.name ?? suggestedName,
       title: employee?.title?.trim() || account.suggestedJobTitle || '',
       departmentId: primaryDepartmentId,
-      departmentIds: employee?.departmentIds ?? (primaryDepartmentId ? [primaryDepartmentId] : []),
       role: employee?.role ?? account.suggestedRole ?? 'Employee',
       managerId: employee?.managerId ?? account.suggestedManagerId ?? '',
       coordinatorIds: employee?.coordinatorIds ?? [],
@@ -281,7 +279,6 @@ export function RegistrationManager() {
                   onChange={(value) => setEmployeeProfile((current) => current ? {
                     ...current,
                     departmentId: value,
-                    departmentIds: [...new Set([value, ...(current.departmentIds ?? [])])].filter(Boolean),
                   } : current)}
                   options={[
                     { value: '', label: 'Choose department' },
@@ -295,16 +292,6 @@ export function RegistrationManager() {
                   <small><LocalizedText>Microsoft department: </LocalizedText>{selected.suggestedDepartmentName}</small>
                 )}
               </label>
-              <DepartmentMembershipPicker
-                departments={snapshot!.departments.filter((department) => department.active)}
-                primaryDepartmentId={employeeProfile?.departmentId ?? ''}
-                selectedDepartmentIds={employeeProfile?.departmentIds ?? []}
-                disabled={processing}
-                helpText="Choose every department this employee belongs to."
-                onChange={(departmentIds) => setEmployeeProfile((current) => current
-                  ? { ...current, departmentIds }
-                  : current)}
-              />
               <label className={styles.formField}>
                 <span><LocalizedText>Business role </LocalizedText><b>*</b></span>
                 <SelectField

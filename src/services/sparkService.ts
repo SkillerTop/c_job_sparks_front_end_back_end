@@ -29,8 +29,23 @@ import { makeId } from '@/utils/formatters';
 import { isValidIsoDate, quarterForDate, todayIso } from '@/utils/quarter';
 import { parseCsv } from '@/utils/parseCsv';
 
+const normalizeDepartmentScopes = (snapshot: AppSnapshot) => {
+  snapshot.employees = snapshot.employees.map((employee) => ({
+    ...employee,
+    departmentIds: employee.role === 'Head'
+      ? [...new Set([
+          employee.departmentId,
+          ...snapshot.departments
+            .filter((department) => department.active && department.headId === employee.id)
+            .map((department) => department.id),
+        ])]
+      : [employee.departmentId],
+  }));
+};
+
 const createDatabase = () => {
   const snapshot = structuredClone(initialSnapshot);
+  normalizeDepartmentScopes(snapshot);
   snapshot.settings.currentQuarter = quarterForDate(new Date());
   snapshot.transactions.forEach((item) => {
     item.departmentId = snapshot.employees.find((employee) => employee.id === item.employeeId)?.departmentId;
@@ -57,6 +72,7 @@ let database: AppSnapshot = createDatabase();
 const wait = (milliseconds = 420) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const clone = () => {
   database.settings.currentQuarter = quarterForDate(new Date());
+  normalizeDepartmentScopes(database);
   database.departmentBalances = Object.fromEntries(
     database.employees.map((employee) => [employee.id, calculateBalances(database.transactions, employee.id)]),
   );
@@ -85,7 +101,11 @@ const requireHeadScope = (actorId: string, employeeId: string, allowInactive = f
   const employee = database.employees.find(
     (item) => item.id === employeeId && (item.active || allowInactive),
   );
-  if (!employee || employee.departmentId !== actor.departmentId)
+  const headedDepartmentIds = database.departments
+    .filter((department) => department.active && department.headId === actor.id)
+    .map((department) => department.id);
+  const scope = headedDepartmentIds.length ? headedDepartmentIds : [actor.departmentId];
+  if (!employee || !scope.includes(employee.departmentId))
     throw new Error('This employee is outside your department scope.');
 };
 
@@ -350,9 +370,7 @@ const demoSparkService = {
     if (!recipient || !['Employee', 'Coordinator', 'GPM'].includes(recipient.role))
       throw new Error('Choose an eligible active colleague.');
     if (senderId === input.recipientId) throw new Error('Self-recognition is not allowed.');
-    const senderDepartmentIds = sender.departmentIds ?? [sender.departmentId];
-    const recipientDepartmentIds = recipient.departmentIds ?? [recipient.departmentId];
-    if (!recipientDepartmentIds.some((departmentId) => senderDepartmentIds.includes(departmentId)))
+    if (sender.departmentId !== recipient.departmentId)
       throw new Error('Choose a colleague from one of your departments.');
     const reservedThisQuarter = database.recognitions.filter(
       (item) =>
@@ -1179,10 +1197,9 @@ const demoSparkService = {
     return atomic(() => {
       if (draft.kind === 'employees') {
         const employee = item as AppSnapshot['employees'][number];
-        employee.departmentIds = [...new Set([employee.departmentId, ...(employee.departmentIds ?? [])])];
-        if (employee.departmentIds.some((id) =>
-          !database.departments.some((entry) => entry.id === id && (!employee.active || entry.active))))
-          throw new Error('Choose only active departments.');
+        if (!database.departments.some((entry) =>
+          entry.id === employee.departmentId && (!employee.active || entry.active)))
+          throw new Error('Choose an active primary department.');
         if (!ALL_ROLES.includes(employee.role)) throw new Error('Choose a valid business role.');
         if (!employee.title.trim()) throw new Error('A job title is required.');
         employee.title = employee.title.trim();
@@ -1206,8 +1223,7 @@ const demoSparkService = {
             (entry) =>
               entry.headId === employee.id &&
               (!employee.active ||
-                employee.role !== 'Head' ||
-                !(employee.departmentIds ?? [employee.departmentId]).includes(entry.id)),
+                employee.role !== 'Head'),
           )
         )
           throw new Error(
@@ -1244,6 +1260,14 @@ const demoSparkService = {
           .join('')
           .toUpperCase();
         employee.id ||= makeId('emp');
+        employee.departmentIds = employee.role === 'Head'
+          ? [...new Set([
+              employee.departmentId,
+              ...database.departments
+                .filter((department) => department.active && department.headId === employee.id)
+                .map((department) => department.id),
+            ])]
+          : [employee.departmentId];
         database.employees = isNew
           ? [...database.employees, employee]
           : database.employees.map((entry) => (entry.id === employee.id ? employee : entry));
@@ -1257,7 +1281,8 @@ const demoSparkService = {
         if (
           !department.active &&
           database.employees.some((entry) => entry.active &&
-            (entry.departmentIds ?? [entry.departmentId]).includes(department.id))
+            (entry.departmentId === department.id ||
+              (entry.role === 'Head' && entry.id === department.headId)))
         )
           throw new Error('Move or delete this department’s active employees first.');
         if (
@@ -1276,10 +1301,7 @@ const demoSparkService = {
         database.departments = isNew
           ? [...database.departments, department]
           : database.departments.map((entry) => (entry.id === department.id ? department : entry));
-        if (department.headId)
-          database.employees = database.employees.map((employee) => employee.id === department.headId
-            ? { ...employee, departmentIds: [...new Set([...(employee.departmentIds ?? [employee.departmentId]), department.id])] }
-            : employee);
+        normalizeDepartmentScopes(database);
       } else {
         const category = item as AppSnapshot['categories'][number];
         if (!['White', 'Yellow', 'Blue'].includes(category.sparkType))

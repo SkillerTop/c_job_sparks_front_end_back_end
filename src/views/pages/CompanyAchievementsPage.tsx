@@ -16,10 +16,7 @@ type SparkFilter = 'All' | SparkType;
 const employeeDepartmentNames = (
   employee: Employee,
   departments: ReadonlyMap<string, { name: string }>,
-) => (employee.departmentIds ?? [employee.departmentId])
-  .map((departmentId) => departments.get(departmentId)?.name)
-  .filter(Boolean)
-  .join(' · ');
+) => departments.get(employee.departmentId)?.name ?? '';
 
 export function CompanyAchievementsPage() {
   const { snapshot } = useSpark();

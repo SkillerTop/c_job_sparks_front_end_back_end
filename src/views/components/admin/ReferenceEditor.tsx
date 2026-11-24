@@ -4,7 +4,6 @@ import { ALL_ROLES } from '@/constants/app';
 import { Modal } from '@/views/components/common/Modal';
 import { Feedback } from '@/views/components/common/Feedback';
 import { SelectField } from '@/views/components/ui/SelectField';
-import { DepartmentMembershipPicker } from './DepartmentMembershipPicker';
 import { useAuth } from '@/controllers/AuthContext';
 import type { AppSnapshot, Department, Employee, ReferenceDraft, SparkCategory } from '@/models';
 import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
@@ -129,10 +128,7 @@ export function ReferenceEditor({
                 </span>
                 <SelectField
                   value={draft.data.departmentId}
-                   onChange={(value) => {
-                     update('departmentId', value);
-                     update('departmentIds', [...new Set([value, ...(draft.data.departmentIds ?? [])])].filter(Boolean));
-                   }}
+                  onChange={(value) => update('departmentId', value)}
                   options={[
                     { value: '', label: 'Choose department' },
                     ...snapshot.departments.map((department) => ({
@@ -144,12 +140,6 @@ export function ReferenceEditor({
                   required
                 />
               </label>
-              <DepartmentMembershipPicker
-                departments={snapshot.departments}
-                primaryDepartmentId={draft.data.departmentId}
-                selectedDepartmentIds={draft.data.departmentIds ?? [draft.data.departmentId]}
-                onChange={(departmentIds) => update('departmentIds', departmentIds)}
-              />
               <label className={styles.formField}>
                 <span><LocalizedText>Business role</LocalizedText></span>
                 <SelectField

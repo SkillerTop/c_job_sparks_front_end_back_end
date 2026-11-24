@@ -455,12 +455,12 @@ export function RulesPage() {
             <Users size={20} />
           </div>
           <ul className={rulesStyles.rulesList}>
-            <li><LocalizedText>Every Peer Recognition sender chooses one of their departments before selecting a colleague.</LocalizedText></li>
+            <li><LocalizedText>Every Peer Recognition sender chooses a colleague from their primary department.</LocalizedText></li>
             <li>
-              <LocalizedText>A Coordinator can award eligible colleagues from any of their departments; project and team membership are not required.
+              <LocalizedText>A Coordinator can award eligible colleagues from their primary department; project and team membership are not required.
             </LocalizedText></li>
             <li><LocalizedText>A GPM sees active colleagues across the whole company.</LocalizedText></li>
-            <li><LocalizedText>A Head works with their own department and can see the balances needed for management.</LocalizedText></li>
+            <li><LocalizedText>A Head works with every department where they are assigned as Department Head.</LocalizedText></li>
             <li><LocalizedText>GPM team cards keep colleague balances private.</LocalizedText></li>
           </ul>
         </section>

@@ -15,7 +15,7 @@ const departmentScopeFor = (snapshot: AppSnapshot, actorId: string, role: Role) 
     if (headed.length) return new Set(headed);
   }
   const actor = snapshot.employees.find((employee) => employee.id === actorId);
-  return new Set(actor?.departmentIds ?? (actor ? [actor.departmentId] : []));
+  return new Set(actor ? [actor.departmentId] : []);
 };
 
 export const selectActiveProjectColleagues = (snapshot: AppSnapshot, employeeId: string) => {
@@ -64,10 +64,7 @@ export const selectAwardTargets = (snapshot: AppSnapshot, actorId: string, role:
     if (!employee.active || employee.role === 'Administrator' || employee.id === actorId) return false;
     if (role === 'Top Management') return true;
     if (!['Employee', 'Coordinator'].includes(employee.role)) return false;
-    if (role === 'Coordinator') return (employee.departmentIds ?? [employee.departmentId])
-      .some((departmentId) => actorDepartments.has(departmentId));
-    if (role === 'Head') return (employee.departmentIds ?? [employee.departmentId])
-      .some((departmentId) => actorDepartments.has(departmentId));
+    if (role === 'Coordinator' || role === 'Head') return actorDepartments.has(employee.departmentId);
     if (role === 'GPM') return gpmTeamMemberIds.has(employee.id);
     return false;
   });
@@ -77,8 +74,7 @@ export const selectTeamMembers = (snapshot: AppSnapshot, actorId: string, role: 
   const actorDepartments = departmentScopeFor(snapshot, actorId, role);
   return snapshot.employees.filter((employee) => {
     if (!employee.active || employee.role === 'Administrator') return false;
-    if (role === 'Head') return (employee.departmentIds ?? [employee.departmentId])
-      .some((departmentId) => actorDepartments.has(departmentId));
+    if (role === 'Head') return actorDepartments.has(employee.departmentId);
     if (role === 'GPM') return true;
     return role === 'Top Management';
   });
@@ -89,7 +85,7 @@ export const selectPendingRequests = (snapshot: AppSnapshot, actorId: string, ro
   const inDepartment = (employeeId: string) =>
     snapshot.employees.some(
       (employee) => employee.id === employeeId &&
-        (employee.departmentIds ?? [employee.departmentId]).some((id) => actorDepartments.has(id)),
+        actorDepartments.has(employee.departmentId),
     );
   if (role === 'Administrator') return { recognitions: [], awards: [] };
   return {

@@ -119,10 +119,8 @@ export function ReferenceManager() {
                   </td>
                   <td>
                     <LocalizedText>{'departmentId' in item
-                      ? (item.departmentIds ?? [item.departmentId])
-                          .map((id) => snapshot!.departments.find((department) => department.id === id)?.name)
-                          .filter(Boolean)
-                          .join(', ')
+                      ? (snapshot!.departments.find((department) => department.id === item.departmentId)?.name ??
+                          'Department not assigned')
                       : 'period' in item
                         ? `${item.usageType === 'PeerRecognition' ? 'Peer Recognition' : item.usageType} · ${item.period}`
                         : 'Department-scoped approvals'}</LocalizedText>

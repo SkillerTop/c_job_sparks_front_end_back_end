@@ -724,7 +724,7 @@ test('Employee directory supports multiple active coordinators', async () => {
     ['emp-sam'],
   );
 });
-test('Employees can belong to multiple departments and one Head can lead each of them', async () => {
+test('Employees keep one primary department while one Head can lead several departments', async () => {
   const initial = await snapshot();
   const operations = initial.departments.find((department) => department.id === 'dep-ops');
   await sparkService.saveReference(ADMIN, {
@@ -739,7 +739,7 @@ test('Employees can belong to multiple departments and one Head can lead each of
   const saved = state.employees.find((entry) => entry.id === employee.id);
   const head = state.employees.find((entry) => entry.id === HEAD);
 
-  assert.deepEqual(saved.departmentIds, ['dep-eng', 'dep-ops']);
+  assert.deepEqual(saved.departmentIds, ['dep-eng']);
   assert.ok(head.departmentIds.includes('dep-eng'));
   assert.ok(head.departmentIds.includes('dep-ops'));
   assert.equal(state.departments.find((department) => department.id === 'dep-eng').headId, HEAD);
