@@ -17,6 +17,7 @@ export interface Employee {
   initials: string;
   title: string;
   departmentId: string;
+  departmentIds?: string[];
   role: Role;
   email: string;
   active: boolean;
@@ -173,6 +174,7 @@ export interface FulfillmentContact {
 
 export interface DisenchantReport {
   id: string;
+  departmentId: string;
   reportMonth: string;
   rangeStartedAt: string | null;
   rangeEndedAt: string;

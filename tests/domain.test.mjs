@@ -683,6 +683,28 @@ test('Employee directory supports multiple active coordinators', async () => {
     ['emp-sam'],
   );
 });
+test('Employees can belong to multiple departments and one Head can lead each of them', async () => {
+  const initial = await snapshot();
+  const operations = initial.departments.find((department) => department.id === 'dep-ops');
+  await sparkService.saveReference(ADMIN, {
+    kind: 'departments',
+    data: { ...operations, headId: HEAD },
+  });
+  const employee = await addEmployee({
+    departmentId: 'dep-eng',
+    departmentIds: ['dep-eng', 'dep-ops', 'dep-eng'],
+  });
+  const state = await snapshot();
+  const saved = state.employees.find((entry) => entry.id === employee.id);
+  const head = state.employees.find((entry) => entry.id === HEAD);
+
+  assert.deepEqual(saved.departmentIds, ['dep-eng', 'dep-ops']);
+  assert.ok(head.departmentIds.includes('dep-eng'));
+  assert.ok(head.departmentIds.includes('dep-ops'));
+  assert.equal(state.departments.find((department) => department.id === 'dep-eng').headId, HEAD);
+  assert.equal(state.departments.find((department) => department.id === 'dep-ops').headId, HEAD);
+  assert.equal(selectTeamMembers(state, HEAD, 'Head').some((entry) => entry.id === employee.id), true);
+});
 test('Employees can be deleted while immutable history is preserved', async () => {
   const removable = await addEmployee();
   const removed = await sparkService.deleteEmployee(ADMIN, removable.id);

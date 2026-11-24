@@ -2940,7 +2940,8 @@
   font-size: 0.8125rem;
   font-weight: 700;
 }
-.reportControls input {
+.reportControls input,
+.reportControls select {
   min-height: 2.65rem;
   padding: 0 0.75rem;
   border: 1px solid var(--control-border);
@@ -2949,7 +2950,8 @@
   background: var(--control-bg);
   color-scheme: dark;
 }
-.reportControls input:focus-visible {
+.reportControls input:focus-visible,
+.reportControls select:focus-visible {
   border-color: var(--focus);
   outline: 3px solid var(--focus);
   outline-offset: 2px;

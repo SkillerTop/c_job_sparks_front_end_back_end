@@ -24,6 +24,7 @@ export interface AuthenticatedPrincipal {
   email: string;
   role: Role;
   departmentId: string;
+  departmentIds?: string[];
   sessionId: string;
 }
 

@@ -12,9 +12,17 @@ export const requireOwnEmployee = (principal: AuthenticatedPrincipal, employeeId
 };
 
 export const requireDepartmentScope = (principal: AuthenticatedPrincipal, departmentId: string) => {
-  if (principal.role !== 'Head' || principal.departmentId !== departmentId)
+  if (principal.role !== 'Head' || !departmentScopeIds(principal).includes(departmentId))
     throw forbidden('This record is outside your department.');
 };
+
+export const departmentScopeIds = (principal: AuthenticatedPrincipal) => {
+  const explicit = (principal.departmentIds ?? []).filter(Boolean);
+  return [...new Set(explicit.length ? explicit : [principal.departmentId])];
+};
+
+export const hasDepartmentScope = (principal: AuthenticatedPrincipal, departmentId: string) =>
+  departmentScopeIds(principal).includes(departmentId);
 
 export const isBusinessRole = (role: Role) => role !== 'Administrator';
 

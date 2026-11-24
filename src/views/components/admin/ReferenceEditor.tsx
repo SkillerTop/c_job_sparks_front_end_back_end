@@ -125,7 +125,10 @@ export function ReferenceEditor({
                 </span>
                 <SelectField
                   value={draft.data.departmentId}
-                  onChange={(value) => update('departmentId', value)}
+                   onChange={(value) => {
+                     update('departmentId', value);
+                     update('departmentIds', [...new Set([value, ...(draft.data.departmentIds ?? [])])].filter(Boolean));
+                   }}
                   options={[
                     { value: '', label: 'Choose department' },
                     ...snapshot.departments.map((department) => ({
@@ -137,6 +140,36 @@ export function ReferenceEditor({
                   required
                 />
               </label>
+               <fieldset className={`${styles.formField} ${styles.fieldFull}`}>
+                 <legend><LocalizedText>Department memberships</LocalizedText></legend>
+                 <small><LocalizedText>Choose every department this employee belongs to. The primary department remains selected above.</LocalizedText></small>
+                 <div className={styles.multiCheckGrid}>
+                   {snapshot.departments.map((department) => {
+                     const checked = (draft.data.departmentIds ?? [draft.data.departmentId]).includes(department.id);
+                     const primary = draft.data.departmentId === department.id;
+                     return (
+                       <label className={styles.coordinatorOption} key={department.id}>
+                         <input
+                           type="checkbox"
+                           checked={checked || primary}
+                           disabled={primary}
+                           onChange={(event) => {
+                             const current = draft.data.departmentIds ?? [draft.data.departmentId];
+                             update('departmentIds', event.target.checked
+                               ? [...new Set([...current, department.id])]
+                               : current.filter((id) => id !== department.id));
+                           }}
+                         />
+                         <span className={styles.coordinatorIdentity}>
+                           <strong>{department.name}</strong>
+                           <small><LocalizedText>{department.active ? 'Active department' : 'Inactive department'}</LocalizedText></small>
+                         </span>
+                         {primary ? <span className={styles.coordinatorRole}><LocalizedText>Primary</LocalizedText></span> : null}
+                       </label>
+                     );
+                   })}
+                 </div>
+               </fieldset>
               <label className={styles.formField}>
                 <span><LocalizedText>Business role</LocalizedText></span>
                 <SelectField
@@ -212,17 +245,12 @@ export function ReferenceEditor({
                 options={[
                   { value: '', label: 'Not assigned yet' },
                   ...snapshot.employees
-                    .filter(
-                      (employee) =>
-                        employee.role === 'Head' &&
-                        employee.active &&
-                        employee.departmentId === draft.data.id,
-                    )
+                    .filter((employee) => employee.role === 'Head' && employee.active)
                     .map((employee) => ({ value: employee.id, label: employee.name })),
                 ]}
                 ariaLabel="Department head"
               />
-              <small><LocalizedText>Create the department, assign a Head employee to it, then select them here.</LocalizedText></small>
+              <small><LocalizedText>The same active Head can lead more than one department.</LocalizedText></small>
             </label>
           )}
           {draft.kind === 'categories' && (

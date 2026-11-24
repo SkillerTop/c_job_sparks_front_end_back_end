@@ -42,7 +42,7 @@ interface SparkContextValue {
   cancelDisenchantRequest: (requestId: string, reason: string) => Promise<void>;
   exportDisenchantRequests: (requestIds: string[], exportReference: string) => Promise<{ fileName: string; csv: string }>;
   markDisenchantPaid: (requestId: string) => Promise<void>;
-  createMonthlyDisenchantReport: (reportMonth: string) => Promise<DisenchantReportResult>;
+  createMonthlyDisenchantReport: (reportMonth: string, departmentId?: string) => Promise<DisenchantReportResult>;
   toggleQualityGate: (employeeId: string, input?: QualityGateInput) => Promise<void>;
   previewImport: (kind: 'KPI' | 'Evaluation', quarter: string, file: File) => Promise<ImportPreview>;
   confirmImport: (preview: ImportPreview, replace: boolean) => Promise<void>;
@@ -275,9 +275,9 @@ export function SparkProvider({ children }: { children: ReactNode }) {
     executeAuthorized(async () =>
       updateSnapshot(await sparkService.markDisenchantPaid(currentUserId, requestId)),
     );
-  const createMonthlyDisenchantReport = (reportMonth: string) =>
+  const createMonthlyDisenchantReport = (reportMonth: string, departmentId?: string) =>
     executeAuthorized(async () => {
-      const result = await sparkService.createMonthlyDisenchantReport(currentUserId, reportMonth);
+      const result = await sparkService.createMonthlyDisenchantReport(currentUserId, reportMonth, departmentId);
       updateSnapshot(result.snapshot);
       return result.report;
     });

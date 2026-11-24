@@ -27,7 +27,8 @@ export function useRecognitionController() {
         employee.active &&
         employee.id !== currentUserId &&
         ['Employee', 'Coordinator', 'GPM'].includes(employee.role) &&
-        (activeRole !== 'Coordinator' || !activeDepartmentId || employee.departmentId === activeDepartmentId),
+        (activeRole !== 'Coordinator' || !activeDepartmentId ||
+          (employee.departmentIds ?? [employee.departmentId]).includes(activeDepartmentId)),
     );
   }, [snapshot, currentUserId, activeRole, activeDepartmentId]);
   const requestedRecipient = searchParams.get('recipient');
@@ -35,8 +36,9 @@ export function useRecognitionController() {
     if (!requestedRecipient || !snapshot) return;
     const requested = snapshot.employees.find((employee) => employee.id === requestedRecipient && employee.active);
     if (!requested || !['Employee', 'Coordinator', 'GPM'].includes(requested.role)) return;
-    if (activeRole === 'Coordinator' && requested.departmentId !== activeDepartmentId)
-      setDepartmentId(requested.departmentId);
+    if (activeRole === 'Coordinator' &&
+      !(requested.departmentIds ?? [requested.departmentId]).includes(activeDepartmentId))
+      setDepartmentId(requested.departmentIds?.[0] ?? requested.departmentId);
     if (!recipients.some((employee) => employee.id === requestedRecipient) && activeRole !== 'Coordinator') return;
     setForm((current) =>
       current.recipientId ? current : { ...current, recipientId: requestedRecipient },

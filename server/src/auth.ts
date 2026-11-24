@@ -22,6 +22,7 @@ interface PrincipalRow {
   last_name: string;
   title: string | null;
   department_id: string;
+  department_ids: string[] | null;
   role: Role;
   expires_at: Date | string;
 }
@@ -29,7 +30,17 @@ interface PrincipalRow {
 const principalQuery = `
   SELECT s.id AS session_id, u.id AS user_id, u.email::text, u.auth_provider, u.account_status,
          e.id AS employee_id, e.display_name, e.first_name, e.last_name,
-         pos.title, e.department_id, r.code AS role, s.expires_at
+         pos.title, e.department_id,
+         CASE WHEN r.code='Head' THEN
+           ARRAY(SELECT department.id::text FROM app.departments department
+             WHERE department.head_employee_id=e.id AND department.is_active
+             ORDER BY department.name,department.id)
+         ELSE
+           ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
+             WHERE membership.employee_id=e.id
+             ORDER BY membership.is_primary DESC,membership.assigned_at,membership.department_id)
+         END AS department_ids,
+         r.code AS role, s.expires_at
     FROM app.sessions s
     JOIN app.users u ON u.id=s.user_id
     JOIN app.employees e ON e.user_id=u.id AND e.is_active
@@ -60,6 +71,7 @@ export const authenticate = async (pool: Pool, request: FastifyRequest, cookieNa
     email: row.email,
     role: row.role,
     departmentId: row.department_id,
+    departmentIds: row.department_ids?.length ? row.department_ids : [row.department_id],
     sessionId: row.session_id,
   };
   if (Math.random() < 0.05)
@@ -83,6 +95,7 @@ export const publicUser = async (db: Pool | PoolClient, userId: string) => {
     initials: `${row.first_name[0] ?? ''}${row.last_name[0] ?? ''}`.toUpperCase(),
     title: row.title ?? '',
     departmentId: row.department_id,
+    departmentIds: row.department_ids?.length ? row.department_ids : [row.department_id],
     role: row.role,
     authProvider: row.auth_provider,
   };

@@ -32,6 +32,16 @@ export function TeamPage() {
   const reducedMotion = useReducedMotion();
   const canPeerRecognize = activeRole !== 'Head';
   const current = snapshot!.employees.find((item) => item.id === currentUserId)!;
+  const headedDepartmentIds = snapshot!.departments
+    .filter((department) => department.active && department.headId === currentUserId)
+    .map((department) => department.id);
+  const currentDepartmentIds = activeRole === 'Head' && headedDepartmentIds.length
+    ? headedDepartmentIds
+    : (current.departmentIds ?? [current.departmentId]);
+  const currentDepartmentSet = new Set(currentDepartmentIds);
+  const [reportDepartmentId, setReportDepartmentId] = useState(
+    currentDepartmentIds.includes(current.departmentId) ? current.departmentId : currentDepartmentIds[0]!,
+  );
   const members = useMemo(
     () =>
       selectTeamMembers(snapshot!, currentUserId, activeRole).filter(
@@ -46,9 +56,11 @@ export function TeamPage() {
       (gate) => gate.employeeId === id && gate.status === 'Active' && gate.endDate >= todayIso(),
     );
   const accounting = snapshot!.disenchantRequests.filter(
-    (request) => request.departmentId === current.departmentId,
+    (request) => request.departmentId === reportDepartmentId,
   ).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const selectedMonthReport = snapshot!.disenchantReports.find((report) => report.reportMonth === reportMonth);
+  const selectedMonthReport = snapshot!.disenchantReports.find(
+    (report) => report.reportMonth === reportMonth && report.departmentId === reportDepartmentId,
+  );
   const reportableCount = accounting.filter(
     (request) => request.status !== 'Cancelled' && request.createdAt.slice(0, 7) === reportMonth,
   ).length;
@@ -56,7 +68,7 @@ export function TeamPage() {
     setCreatingReport(true);
     setReportError('');
     try {
-      const report = await createMonthlyDisenchantReport(reportMonth);
+      const report = await createMonthlyDisenchantReport(reportMonth, reportDepartmentId);
       const url = URL.createObjectURL(new Blob([report.csv], { type: 'text/csv;charset=utf-8' }));
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -73,7 +85,8 @@ export function TeamPage() {
   const departmentGates = snapshot!.qualityGates
     .filter((gate) =>
       snapshot!.employees.some(
-        (employee) => employee.id === gate.employeeId && employee.departmentId === current.departmentId,
+        (employee) => employee.id === gate.employeeId &&
+          (employee.departmentIds ?? [employee.departmentId]).some((id) => currentDepartmentSet.has(id)),
       ),
     )
     .sort((a, b) => b.startDate.localeCompare(a.startDate));
@@ -138,7 +151,12 @@ export function TeamPage() {
                   <div className={styles.personIdentity}>
                     <h2>{member.name}</h2>
                     <p>{member.title}</p>
-                    <span>{snapshot!.departments.find((item) => item.id === member.departmentId)?.name}</span>
+                    <span>
+                      {(member.departmentIds ?? [member.departmentId])
+                        .map((departmentId) => snapshot!.departments.find((item) => item.id === departmentId)?.name)
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
                   </div>
                   <div className={styles.personCardControls}>
                     <StatusBadge status={activeGate ? 'Blocked' : gate ? 'Scheduled' : 'Available'} />
@@ -275,11 +293,30 @@ export function TeamPage() {
               <div>
                 <p className={styles.eyebrow}>
                   <LocalizedText>Monthly accounting ·</LocalizedText>{' '}
-                  {snapshot!.departments.find((item) => item.id === current.departmentId)?.name}
+                  {snapshot!.departments.find((item) => item.id === reportDepartmentId)?.name}
                 </p>
                 <h2><LocalizedText>Disenchant requests</LocalizedText></h2>
               </div>
               <div className={styles.reportControls}>
+                {currentDepartmentIds.length > 1 && (
+                  <label>
+                    <span><LocalizedText>Department</LocalizedText></span>
+                    <select
+                      value={reportDepartmentId}
+                      onChange={(event) => {
+                        setReportDepartmentId(event.target.value);
+                        setReportError('');
+                        setMessage('');
+                      }}
+                    >
+                      {currentDepartmentIds.map((departmentId) => (
+                        <option key={departmentId} value={departmentId}>
+                          {snapshot!.departments.find((item) => item.id === departmentId)?.name ?? departmentId}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <label>
                   <span><LocalizedText>Report month</LocalizedText></span>
                   <input

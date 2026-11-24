@@ -51,6 +51,8 @@ const sameUser = (current: AuthUser | null, next: AuthUser | null) =>
     current.initials === next.initials &&
     current.title === next.title &&
     current.departmentId === next.departmentId &&
+    JSON.stringify(current.departmentIds ?? [current.departmentId]) ===
+      JSON.stringify(next.departmentIds ?? [next.departmentId]) &&
     current.role === next.role &&
     current.authProvider === next.authProvider);
 

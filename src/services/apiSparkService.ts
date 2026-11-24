@@ -191,8 +191,11 @@ export const apiSparkService = {
     return workspace();
   },
 
-  async createMonthlyDisenchantReport(_actorId: string, reportMonth: string) {
-    const report = await mutation<DisenchantReportResult>('/api/v1/department/disenchant-reports', { reportMonth });
+  async createMonthlyDisenchantReport(_actorId: string, reportMonth: string, departmentId?: string) {
+    const report = await mutation<DisenchantReportResult>('/api/v1/department/disenchant-reports', {
+      reportMonth,
+      ...(departmentId ? { departmentId } : {}),
+    });
     return { report, snapshot: await workspace() };
   },
 

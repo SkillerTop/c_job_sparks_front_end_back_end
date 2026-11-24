@@ -288,6 +288,7 @@ export const createMonthlyDisenchantReport = async (
   ];
   const result = {
     id: report.id,
+    departmentId: principal.departmentId,
     reportMonth: requestedMonth,
     rangeStartedAt: iso(report.range_started_at),
     rangeEndedAt: iso(report.range_ended_at),
@@ -315,6 +316,7 @@ export const listDepartmentDisenchantReports = async (db: Db, departmentId: stri
     WHERE report.department_id=$1 GROUP BY report.id ORDER BY report.report_month DESC`, [departmentId]))
     .map((report) => ({
       id: report.id,
+      departmentId: report.department_id,
       reportMonth: dateOnly(report.report_month).slice(0, 7),
       rangeStartedAt: iso(report.range_started_at),
       rangeEndedAt: iso(report.range_ended_at),

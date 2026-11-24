@@ -23,7 +23,10 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
   const [employeesRaw, departmentsRaw, balanceRows, pending, rule, activeEffectsRaw] = await inSequence([
     () => rows<any>(db, `
       SELECT e.id,e.display_name,e.first_name,e.last_name,COALESCE(position.title,'') AS title,
-             e.department_id,COALESCE(active_role.code,e.provisioned_role_code) AS role,
+             e.department_id,
+             ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
+               WHERE membership.employee_id=e.id ORDER BY membership.is_primary DESC,membership.assigned_at) AS department_ids,
+             COALESCE(active_role.code,e.provisioned_role_code) AS role,
              COALESCE(e.contact_email,account_user.email)::text AS email,e.is_active,e.manager_employee_id,
              microsoft_identity.claims#>>'{manager,displayName}' AS microsoft_manager_name,
              microsoft_identity.claims#>>'{manager,email}' AS microsoft_manager_email,
@@ -46,17 +49,17 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
         ) active_role ON true
        WHERE e.id=$1 OR e.id=(SELECT manager_employee_id FROM app.employees WHERE id=$1)
        ORDER BY (e.id=$1) DESC,e.display_name`, [principal.employeeId]),
-    () => rows<any>(db, `SELECT id,name,head_employee_id,is_active FROM app.departments WHERE id=$1`,
-      [principal.departmentId]),
+    () => rows<any>(db, `SELECT id,name,head_employee_id,is_active FROM app.departments WHERE id=ANY($1::uuid[])`,
+      [principal.departmentIds ?? [principal.departmentId]]),
     () => rows<any>(db, `SELECT spark_type,balance FROM app.spark_accounts WHERE employee_id=$1`,
       [principal.employeeId]),
     () => rows<any>(db, `SELECT
-      (SELECT count(*)::int FROM app.recognitions WHERE status='Pending' AND recipient_department_id=$1) +
-      (SELECT count(*)::int FROM app.award_requests WHERE status='Pending' AND recipient_department_id=$1)
+      (SELECT count(*)::int FROM app.recognitions WHERE status='Pending' AND recipient_department_id=ANY($1::uuid[])) +
+      (SELECT count(*)::int FROM app.award_requests WHERE status='Pending' AND recipient_department_id=ANY($1::uuid[]))
         AS pending_approvals,
       (SELECT count(*)::int FROM app.disenchant_requests
-        WHERE status IN ('Created','Exported') AND department_id=$1) AS pending_disenchant`,
-      [principal.departmentId]),
+        WHERE status IN ('Created','Exported') AND department_id=ANY($1::uuid[])) AS pending_disenchant`,
+      [principal.departmentIds ?? [principal.departmentId]]),
     () => effectiveRuleSet(db),
     () => rows<{ effect_code: string }>(db, `SELECT DISTINCT effect_code FROM app.effect_grants
       WHERE employee_id=$1 AND revoked_at IS NULL AND starts_at<=clock_timestamp()
@@ -78,6 +81,9 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
       initials: `${row.first_name?.[0] ?? ''}${row.last_name?.[0] ?? ''}`.toUpperCase(),
       title: row.title,
       departmentId: row.department_id,
+      departmentIds: row.id === principal.employeeId && principal.role === 'Head'
+        ? (principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId])
+        : (row.department_ids?.length ? row.department_ids : [row.department_id]),
       role: row.role ?? 'Employee',
       email: row.email ?? '',
       active: row.is_active,
@@ -180,7 +186,10 @@ export const buildWorkspace = async (
         ) v ON true ORDER BY c.spark_type, v.name`) : Promise.resolve([]),
     () => include('directory') ? rows<any>(db, `
       SELECT e.id, e.display_name, e.first_name, e.last_name, COALESCE(pos.title,'') AS title,
-             e.department_id, COALESCE(role.code,e.provisioned_role_code) AS role, COALESCE(e.contact_email,u.email)::text AS email,
+             e.department_id,
+             ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
+               WHERE membership.employee_id=e.id ORDER BY membership.is_primary DESC,membership.assigned_at) AS department_ids,
+             COALESCE(role.code,e.provisioned_role_code) AS role, COALESCE(e.contact_email,u.email)::text AS email,
              e.is_active, e.manager_employee_id,
              microsoft_identity.claims#>>'{manager,displayName}' AS microsoft_manager_name,
              microsoft_identity.claims#>>'{manager,email}' AS microsoft_manager_email,
@@ -201,16 +210,16 @@ export const buildWorkspace = async (
        WHERE e.is_active AND ($2 OR e.id=$1 OR e.id=(SELECT manager_employee_id FROM app.employees WHERE id=$1))
        ORDER BY e.display_name`, [principal.employeeId, wideDirectory]) : Promise.resolve([]),
     () => include('directory') ? rows<any>(db, `SELECT id,name,head_employee_id,is_active FROM app.departments
-      WHERE $1 OR id=$2 ORDER BY name`, [wideDirectory, principal.departmentId]) : Promise.resolve([]),
+      WHERE $1 OR id=ANY($2::uuid[]) ORDER BY name`, [wideDirectory, principal.departmentIds ?? [principal.departmentId]]) : Promise.resolve([]),
     () => include('projects') ? rows<any>(db, `
       SELECT p.id, p.name, COALESCE(team.gpm_employee_id,p.manager_employee_id) AS gpm_id,
              p.is_active, member.employee_id, COALESCE(member.member_role,'Member') AS responsibility,
              member.worked_hours
         FROM app.projects p LEFT JOIN app.project_teams team ON team.project_id=p.id AND team.is_active
         LEFT JOIN app.project_members member ON member.project_id=p.id AND member.is_active
-       WHERE $1='Administrator' OR p.department_id=$2 OR p.manager_employee_id=$3
+       WHERE $1='Administrator' OR p.department_id=ANY($2::uuid[]) OR p.manager_employee_id=$3
           OR team.gpm_employee_id=$3 OR member.employee_id=$3
-       ORDER BY p.name`, [principal.role, principal.departmentId, principal.employeeId]) : Promise.resolve([]),
+       ORDER BY p.name`, [principal.role, principal.departmentIds ?? [principal.departmentId], principal.employeeId]) : Promise.resolve([]),
     () => include('transactions') ? rows<any>(db, `
       SELECT le.id::text, sa.employee_id, e.department_id, le.occurred_at, sa.spark_type,
              le.amount, le.entry_kind, COALESCE(op.source_type,le.source_type,'System') AS source,
@@ -251,34 +260,35 @@ export const buildWorkspace = async (
        GROUP BY owner_employee_id`) : Promise.resolve([]),
     () => include('departmentBalances') && principal.role === 'Head'
       ? rows<any>(db, `
-          SELECT employee.id AS employee_id, spark_type.value AS spark_type, COALESCE(account.balance,0) AS balance
+          SELECT DISTINCT employee.id AS employee_id, spark_type.value AS spark_type, COALESCE(account.balance,0) AS balance
             FROM app.employees employee
+            JOIN app.employee_departments membership ON membership.employee_id=employee.id
             CROSS JOIN unnest(ARRAY['White','Yellow','Blue','Radiant']::text[]) AS spark_type(value)
             LEFT JOIN app.spark_accounts account
               ON account.employee_id=employee.id AND account.spark_type=spark_type.value
-           WHERE employee.department_id=$1 AND employee.is_active
-           ORDER BY employee.id, spark_type.value`, [principal.departmentId])
+           WHERE membership.department_id=ANY($1::uuid[]) AND employee.is_active
+           ORDER BY employee.id, spark_type.value`, [principal.departmentIds ?? [principal.departmentId]])
       : Promise.resolve([]),
     () => include('recognitions') ? rows<any>(db, `
       SELECT r.*, cv.name AS category, cv.amount, c.id AS category_id
         FROM app.recognitions r JOIN app.spark_category_versions cv ON cv.id=r.category_version_id
         JOIN app.spark_categories c ON c.id=cv.category_id
        WHERE r.nominator_employee_id=$1 OR r.recipient_employee_id=$1
-          OR ($2='Head' AND r.recipient_department_id=$3)
-       ORDER BY r.requested_at DESC LIMIT 200`, [principal.employeeId, principal.role, principal.departmentId]) : Promise.resolve([]),
+          OR ($2='Head' AND r.recipient_department_id=ANY($3::uuid[]))
+       ORDER BY r.requested_at DESC LIMIT 200`, [principal.employeeId, principal.role, principal.departmentIds ?? [principal.departmentId]]) : Promise.resolve([]),
     () => include('awards') ? rows<any>(db, `
       SELECT a.*, COALESCE(cv.name,a.metadata->>'radiantReason',a.spark_type || ' Award') AS category,
              c.id AS category_id
         FROM app.award_requests a LEFT JOIN app.spark_category_versions cv ON cv.id=a.category_version_id
         LEFT JOIN app.spark_categories c ON c.id=cv.category_id
        WHERE a.requested_by_employee_id=$1 OR a.recipient_employee_id=$1
-          OR ($2='Head' AND a.recipient_department_id=$3)
-       ORDER BY a.requested_at DESC LIMIT 200`, [principal.employeeId, principal.role, principal.departmentId]) : Promise.resolve([]),
+          OR ($2='Head' AND a.recipient_department_id=ANY($3::uuid[]))
+       ORDER BY a.requested_at DESC LIMIT 200`, [principal.employeeId, principal.role, principal.departmentIds ?? [principal.departmentId]]) : Promise.resolve([]),
     () => include('gates') ? rows<any>(db, `
       SELECT gate.*, gate.starts_on::text AS starts_on, gate.ends_on::text AS ends_on
         FROM app.quality_gates gate
-       WHERE employee_id=$1 OR ($2='Head' AND department_id=$3)
-       ORDER BY created_at DESC LIMIT 200`, [principal.employeeId, principal.role, principal.departmentId]) : Promise.resolve([]),
+       WHERE employee_id=$1 OR ($2='Head' AND department_id=ANY($3::uuid[]))
+       ORDER BY created_at DESC LIMIT 200`, [principal.employeeId, principal.role, principal.departmentIds ?? [principal.departmentId]]) : Promise.resolve([]),
     () => include('performance') ? rows<any>(db, `SELECT * FROM app.performance_records
       WHERE employee_id=$1 AND status<>'Superseded'
       ORDER BY period_start DESC, created_at DESC LIMIT 200`, [principal.employeeId]) : Promise.resolve([]),
@@ -305,8 +315,9 @@ export const buildWorkspace = async (
       SELECT request.*, employee.display_name AS employee_name
         FROM app.disenchant_requests request
         LEFT JOIN app.employees employee ON employee.id=request.employee_id
-       WHERE request.employee_id=$1 OR ($2='Head' AND request.department_id=$3) OR $2='Administrator'
-       ORDER BY request.created_at DESC LIMIT 200`, [principal.employeeId, principal.role, principal.departmentId]) : Promise.resolve([]),
+       WHERE request.employee_id=$1 OR ($2='Head' AND request.department_id=ANY($3::uuid[])) OR $2='Administrator'
+       ORDER BY request.created_at DESC LIMIT 200`, [principal.employeeId, principal.role,
+        principal.departmentIds ?? [principal.departmentId]]) : Promise.resolve([]),
     () => include('audit') && principal.role === 'Administrator'
       ? rows<any>(db, `SELECT audit.*,COALESCE(actor.display_name,
           CASE WHEN audit.actor_user_id IS NULL THEN 'System' ELSE 'Former user' END) AS actor_name
@@ -321,7 +332,8 @@ export const buildWorkspace = async (
       ? rows<any>(db, `SELECT report.*,count(item.disenchant_request_id)::int AS item_count,
           COALESCE(sum(item.money_amount),0)::numeric(18,2) AS money_total
           FROM app.disenchant_reports report LEFT JOIN app.disenchant_report_items item ON item.report_id=report.id
-          WHERE report.department_id=$1 GROUP BY report.id ORDER BY report.report_month DESC LIMIT 120`, [principal.departmentId])
+          WHERE report.department_id=ANY($1::uuid[]) GROUP BY report.id ORDER BY report.report_month DESC LIMIT 120`,
+        [principal.departmentIds ?? [principal.departmentId]])
       : Promise.resolve([]),
     () => include('effects') ? rows<{ effect_code: string }>(db, `
       SELECT DISTINCT effect_code
@@ -370,6 +382,9 @@ export const buildWorkspace = async (
       initials: `${row.first_name?.[0] ?? ''}${row.last_name?.[0] ?? ''}`.toUpperCase(),
       title: row.title,
       departmentId: row.department_id,
+      departmentIds: row.id === principal.employeeId && principal.role === 'Head'
+        ? (principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId])
+        : (row.department_ids?.length ? row.department_ids : [row.department_id]),
       role: row.role ?? 'Employee',
       email: row.email ?? '',
       active: row.is_active,
@@ -494,6 +509,7 @@ export const buildWorkspace = async (
     })),
     disenchantReports: disenchantReportsRaw.map((row) => ({
       id: row.id,
+      departmentId: row.department_id,
       reportMonth: dateOnly(row.report_month).slice(0, 7),
       rangeStartedAt: row.range_started_at ? date(row.range_started_at) : null,
       rangeEndedAt: date(row.range_ended_at),

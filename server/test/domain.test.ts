@@ -21,6 +21,7 @@ import {
   performanceThresholdsFromConfiguration,
 } from '../src/performance-rules.js';
 import { SEED_CATEGORY_CATALOG } from '../src/category-catalog.js';
+import { departmentScopeIds, hasDepartmentScope } from '../src/authorization.js';
 
 const rules: EffectiveRuleSet = {
   currentQuarter: 'Q4 2026',
@@ -77,6 +78,23 @@ test('personal economy and shop access follow the role policy', () => {
   assert.equal(canPurchase('Office Manager'), false);
   assert.equal(hasFullPersonalLedger('Coordinator'), true);
   assert.equal(hasFullPersonalLedger('Head'), false);
+});
+
+test('department authorization accepts every explicit Head scope without widening it to the primary membership', () => {
+  const principal = {
+    userId: 'user-head',
+    accountId: 'user-head',
+    employeeId: 'employee-head',
+    email: 'head@example.test',
+    role: 'Head' as const,
+    departmentId: 'department-primary',
+    departmentIds: ['department-one', 'department-two'],
+    sessionId: 'session-head',
+  };
+  assert.deepEqual(departmentScopeIds(principal), ['department-one', 'department-two']);
+  assert.equal(hasDepartmentScope(principal, 'department-one'), true);
+  assert.equal(hasDepartmentScope(principal, 'department-two'), true);
+  assert.equal(hasDepartmentScope(principal, 'department-primary'), false);
 });
 
 test('quarters use UTC calendar boundaries', () => {

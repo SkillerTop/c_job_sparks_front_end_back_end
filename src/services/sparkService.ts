@@ -821,15 +821,26 @@ const demoSparkService = {
     return clone();
   },
 
-  async createMonthlyDisenchantReport(actorId: string, reportMonth: string) {
+  async createMonthlyDisenchantReport(actorId: string, reportMonth: string, requestedDepartmentId?: string) {
     await wait();
     const actor = requireActor(actorId, ['Head']);
+    const headedDepartmentIds = database.departments
+      .filter((department) => department.active && department.headId === actorId)
+      .map((department) => department.id);
+    const departmentIds = headedDepartmentIds.length
+      ? headedDepartmentIds
+      : (actor.departmentIds ?? [actor.departmentId]);
+    const departmentId = requestedDepartmentId ?? actor.departmentId;
+    if (!departmentIds.includes(departmentId))
+      throw new Error('This department is outside your scope.');
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(reportMonth)) throw new Error('Choose a valid report month.');
     if (reportMonth > new Date().toISOString().slice(0, 7))
       throw new Error('A Disenchant report cannot be created for a future month.');
-    const existingReport = database.disenchantReports.find((report) => report.reportMonth === reportMonth);
+    const existingReport = database.disenchantReports.find(
+      (report) => report.reportMonth === reportMonth && report.departmentId === departmentId,
+    );
     const selected = database.disenchantRequests.filter(
-      (request) => request.departmentId === actor.departmentId && request.status !== 'Cancelled' &&
+      (request) => request.departmentId === departmentId && request.status !== 'Cancelled' &&
         request.createdAt.slice(0, 7) === reportMonth,
     );
     if (!selected.length) throw new Error('There are no Disenchant requests for the selected month.');
@@ -849,7 +860,7 @@ const demoSparkService = {
     const lines = [...grouped.values()];
     const createdAt = new Date().toISOString();
     const moneyTotal = lines.reduce((sum, line) => sum + line.moneyAmount, 0);
-    const report = existingReport ?? { id: makeId('dis-report'), reportMonth,
+    const report = existingReport ?? { id: makeId('dis-report'), departmentId, reportMonth,
       rangeStartedAt: `${reportMonth}-01T00:00:00.000Z`, rangeEndedAt: createdAt,
       status: 'Created' as const, itemCount: selected.length, moneyTotal, createdAt };
     report.rangeEndedAt = createdAt;
@@ -860,7 +871,7 @@ const demoSparkService = {
     const csvCell = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
     const csvRows = [['Employee','Spark type','Spark amount','Money equivalent','Currency'],
       ...lines.map((line) => [line.employeeName,line.sparkType,line.sparkAmount,line.moneyAmount.toFixed(2),line.currency])];
-    return { report: { ...report, lines, fileName: `disenchant-${reportMonth}.csv`,
+    return { report: { ...report, lines, fileName: `disenchant-${reportMonth}-${departmentId}.csv`,
       csv: `\uFEFF${csvRows.map((row) => row.map(csvCell).join(',')).join('\r\n')}\r\n` }, snapshot: clone() };
   },
 
@@ -1164,9 +1175,10 @@ const demoSparkService = {
     return atomic(() => {
       if (draft.kind === 'employees') {
         const employee = item as AppSnapshot['employees'][number];
-        const department = database.departments.find((entry) => entry.id === employee.departmentId);
-        if (!department || (employee.active && !department.active))
-          throw new Error('Choose an active department.');
+        employee.departmentIds = [...new Set([employee.departmentId, ...(employee.departmentIds ?? [])])];
+        if (employee.departmentIds.some((id) =>
+          !database.departments.some((entry) => entry.id === id && (!employee.active || entry.active))))
+          throw new Error('Choose only active departments.');
         if (!ALL_ROLES.includes(employee.role)) throw new Error('Choose a valid business role.');
         if (!employee.title.trim()) throw new Error('A job title is required.');
         employee.title = employee.title.trim();
@@ -1189,7 +1201,9 @@ const demoSparkService = {
           database.departments.some(
             (entry) =>
               entry.headId === employee.id &&
-              (!employee.active || employee.role !== 'Head' || entry.id !== employee.departmentId),
+              (!employee.active ||
+                employee.role !== 'Head' ||
+                !(employee.departmentIds ?? [employee.departmentId]).includes(entry.id)),
           )
         )
           throw new Error(
@@ -1238,7 +1252,8 @@ const demoSparkService = {
         const department = item as AppSnapshot['departments'][number];
         if (
           !department.active &&
-          database.employees.some((entry) => entry.active && entry.departmentId === department.id)
+          database.employees.some((entry) => entry.active &&
+            (entry.departmentIds ?? [entry.departmentId]).includes(department.id))
         )
           throw new Error('Move or delete this department’s active employees first.');
         if (
@@ -1247,8 +1262,7 @@ const demoSparkService = {
             (entry) =>
               entry.id === department.headId &&
               entry.active &&
-              entry.role === 'Head' &&
-              entry.departmentId === department.id,
+              entry.role === 'Head',
           )
         )
           throw new Error(
@@ -1258,6 +1272,10 @@ const demoSparkService = {
         database.departments = isNew
           ? [...database.departments, department]
           : database.departments.map((entry) => (entry.id === department.id ? department : entry));
+        if (department.headId)
+          database.employees = database.employees.map((employee) => employee.id === department.headId
+            ? { ...employee, departmentIds: [...new Set([...(employee.departmentIds ?? [employee.departmentId]), department.id])] }
+            : employee);
       } else {
         const category = item as AppSnapshot['categories'][number];
         if (!['White', 'Yellow', 'Blue'].includes(category.sparkType))

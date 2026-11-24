@@ -306,6 +306,7 @@ const accountUser = async (
     initials: employee.initials,
     title: employee.title,
     departmentId: employee.departmentId,
+    departmentIds: employee.departmentIds ?? [employee.departmentId],
     role: employee.role,
   };
 };
@@ -594,6 +595,7 @@ const demoAuthService = {
             initials: existingEmployee?.initials ?? '',
             title: employeeInput.title,
             departmentId: employeeInput.departmentId,
+            departmentIds: employeeInput.departmentIds ?? [employeeInput.departmentId],
             role: employeeInput.role,
             email: account.email,
             active: true,

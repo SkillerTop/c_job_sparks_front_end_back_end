@@ -31,6 +31,7 @@ export interface AccessApprovalEmployeeInput {
   name: string;
   title: string;
   departmentId: string;
+  departmentIds?: string[];
   role: Role;
   managerId?: string;
   coordinatorIds?: string[];
@@ -44,6 +45,7 @@ export interface AuthUser {
   initials: string;
   title: string;
   departmentId: string;
+  departmentIds?: string[];
   role: Role;
   authProvider?: 'local' | 'entra';
 }

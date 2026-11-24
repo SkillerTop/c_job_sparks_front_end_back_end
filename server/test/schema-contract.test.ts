@@ -42,6 +42,7 @@ test('the MVP schema is complete and ordered', async () => {
     '0024_task_board.sql',
     '0025_task_board_composite_rewards.sql',
     '0026_task_board_creation_notifications.sql',
+    '0027_employee_departments.sql',
   ]);
   for (const table of [
     'users', 'employees', 'departments', 'roles', 'role_assignments', 'projects', 'project_members',
@@ -53,8 +54,16 @@ test('the MVP schema is complete and ordered', async () => {
     'notifications', 'media_assets', 'audit_events', 'idempotency_keys', 'outbox_events',
     'external_identities', 'microsoft_auth_requests',
     'reward_fulfillment_contacts', 'reward_fulfillments', 'disenchant_reports', 'disenchant_report_items',
-    'employee_coordinators', 'task_board_approval_sessions', 'task_board_tasks', 'task_board_events',
+    'employee_coordinators', 'employee_departments', 'task_board_approval_sessions', 'task_board_tasks', 'task_board_events',
   ]) assert.match(sql, new RegExp(`CREATE TABLE app\\.${table}\\s*\\(`));
+});
+
+test('employees can belong to multiple departments and keep one primary department', async () => {
+  const migration = await readFile(resolve(migrationsDirectory, '0027_employee_departments.sql'), 'utf8');
+  assert.match(migration, /PRIMARY KEY \(employee_id, department_id\)/);
+  assert.match(migration, /employee_departments_one_primary_idx/);
+  assert.match(migration, /WHERE head_employee_id IS NOT NULL/);
+  assert.match(migration, /ON CONFLICT \(employee_id, department_id\) DO NOTHING/);
 });
 
 test('Task Board schema enforces approval, state, audit and single-credit invariants', async () => {

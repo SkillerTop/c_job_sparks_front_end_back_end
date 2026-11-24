@@ -61,11 +61,13 @@ export function RegistrationManager() {
     setSelected(account);
     setDecision(nextDecision);
     setReason('');
+    const primaryDepartmentId = employee?.departmentId ?? account.requestedDepartmentId ??
+      snapshot!.departments.find((department) => department.active)?.id ?? '';
     setEmployeeProfile({
       name: employee?.name ?? suggestedName,
       title: employee?.title?.trim() || account.suggestedJobTitle || '',
-      departmentId: employee?.departmentId ?? account.requestedDepartmentId ??
-        snapshot!.departments.find((department) => department.active)?.id ?? '',
+      departmentId: primaryDepartmentId,
+      departmentIds: employee?.departmentIds ?? (primaryDepartmentId ? [primaryDepartmentId] : []),
       role: employee?.role ?? account.suggestedRole ?? 'Employee',
       managerId: employee?.managerId ?? account.suggestedManagerId ?? '',
       coordinatorIds: employee?.coordinatorIds ?? [],
@@ -275,7 +277,11 @@ export function RegistrationManager() {
                 <SelectField
                   value={employeeProfile?.departmentId ?? ''}
                   disabled={processing}
-                  onChange={(value) => setEmployeeProfile((current) => current ? { ...current, departmentId: value } : current)}
+                  onChange={(value) => setEmployeeProfile((current) => current ? {
+                    ...current,
+                    departmentId: value,
+                    departmentIds: [...new Set([value, ...(current.departmentIds ?? [])])].filter(Boolean),
+                  } : current)}
                   options={[
                     { value: '', label: 'Choose department' },
                     ...snapshot!.departments.filter((department) => department.active)
@@ -288,6 +294,33 @@ export function RegistrationManager() {
                   <small><LocalizedText>Microsoft department: </LocalizedText>{selected.suggestedDepartmentName}</small>
                 )}
               </label>
+              <fieldset className={`${styles.formField} ${styles.fieldFull}`}>
+                <legend><LocalizedText>Department memberships</LocalizedText></legend>
+                <small><LocalizedText>Choose every department this employee belongs to.</LocalizedText></small>
+                <div className={styles.multiCheckGrid}>
+                  {snapshot!.departments.filter((department) => department.active).map((department) => {
+                    const primary = employeeProfile?.departmentId === department.id;
+                    const checked = (employeeProfile?.departmentIds ?? []).includes(department.id);
+                    return (
+                      <label className={styles.coordinatorOption} key={department.id}>
+                        <input
+                          type="checkbox"
+                          checked={checked || primary}
+                          disabled={processing || primary}
+                          onChange={(event) => setEmployeeProfile((current) => current ? {
+                            ...current,
+                            departmentIds: event.target.checked
+                              ? [...new Set([...(current.departmentIds ?? []), department.id])]
+                              : (current.departmentIds ?? []).filter((id) => id !== department.id),
+                          } : current)}
+                        />
+                        <span className={styles.coordinatorIdentity}><strong>{department.name}</strong></span>
+                        {primary ? <span className={styles.coordinatorRole}><LocalizedText>Primary</LocalizedText></span> : null}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
               <label className={styles.formField}>
                 <span><LocalizedText>Business role </LocalizedText><b>*</b></span>
                 <SelectField

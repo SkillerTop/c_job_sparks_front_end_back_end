@@ -22,9 +22,16 @@ interface CategoryRow {
 interface EmployeeRow {
   id: string;
   department_id: string;
+  department_ids: string[] | null;
   display_name: string;
   role: Role;
 }
+
+const employeeDepartmentIds = (employee: EmployeeRow) =>
+  employee.department_ids?.length ? employee.department_ids : [employee.department_id];
+
+const principalDepartmentIds = (principal: AuthenticatedPrincipal) =>
+  principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId];
 
 const activeCategory = async (db: PoolClient, categoryId: string, usageTypes: string[]) => {
   const result = await db.query<CategoryRow>(
@@ -47,7 +54,10 @@ const activeCategory = async (db: PoolClient, categoryId: string, usageTypes: st
 
 const employeeWithRole = async (db: PoolClient, employeeId: string) => {
   const result = await db.query<EmployeeRow>(
-    `SELECT e.id, e.department_id, e.display_name, role.code AS role
+    `SELECT e.id, e.department_id, e.display_name, role.code AS role,
+            ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
+              WHERE membership.employee_id=e.id
+              ORDER BY membership.is_primary DESC,membership.assigned_at,membership.department_id) AS department_ids
        FROM app.employees e
        JOIN app.users u ON u.id=e.user_id AND u.account_status='Approved'
        JOIN LATERAL (
@@ -212,7 +222,8 @@ export const decideRecognition = async (
   ).catch(() => {
     throw notFound('Recognition');
   });
-  if (recognition.recipient_department_id !== principal.departmentId) throw forbidden('This request is outside your department.');
+  if (!principalDepartmentIds(principal).includes(recognition.recipient_department_id))
+    throw forbidden('This request is outside your departments.');
   if (recognition.status !== 'Pending') throw conflict('ALREADY_DECIDED', 'This recognition is no longer pending.');
   if (decision === 'Rejected') {
     await db.query(
@@ -322,7 +333,8 @@ const canTargetAwardRecipient = async (
   if (recipient.id === principal.employeeId) return false;
   if (principal.role === 'Top Management') return recipient.role !== 'Administrator';
   if (!['Employee', 'Coordinator'].includes(recipient.role)) return false;
-  if (principal.role === 'Head') return recipient.department_id === principal.departmentId;
+  if (principal.role === 'Head')
+    return employeeDepartmentIds(recipient).some((id) => principalDepartmentIds(principal).includes(id));
   if (principal.role === 'Coordinator') {
     const result = await db.query(
       `SELECT 1 FROM app.project_members actor
@@ -367,6 +379,9 @@ export const createAward = async (
   if (allowed.length === 0) throw forbidden();
   const recipient = await employeeWithRole(db, input.recipientId);
   if (!(await canTargetAwardRecipient(db, principal, recipient))) throw forbidden('This employee is outside your award scope.');
+  const recipientDepartmentId = principal.role === 'Head'
+    ? employeeDepartmentIds(recipient).find((id) => principalDepartmentIds(principal).includes(id)) ?? recipient.department_id
+    : recipient.department_id;
   const radiant = principal.role === 'Top Management';
   const category = radiant
     ? null
@@ -393,14 +408,16 @@ export const createAward = async (
   }
   if (category?.code === 'employee-of-year') {
     const departmentSize = await one<{ count: string | number }>(db, `SELECT count(*) AS count FROM app.employees
-      WHERE department_id=$1 AND is_active AND provisioned_role_code<>'Administrator'`, [recipient.department_id]);
+      WHERE EXISTS (SELECT 1 FROM app.employee_departments membership
+        WHERE membership.employee_id=employees.id AND membership.department_id=$1)
+        AND is_active AND provisioned_role_code<>'Administrator'`, [recipientDepartmentId]);
     const quota = Math.floor(Number(departmentSize.count) / 10);
     const used = await one<{ count: string | number }>(db, `SELECT count(*) AS count
       FROM app.quota_reservations reservation JOIN app.award_requests award
         ON reservation.subject_type='Award' AND reservation.subject_id=award.id
       WHERE reservation.category_id=$1 AND award.recipient_department_id=$2
         AND reservation.period_start=$3 AND reservation.status IN ('Reserved','Consumed')`,
-    [category.category_id, recipient.department_id, period.start]);
+    [category.category_id, recipientDepartmentId, period.start]);
     if (Number(used.count) >= quota)
       throw conflict('EMPLOYEE_OF_YEAR_QUOTA',
         `Employee of the Year quota is ${quota} for ${Number(departmentSize.count)} active department employees.`);
@@ -449,7 +466,7 @@ export const createAward = async (
       id,
       principal.employeeId,
       recipient.id,
-      recipient.department_id,
+      recipientDepartmentId,
       category?.category_version_id ?? null,
       sparkType,
       amount,
@@ -562,7 +579,8 @@ export const decideAward = async (
   }>(db, `SELECT * FROM app.award_requests WHERE id=$1 FOR UPDATE`, [awardId]).catch(() => {
     throw notFound('Award request');
   });
-  if (award.recipient_department_id !== principal.departmentId) throw forbidden('This request is outside your department.');
+  if (!principalDepartmentIds(principal).includes(award.recipient_department_id))
+    throw forbidden('This request is outside your departments.');
   if (award.status !== 'Pending') throw conflict('ALREADY_DECIDED', 'This award request is no longer pending.');
   if (decision === 'Rejected') {
     await db.query(
@@ -672,7 +690,10 @@ export const listEligibleRecipients = async (
   purpose: 'recognition' | 'award',
 ) => {
   return rows<EmployeeRow>(db, `
-    SELECT employee.id, employee.department_id, employee.display_name, active_role.code AS role
+    SELECT employee.id, employee.department_id, employee.display_name, active_role.code AS role,
+           ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
+             WHERE membership.employee_id=employee.id
+             ORDER BY membership.is_primary DESC,membership.assigned_at,membership.department_id) AS department_ids
       FROM app.employees employee
       JOIN app.users account_user
         ON account_user.id=employee.user_id
@@ -696,7 +717,11 @@ export const listEligibleRecipients = async (
            ($2='Top Management' AND active_role.code<>'Administrator')
            OR
            (active_role.code=ANY(ARRAY['Employee','Coordinator']::text[]) AND (
-             ($2='Head' AND employee.department_id=$3)
+             ($2='Head' AND EXISTS (
+               SELECT 1 FROM app.employee_departments membership
+                WHERE membership.employee_id=employee.id
+                  AND membership.department_id=ANY($3::uuid[])
+             ))
              OR
              ($2='Coordinator' AND EXISTS (
                SELECT 1
@@ -730,7 +755,7 @@ export const listEligibleRecipients = async (
          ))
        )
      ORDER BY employee.display_name`,
-  [principal.employeeId, principal.role, principal.departmentId, purpose]);
+  [principal.employeeId, principal.role, principalDepartmentIds(principal), purpose]);
 };
 
 export const currentQuarter = () => quarterForDate(new Date());

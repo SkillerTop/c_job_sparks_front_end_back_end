@@ -3,7 +3,8 @@ import type { AppSnapshot, ReferenceDraft } from '@/models';
 export const createReferenceDraft = (kind: ReferenceDraft['kind'], snapshot: AppSnapshot): ReferenceDraft => {
   const base = { id: '', name: '', active: true };
   switch (kind) {
-    case 'employees':
+    case 'employees': {
+      const primaryDepartmentId = snapshot.departments.find((department) => department.active)?.id ?? '';
       return {
         kind,
         data: {
@@ -12,12 +13,14 @@ export const createReferenceDraft = (kind: ReferenceDraft['kind'], snapshot: App
           title: '',
           email: '',
           role: 'Employee',
-          departmentId: snapshot.departments.find((department) => department.active)?.id ?? '',
+          departmentId: primaryDepartmentId,
+          departmentIds: primaryDepartmentId ? [primaryDepartmentId] : [],
           hasCoordinationExperience: false,
           managerId: '',
           coordinatorIds: [],
         },
       };
+    }
     case 'departments':
       return { kind, data: { ...base, headId: '' } };
     case 'categories':

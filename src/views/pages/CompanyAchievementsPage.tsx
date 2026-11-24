@@ -2,7 +2,7 @@ import { CalendarDays, Layers3, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSpark } from '@/controllers/SparkContext';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
-import type { SparkType } from '@/models';
+import type { Employee, SparkType } from '@/models';
 import { EmptyState } from '@/views/components/common/EmptyState';
 import { PageHeader } from '@/views/components/common/PageHeader';
 import { PageTransition } from '@/views/components/common/PageTransition';
@@ -12,6 +12,14 @@ import { formatDate } from '@/utils/formatters';
 import styles from '@/views/styles/app.module.css';
 
 type SparkFilter = 'All' | SparkType;
+
+const employeeDepartmentNames = (
+  employee: Employee,
+  departments: ReadonlyMap<string, { name: string }>,
+) => (employee.departmentIds ?? [employee.departmentId])
+  .map((departmentId) => departments.get(departmentId)?.name)
+  .filter(Boolean)
+  .join(' · ');
 
 export function CompanyAchievementsPage() {
   const { snapshot } = useSpark();
@@ -35,7 +43,7 @@ export function CompanyAchievementsPage() {
         if (!employee || !['Employee', 'Coordinator'].includes(employee.role)) return false;
         if (sparkFilter !== 'All' && achievement.sparkType !== sparkFilter) return false;
         if (!normalizedQuery) return true;
-        const department = departments.get(employee.departmentId)?.name ?? '';
+        const department = employeeDepartmentNames(employee, departments);
         return [
           employee.name,
           employee.title,
@@ -95,7 +103,7 @@ export function CompanyAchievementsPage() {
         <div className={styles.achievementGrid}>
           {achievements.map((achievement) => {
             const employee = employees.get(achievement.employeeId)!;
-            const department = departments.get(employee.departmentId)?.name ?? 'C-Job';
+            const department = employeeDepartmentNames(employee, departments) || 'C-Job';
             const role = employee.role === 'Employee' ? t('companyAchievements.engineer') : t('role.Coordinator');
             return (
               <article

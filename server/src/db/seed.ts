@@ -63,6 +63,9 @@ export const seedDevelopmentData = async (db: PoolClient) => {
        ON CONFLICT DO NOTHING`,
       [userId, role],
     );
+    await db.query(`INSERT INTO app.employee_departments (employee_id,department_id,is_primary)
+      VALUES ($1,$2,true) ON CONFLICT (employee_id,department_id) DO UPDATE SET is_primary=true`,
+    [employeeId, departmentId]);
     await db.query(`INSERT INTO app.user_preferences (user_id) VALUES ($1) ON CONFLICT DO NOTHING`, [userId]);
   }
   await db.query(`UPDATE app.departments SET head_employee_id=$2 WHERE id=$1`, [departments[0][0], people[3][1]]);

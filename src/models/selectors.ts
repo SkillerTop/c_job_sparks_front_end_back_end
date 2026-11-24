@@ -7,6 +7,17 @@ const activeWorkedProjectTeams = (snapshot: AppSnapshot, employeeId: string) =>
       team.members.some((member) => member.employeeId === employeeId && member.workedHours > 0),
   );
 
+const departmentScopeFor = (snapshot: AppSnapshot, actorId: string, role: Role) => {
+  if (role === 'Head') {
+    const headed = snapshot.departments
+      .filter((department) => department.active && department.headId === actorId)
+      .map((department) => department.id);
+    if (headed.length) return new Set(headed);
+  }
+  const actor = snapshot.employees.find((employee) => employee.id === actorId);
+  return new Set(actor?.departmentIds ?? (actor ? [actor.departmentId] : []));
+};
+
 export const selectActiveProjectColleagues = (snapshot: AppSnapshot, employeeId: string) => {
   const colleagueIds = new Set(
     activeWorkedProjectTeams(snapshot, employeeId).flatMap((team) =>
@@ -41,7 +52,7 @@ export const selectGpmControlledCoordinators = (snapshot: AppSnapshot, gpmId: st
 };
 
 export const selectAwardTargets = (snapshot: AppSnapshot, actorId: string, role: Role) => {
-  const actor = snapshot.employees.find((employee) => employee.id === actorId);
+  const actorDepartments = departmentScopeFor(snapshot, actorId, role);
   const activeProjectColleagueIds = new Set(
     role === 'Coordinator'
       ? selectActiveProjectColleagues(snapshot, actorId).map((employee) => employee.id)
@@ -59,27 +70,30 @@ export const selectAwardTargets = (snapshot: AppSnapshot, actorId: string, role:
     if (role === 'Top Management') return true;
     if (!['Employee', 'Coordinator'].includes(employee.role)) return false;
     if (role === 'Coordinator') return activeProjectColleagueIds.has(employee.id);
-    if (role === 'Head') return employee.departmentId === actor?.departmentId;
+    if (role === 'Head') return (employee.departmentIds ?? [employee.departmentId])
+      .some((departmentId) => actorDepartments.has(departmentId));
     if (role === 'GPM') return gpmTeamMemberIds.has(employee.id);
     return false;
   });
 };
 
 export const selectTeamMembers = (snapshot: AppSnapshot, actorId: string, role: Role) => {
-  const actor = snapshot.employees.find((employee) => employee.id === actorId);
+  const actorDepartments = departmentScopeFor(snapshot, actorId, role);
   return snapshot.employees.filter((employee) => {
     if (!employee.active || employee.role === 'Administrator') return false;
-    if (role === 'Head') return employee.departmentId === actor?.departmentId;
+    if (role === 'Head') return (employee.departmentIds ?? [employee.departmentId])
+      .some((departmentId) => actorDepartments.has(departmentId));
     if (role === 'GPM') return true;
     return role === 'Top Management';
   });
 };
 
 export const selectPendingRequests = (snapshot: AppSnapshot, actorId: string, role: Role) => {
-  const actor = snapshot.employees.find((employee) => employee.id === actorId);
+  const actorDepartments = departmentScopeFor(snapshot, actorId, role);
   const inDepartment = (employeeId: string) =>
     snapshot.employees.some(
-      (employee) => employee.id === employeeId && employee.departmentId === actor?.departmentId,
+      (employee) => employee.id === employeeId &&
+        (employee.departmentIds ?? [employee.departmentId]).some((id) => actorDepartments.has(id)),
     );
   if (role === 'Administrator') return { recognitions: [], awards: [] };
   return {
@@ -102,12 +116,12 @@ export const selectPendingDepartmentDisenchantRequests = (
   role: Role,
 ) => {
   if (role !== 'Head') return [];
-  const actor = snapshot.employees.find((employee) => employee.id === actorId);
-  if (!actor) return [];
+  const actorDepartments = departmentScopeFor(snapshot, actorId, role);
+  if (!actorDepartments.size) return [];
   return snapshot.disenchantRequests
     .filter(
       (request) =>
-        request.status === 'Created' && request.departmentId === actor.departmentId,
+        request.status === 'Created' && actorDepartments.has(request.departmentId),
     )
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 };
