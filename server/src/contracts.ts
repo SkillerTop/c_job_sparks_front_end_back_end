@@ -1,4 +1,14 @@
 import type { Role } from './domain.js';
+import {
+  FULFILLMENT_TRANSITIONS,
+  type FulfillmentStatus,
+} from '../shared/fulfillment-contract.js';
+
+export {
+  FULFILLMENT_STATUSES,
+  FULFILLMENT_TRANSITIONS,
+  type FulfillmentStatus,
+} from '../shared/fulfillment-contract.js';
 
 export const WORKSPACE_SECTIONS = [
   'dashboard', 'profile', 'sparks', 'recognition', 'achievements', 'company-achievements',
@@ -28,21 +38,8 @@ export const WORKSPACE_SECTION_ROLES: Partial<Record<WorkspaceSectionContract, r
   all: ['Administrator'],
 };
 
-export const FULFILLMENT_STATUSES = [
-  'Requested', 'InProgress', 'Ordered', 'Ready', 'Delivered', 'Cancelled',
-] as const;
 export const FULFILLMENT_TARGET_STATUSES = [
   'InProgress', 'Ordered', 'Ready', 'Delivered', 'Cancelled',
 ] as const;
-export type FulfillmentStatus = (typeof FULFILLMENT_STATUSES)[number];
-
-export const FULFILLMENT_TRANSITIONS: Record<FulfillmentStatus, readonly FulfillmentStatus[]> = {
-  Requested: ['InProgress', 'Cancelled'],
-  InProgress: ['Ordered', 'Ready', 'Cancelled'],
-  Ordered: ['Ready', 'Cancelled'],
-  Ready: ['Delivered', 'Cancelled'],
-  Delivered: [],
-  Cancelled: [],
-};
 
 export const nextFulfillmentStatuses = (status: FulfillmentStatus) => FULFILLMENT_TRANSITIONS[status];

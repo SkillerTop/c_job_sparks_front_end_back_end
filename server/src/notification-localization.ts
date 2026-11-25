@@ -169,6 +169,11 @@ export const localizeNotification = (
     ? `Результати за ${match[1]} імпортовано; нараховано ${match[2]} White Sparks.`
     : `Результаты за ${match[1]} импортированы; начислено ${match[2]} White Sparks.`;
 
+  match = value.match(/^(.+) from (.+) booked the task “(.+)”\.$/);
+  if (match) return language === 'uk'
+    ? `${match[1]} із відділу «${match[2]}» забронював(-ла) завдання «${match[3]}».`
+    : `${match[1]} из отдела «${match[2]}» забронировал(а) задание «${match[3]}».`;
+
   match = value.match(/^(.+) booked the task “(.+)”\.$/);
   if (match) return language === 'uk'
     ? `${match[1]} забронював(-ла) завдання «${match[2]}».`

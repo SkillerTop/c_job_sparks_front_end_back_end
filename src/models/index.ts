@@ -2,7 +2,6 @@ export type Role = 'Employee' | 'Coordinator' | 'GPM' | 'Head' | 'Top Management
 export type SparkType = 'White' | 'Yellow' | 'Blue' | 'Radiant';
 export type SparkBalances = Record<SparkType, number>;
 export type RequestStatus = 'Pending' | 'Approved' | 'Rejected';
-export type AsyncStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export interface Department {
   id: string;

@@ -298,25 +298,6 @@ test('Administrator can remove Peer Recognition and Award categories without rew
   await assert.rejects(sparkService.deleteCategory(ADMIN, 'missing-category'), /no longer exists/i);
   await assert.rejects(sparkService.deleteCategory('emp-alex', peer.id), /cannot perform this action/i);
 });
-test('Administrator can remove an unused department without rewriting references', async () => {
-  const before = await snapshot();
-  await sparkService.saveReference(ADMIN, {
-    kind: 'departments',
-    data: { id: '', name: 'Temporary Department', headId: '', active: true },
-  });
-  const created = (await snapshot()).departments.find((item) =>
-    !before.departments.some((existing) => existing.id === item.id));
-  assert.ok(created);
-
-  const removed = await sparkService.deleteDepartment(ADMIN, created.id);
-  assert.equal(removed.departments.find((item) => item.id === created.id).active, false);
-  assert.equal(
-    removed.auditEvents.some((item) => item.action === 'DEPARTMENT_DELETED' && item.subjectId === created.id),
-    true,
-  );
-  await assert.rejects(sparkService.deleteDepartment(ADMIN, before.departments[0].id), /active employees/i);
-  await assert.rejects(sparkService.deleteDepartment('emp-alex', created.id), /cannot perform this action/i);
-});
 test('Lifetime earnings count recognition credits without double-counting conversions', async () => {
   const before = calculateLifetimeEarnings((await snapshot()).transactions, 'emp-alex');
   await sparkService.convert('emp-alex', 'White', 10);
@@ -340,17 +321,13 @@ test('Coordinator quota counts unique active colleagues in shared project teams 
   state = await updateEmployee('emp-nora', { active: false });
   assert.equal(recognitionQuota('emp-sam', 'Coordinator', state.settings, state.employees, state.projectTeams), 1);
 });
-test('Peer Recognition blocks self, privileged and cross-department recipients', async () => {
+test('Peer Recognition blocks self and Admin recipients but allows cross-department colleagues', async () => {
   await assert.rejects(sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-alex')), /Self-recognition/);
   await assert.rejects(sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-ida')), /eligible/);
   await assert.rejects(sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-maya')), /eligible/);
   await assert.rejects(sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-victor')), /eligible/);
-  await assert.rejects(
-    sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-daniel')),
-    /primary department/i,
-  );
   await sparkService.reviewRecognition('rec-002', 'Rejected', 'Needs a specific contribution.', HEAD);
-  const result = await sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-nora'));
+  const result = await sparkService.createRecognition('emp-alex', 'Employee', recognition('emp-daniel'));
   assert.equal(result.recognition.status, 'Pending');
   assert.equal(Object.hasOwn(result.recognition, 'projectId'), false);
 });
@@ -422,9 +399,9 @@ test('Award recipient selectors enforce economy roles, scope and no self-awards'
 });
 test('Calendar rollover resets quota selection without allowing unlimited submissions', async () => {
   mock.timers.setTime(new Date('2026-10-01T12:00:00Z').getTime());
-  await sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-elena'));
-  await sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-elena'));
-  await assert.rejects(sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-elena')), /allocation/);
+  await sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-alex'));
+  await sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-daniel'));
+  await assert.rejects(sparkService.createRecognition('emp-sam', 'Coordinator', recognition('emp-alex')), /allocation/);
   assert.equal((await snapshot()).settings.currentQuarter, 'Q4 2026');
 });
 test('Direct Yellow cap is unchanged by spending or conversion', async () => {
@@ -453,13 +430,6 @@ test('Coordinator awards use department membership without exposing a department
     award(departmentColleague.id, 'Yellow', YELLOW_CATEGORIES[0].label),
   );
   assert.equal(departmentAward.request.status, 'Pending');
-  const whiteDepartmentAward = await sparkService.createAward(
-    'emp-sam',
-    'Coordinator',
-    award(departmentColleague.id, 'White', RECOGNITION_CATEGORIES[0]),
-  );
-  assert.equal(whiteDepartmentAward.request.status, 'Pending');
-  assert.equal(whiteDepartmentAward.request.sparkType, 'White');
   await assert.rejects(
     sparkService.createAward('emp-sam', 'Coordinator', award(outsideDepartment.id, 'Yellow', YELLOW_CATEGORIES[0].label)),
     /departments/,
@@ -480,6 +450,9 @@ test('Coordinator awards use department membership without exposing a department
 test('GPM can request White awards using the controlled Coordinator quota', async () => {
   const first = await sparkService.createAward('emp-elena', 'GPM', award('emp-alex', 'White', RECOGNITION_CATEGORIES[0]));
   assert.equal(first.request.status, 'Pending');
+  const approvalItem = selectApprovalQueue(first.snapshot, HEAD).find((item) => item.id === first.request.id);
+  assert.equal(approvalItem?.kind, 'Award');
+  assert.equal(approvalItem?.sparkType, 'White');
   await assert.rejects(
     sparkService.createAward('emp-elena', 'GPM', award('emp-nora', 'White', RECOGNITION_CATEGORIES[1])),
     /allocation is used or reserved \(1\/1\)/,
@@ -724,7 +697,7 @@ test('Employee directory supports multiple active coordinators', async () => {
     ['emp-sam'],
   );
 });
-test('Employees keep one primary department while one Head can lead several departments', async () => {
+test('Employees can belong to multiple departments and one Head can lead each of them', async () => {
   const initial = await snapshot();
   const operations = initial.departments.find((department) => department.id === 'dep-ops');
   await sparkService.saveReference(ADMIN, {
@@ -739,7 +712,7 @@ test('Employees keep one primary department while one Head can lead several depa
   const saved = state.employees.find((entry) => entry.id === employee.id);
   const head = state.employees.find((entry) => entry.id === HEAD);
 
-  assert.deepEqual(saved.departmentIds, ['dep-eng']);
+  assert.deepEqual(saved.departmentIds, ['dep-eng', 'dep-ops']);
   assert.ok(head.departmentIds.includes('dep-eng'));
   assert.ok(head.departmentIds.includes('dep-ops'));
   assert.equal(state.departments.find((department) => department.id === 'dep-eng').headId, HEAD);

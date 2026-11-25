@@ -18,7 +18,7 @@ export function ApprovalsPage() {
   const { localize } = useUserPreferences();
   const { snapshot } = useSpark();
   const controller = useApprovalController();
-  const [filter, setFilter] = useState<'All' | 'Recognition' | 'Yellow Award'>('All');
+  const [filter, setFilter] = useState<'All' | 'Recognition' | 'Award'>('All');
   const [rejecting, setRejecting] = useState<QueueItem | null>(null);
   const [reason, setReason] = useState('');
   const queue = controller.queue.filter((item) => filter === 'All' || item.kind === filter);
@@ -43,12 +43,12 @@ export function ApprovalsPage() {
       <PageHeader
         eyebrow="Head of Department"
         title="Approval Center"
-        description="Peer Recognition and Yellow requests are checked again against current Quality Gates, limits and duplicate rules at the moment of decision."
+        description="Peer Recognition and award requests are checked again against current Quality Gates, limits and duplicate rules at the moment of decision."
         action={<span className={styles.countBadge}>{controller.queue.length} <LocalizedText>pending</LocalizedText></span>}
       />
       {controller.message && <Feedback tone={controller.message.tone}>{controller.message.text}</Feedback>}
       <div className={styles.segmented} role="group" aria-label={localize('Filter approval queue')}>
-        {(['All', 'Recognition', 'Yellow Award'] as const).map((item) => (
+        {(['All', 'Recognition', 'Award'] as const).map((item) => (
           <button
             className={filter === item ? styles.segmentActive : ''}
             type="button"
@@ -63,7 +63,7 @@ export function ApprovalsPage() {
       {queue.length === 0 ? (
         <EmptyState
           title="Approval queue is clear"
-          description="New recognition and Yellow award requests will appear here."
+          description="New recognition and award requests will appear here."
         />
       ) : (
         <div className={styles.approvalGrid}>
@@ -71,20 +71,21 @@ export function ApprovalsPage() {
             const person = employee(item.employeeId);
             const sender = employee(item.awardedBy);
             const gated = hasGate(item.employeeId);
+            const requestLabel = item.kind === 'Recognition' ? item.kind : `${item.sparkType} Award`;
             return (
               <article className={styles.approvalCard} key={item.id}>
                 <header>
                   <div className={styles.personLine}>
                     <span className={styles.avatar}>{person.initials}</span>
                     <div>
-                      <p>{item.kind}</p>
+                      <p><LocalizedText>{requestLabel}</LocalizedText></p>
                       <h2>{person.name}</h2>
                       <span>{person.title}</span>
                     </div>
                   </div>
-                  <SparkBadge type={item.kind === 'Recognition' ? 'White' : 'Yellow'} amount={item.amount} />
+                  <SparkBadge type={item.sparkType} amount={item.amount} />
                 </header>
-                {gated && item.kind === 'Recognition' && (
+                {gated && item.sparkType === 'White' && (
                   <div className={styles.gateWarning}>
                     <ShieldAlert size={16} />
                     <span><LocalizedText>White credit blocked by active Quality Gate</LocalizedText></span>
@@ -116,7 +117,7 @@ export function ApprovalsPage() {
                   </LocalizedText></button>
                   <button
                     className={styles.approveButton}
-                    disabled={Boolean(controller.processingId) || (gated && item.kind === 'Recognition')}
+                    disabled={Boolean(controller.processingId) || (gated && item.sparkType === 'White')}
                     type="button"
                     onClick={() => void controller.review(item, 'Approved')}
                   >

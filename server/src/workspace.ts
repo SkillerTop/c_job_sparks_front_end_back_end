@@ -24,11 +24,8 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
     () => rows<any>(db, `
       SELECT e.id,e.display_name,e.first_name,e.last_name,COALESCE(position.title,'') AS title,
              e.department_id,
-             CASE WHEN COALESCE(active_role.code,e.provisioned_role_code)='Head'
-               THEN ARRAY(SELECT department.id::text FROM app.departments department
-                 WHERE department.head_employee_id=e.id AND department.is_active ORDER BY department.name,department.id)
-               ELSE ARRAY[e.department_id::text]
-             END AS department_ids,
+             ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
+               WHERE membership.employee_id=e.id ORDER BY membership.is_primary DESC,membership.assigned_at) AS department_ids,
              COALESCE(active_role.code,e.provisioned_role_code) AS role,
              COALESCE(e.contact_email,account_user.email)::text AS email,e.is_active,e.manager_employee_id,
              microsoft_identity.claims#>>'{manager,displayName}' AS microsoft_manager_name,
@@ -84,11 +81,9 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
       initials: `${row.first_name?.[0] ?? ''}${row.last_name?.[0] ?? ''}`.toUpperCase(),
       title: row.title,
       departmentId: row.department_id,
-      departmentIds: row.role === 'Head'
-        ? (row.id === principal.employeeId && principal.role === 'Head'
-            ? (principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId])
-            : (row.department_ids?.length ? row.department_ids : [row.department_id]))
-        : [row.department_id],
+      departmentIds: row.id === principal.employeeId && principal.role === 'Head'
+        ? (principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId])
+        : (row.department_ids?.length ? row.department_ids : [row.department_id]),
       role: row.role ?? 'Employee',
       email: row.email ?? '',
       active: row.is_active,
@@ -170,11 +165,9 @@ export const buildWorkspace = async (
 ) => {
   const include = (dataset: WorkspaceDataset) => dataset === 'directory' || section === 'all' ||
     sectionDatasets[section].includes(dataset);
-  const departmentDirectory = section === 'recognition' &&
-    ['Employee', 'Coordinator', 'GPM'].includes(principal.role);
   const wideDirectory = principal.role === 'Administrator' || principal.role === 'Office Manager' ||
     (['Coordinator','GPM','Head','Top Management'].includes(principal.role) &&
-      ['company-achievements','team','award','approvals'].includes(section));
+      ['recognition','company-achievements','team','award','approvals'].includes(section));
   const [categoriesRaw, employeesRaw, departmentsRaw, projectsRaw, transactionsRaw, lifetimeEarningsRaw,
     yellowAwardUsageRaw, departmentBalancesRaw,
     recognitionsRaw, awardsRaw,
@@ -194,11 +187,8 @@ export const buildWorkspace = async (
     () => include('directory') ? rows<any>(db, `
       SELECT e.id, e.display_name, e.first_name, e.last_name, COALESCE(pos.title,'') AS title,
              e.department_id,
-             CASE WHEN COALESCE(role.code,e.provisioned_role_code)='Head'
-               THEN ARRAY(SELECT department.id::text FROM app.departments department
-                 WHERE department.head_employee_id=e.id AND department.is_active ORDER BY department.name,department.id)
-               ELSE ARRAY[e.department_id::text]
-             END AS department_ids,
+             ARRAY(SELECT membership.department_id::text FROM app.employee_departments membership
+               WHERE membership.employee_id=e.id ORDER BY membership.is_primary DESC,membership.assigned_at) AS department_ids,
              COALESCE(role.code,e.provisioned_role_code) AS role, COALESCE(e.contact_email,u.email)::text AS email,
              e.is_active, e.manager_employee_id,
              microsoft_identity.claims#>>'{manager,displayName}' AS microsoft_manager_name,
@@ -217,14 +207,8 @@ export const buildWorkspace = async (
            WHERE ra.user_id=u.id AND ra.starts_at<=clock_timestamp()
              AND (ra.ends_at IS NULL OR ra.ends_at>clock_timestamp()) LIMIT 1
         ) role ON true
-       WHERE e.is_active AND (
-         $2
-         OR ($3 AND e.department_id=ANY($4::uuid[]))
-         OR e.id=$1
-         OR e.id=(SELECT manager_employee_id FROM app.employees WHERE id=$1)
-       )
-       ORDER BY e.display_name`, [principal.employeeId, wideDirectory, departmentDirectory,
-        principal.departmentIds ?? [principal.departmentId]]) : Promise.resolve([]),
+       WHERE e.is_active AND ($2 OR e.id=$1 OR e.id=(SELECT manager_employee_id FROM app.employees WHERE id=$1))
+       ORDER BY e.display_name`, [principal.employeeId, wideDirectory]) : Promise.resolve([]),
     () => include('directory') ? rows<any>(db, `SELECT id,name,head_employee_id,is_active FROM app.departments
       WHERE $1 OR id=ANY($2::uuid[]) ORDER BY name`, [wideDirectory, principal.departmentIds ?? [principal.departmentId]]) : Promise.resolve([]),
     () => include('projects') ? rows<any>(db, `
@@ -284,10 +268,11 @@ export const buildWorkspace = async (
       ? rows<any>(db, `
           SELECT DISTINCT employee.id AS employee_id, spark_type.value AS spark_type, COALESCE(account.balance,0) AS balance
             FROM app.employees employee
+            JOIN app.employee_departments membership ON membership.employee_id=employee.id
             CROSS JOIN unnest(ARRAY['White','Yellow','Blue','Radiant']::text[]) AS spark_type(value)
             LEFT JOIN app.spark_accounts account
               ON account.employee_id=employee.id AND account.spark_type=spark_type.value
-           WHERE employee.department_id=ANY($1::uuid[]) AND employee.is_active
+           WHERE membership.department_id=ANY($1::uuid[]) AND employee.is_active
            ORDER BY employee.id, spark_type.value`, [principal.departmentIds ?? [principal.departmentId]])
       : Promise.resolve([]),
     () => include('recognitions') ? rows<any>(db, `
@@ -403,11 +388,9 @@ export const buildWorkspace = async (
       initials: `${row.first_name?.[0] ?? ''}${row.last_name?.[0] ?? ''}`.toUpperCase(),
       title: row.title,
       departmentId: row.department_id,
-      departmentIds: row.role === 'Head'
-        ? (row.id === principal.employeeId && principal.role === 'Head'
-            ? (principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId])
-            : (row.department_ids?.length ? row.department_ids : [row.department_id]))
-        : [row.department_id],
+      departmentIds: row.id === principal.employeeId && principal.role === 'Head'
+        ? (principal.departmentIds?.length ? principal.departmentIds : [principal.departmentId])
+        : (row.department_ids?.length ? row.department_ids : [row.department_id]),
       role: row.role ?? 'Employee',
       email: row.email ?? '',
       active: row.is_active,

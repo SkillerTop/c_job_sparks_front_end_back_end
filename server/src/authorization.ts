@@ -7,30 +7,15 @@ export const requireRole = (principal: AuthenticatedPrincipal, roles: readonly R
   return principal;
 };
 
-export const requireOwnEmployee = (principal: AuthenticatedPrincipal, employeeId: string) => {
-  if (principal.employeeId !== employeeId) throw forbidden('You can access only your own employee data.');
-};
-
-export const requireDepartmentScope = (principal: AuthenticatedPrincipal, departmentId: string) => {
-  if (principal.role !== 'Head' || !departmentScopeIds(principal).includes(departmentId))
-    throw forbidden('This record is outside your department.');
-};
-
 export const departmentScopeIds = (principal: AuthenticatedPrincipal) => {
-  const explicit = principal.role === 'Head' ? (principal.departmentIds ?? []).filter(Boolean) : [];
+  const explicit = (principal.departmentIds ?? []).filter(Boolean);
   return [...new Set(explicit.length ? explicit : [principal.departmentId])];
 };
 
 export const hasDepartmentScope = (principal: AuthenticatedPrincipal, departmentId: string) =>
   departmentScopeIds(principal).includes(departmentId);
 
-export const isBusinessRole = (role: Role) => role !== 'Administrator';
-
-export const WORKSPACE_ROLES: readonly Role[] = ['Employee', 'Coordinator', 'GPM', 'Head'];
 export const PERSONAL_LEDGER_ROLES: readonly Role[] = ['Employee', 'Coordinator', 'GPM', 'Head', 'Top Management'];
-export const PEER_ROLES: readonly Role[] = ['Employee', 'Coordinator', 'GPM'];
-export const AWARD_ROLES: readonly Role[] = ['Coordinator', 'GPM', 'Head', 'Top Management'];
-export const COMPANY_ACHIEVEMENT_ROLES: readonly Role[] = ['GPM', 'Head', 'Top Management', 'Administrator'];
 
 export const requireWorkspaceSection = (principal: AuthenticatedPrincipal, section: WorkspaceSectionContract) => {
   const allowed = WORKSPACE_SECTION_ROLES[section];

@@ -123,15 +123,10 @@ export const hasFullPersonalLedger = (role: Role) =>
   role === 'Employee' || role === 'Coordinator';
 
 export const allowedAwardTypes = (role: Role): readonly SparkType[] => {
-  if (role === 'Coordinator') return ['White', 'Yellow'];
+  if (role === 'Coordinator') return ['Yellow'];
   if (role === 'GPM') return ['White', 'Yellow'];
   if (role === 'Head') return ['White', 'Yellow', 'Blue'];
   if (role === 'Top Management') return ['Radiant'];
   return [];
 };
 
-export const assertIsoDateRange = (startDate: string, endDate: string) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate))
-    throw new Error('Dates must use YYYY-MM-DD.');
-  if (endDate < startDate) throw new Error('End date must not precede start date.');
-};

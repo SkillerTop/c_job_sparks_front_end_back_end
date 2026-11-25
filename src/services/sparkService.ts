@@ -29,23 +29,8 @@ import { makeId } from '@/utils/formatters';
 import { isValidIsoDate, quarterForDate, todayIso } from '@/utils/quarter';
 import { parseCsv } from '@/utils/parseCsv';
 
-const normalizeDepartmentScopes = (snapshot: AppSnapshot) => {
-  snapshot.employees = snapshot.employees.map((employee) => ({
-    ...employee,
-    departmentIds: employee.role === 'Head'
-      ? [...new Set([
-          employee.departmentId,
-          ...snapshot.departments
-            .filter((department) => department.active && department.headId === employee.id)
-            .map((department) => department.id),
-        ])]
-      : [employee.departmentId],
-  }));
-};
-
 const createDatabase = () => {
   const snapshot = structuredClone(initialSnapshot);
-  normalizeDepartmentScopes(snapshot);
   snapshot.settings.currentQuarter = quarterForDate(new Date());
   snapshot.transactions.forEach((item) => {
     item.departmentId = snapshot.employees.find((employee) => employee.id === item.employeeId)?.departmentId;
@@ -72,7 +57,6 @@ let database: AppSnapshot = createDatabase();
 const wait = (milliseconds = 420) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const clone = () => {
   database.settings.currentQuarter = quarterForDate(new Date());
-  normalizeDepartmentScopes(database);
   database.departmentBalances = Object.fromEntries(
     database.employees.map((employee) => [employee.id, calculateBalances(database.transactions, employee.id)]),
   );
@@ -101,11 +85,7 @@ const requireHeadScope = (actorId: string, employeeId: string, allowInactive = f
   const employee = database.employees.find(
     (item) => item.id === employeeId && (item.active || allowInactive),
   );
-  const headedDepartmentIds = database.departments
-    .filter((department) => department.active && department.headId === actor.id)
-    .map((department) => department.id);
-  const scope = headedDepartmentIds.length ? headedDepartmentIds : [actor.departmentId];
-  if (!employee || !scope.includes(employee.departmentId))
+  if (!employee || employee.departmentId !== actor.departmentId)
     throw new Error('This employee is outside your department scope.');
 };
 
@@ -370,8 +350,6 @@ const demoSparkService = {
     if (!recipient || !['Employee', 'Coordinator', 'GPM'].includes(recipient.role))
       throw new Error('Choose an eligible active colleague.');
     if (senderId === input.recipientId) throw new Error('Self-recognition is not allowed.');
-    if (sender.departmentId !== recipient.departmentId)
-      throw new Error('Choose a colleague from your primary department.');
     const reservedThisQuarter = database.recognitions.filter(
       (item) =>
         item.senderId === senderId &&
@@ -517,8 +495,8 @@ const demoSparkService = {
     const authorizedActor = requireActor(actorId, ['Coordinator', 'GPM', 'Head', 'Top Management']);
     if (authorizedActor.role !== role)
       throw new Error('The selected demo role no longer matches this employee.');
-    if (role === 'Coordinator' && !['White', 'Yellow'].includes(input.sparkType))
-      throw new Error('Coordinators can only request White or Yellow awards.');
+    if (role === 'Coordinator' && input.sparkType !== 'Yellow')
+      throw new Error('Coordinators can only request Yellow awards.');
     if (role === 'GPM' && !['White', 'Yellow'].includes(input.sparkType))
       throw new Error('GPMs can only request White or Yellow awards.');
     if (role === 'Head' && input.sparkType === 'Radiant')
@@ -1197,9 +1175,10 @@ const demoSparkService = {
     return atomic(() => {
       if (draft.kind === 'employees') {
         const employee = item as AppSnapshot['employees'][number];
-        if (!database.departments.some((entry) =>
-          entry.id === employee.departmentId && (!employee.active || entry.active)))
-          throw new Error('Choose an active primary department.');
+        employee.departmentIds = [...new Set([employee.departmentId, ...(employee.departmentIds ?? [])])];
+        if (employee.departmentIds.some((id) =>
+          !database.departments.some((entry) => entry.id === id && (!employee.active || entry.active))))
+          throw new Error('Choose only active departments.');
         if (!ALL_ROLES.includes(employee.role)) throw new Error('Choose a valid business role.');
         if (!employee.title.trim()) throw new Error('A job title is required.');
         employee.title = employee.title.trim();
@@ -1223,7 +1202,8 @@ const demoSparkService = {
             (entry) =>
               entry.headId === employee.id &&
               (!employee.active ||
-                employee.role !== 'Head'),
+                employee.role !== 'Head' ||
+                !(employee.departmentIds ?? [employee.departmentId]).includes(entry.id)),
           )
         )
           throw new Error(
@@ -1260,14 +1240,6 @@ const demoSparkService = {
           .join('')
           .toUpperCase();
         employee.id ||= makeId('emp');
-        employee.departmentIds = employee.role === 'Head'
-          ? [...new Set([
-              employee.departmentId,
-              ...database.departments
-                .filter((department) => department.active && department.headId === employee.id)
-                .map((department) => department.id),
-            ])]
-          : [employee.departmentId];
         database.employees = isNew
           ? [...database.employees, employee]
           : database.employees.map((entry) => (entry.id === employee.id ? employee : entry));
@@ -1281,8 +1253,7 @@ const demoSparkService = {
         if (
           !department.active &&
           database.employees.some((entry) => entry.active &&
-            (entry.departmentId === department.id ||
-              (entry.role === 'Head' && entry.id === department.headId)))
+            (entry.departmentIds ?? [entry.departmentId]).includes(department.id))
         )
           throw new Error('Move or delete this department’s active employees first.');
         if (
@@ -1301,7 +1272,10 @@ const demoSparkService = {
         database.departments = isNew
           ? [...database.departments, department]
           : database.departments.map((entry) => (entry.id === department.id ? department : entry));
-        normalizeDepartmentScopes(database);
+        if (department.headId)
+          database.employees = database.employees.map((employee) => employee.id === department.headId
+            ? { ...employee, departmentIds: [...new Set([...(employee.departmentIds ?? [employee.departmentId]), department.id])] }
+            : employee);
       } else {
         const category = item as AppSnapshot['categories'][number];
         if (!['White', 'Yellow', 'Blue'].includes(category.sparkType))
@@ -1367,33 +1341,6 @@ const demoSparkService = {
         members: project.members.filter((member) => member.employeeId !== employeeId),
       }));
       addAudit('EMPLOYEE_DELETED', actorId, employeeId, `Deleted ${employee.name} from Employee Directory.`);
-      return clone();
-    });
-  },
-
-  async deleteDepartment(actorId: string, departmentId: string) {
-    await wait();
-    requireActor(actorId, ['Administrator']);
-    const department = database.departments.find((item) => item.id === departmentId);
-    if (!department) throw new Error('This department no longer exists. Refresh the directory.');
-    if (
-      database.employees.some(
-        (employee) => employee.active &&
-          (employee.departmentIds ?? [employee.departmentId]).includes(departmentId),
-      )
-    )
-      throw new Error('Move or delete this department’s active employees first.');
-    if (!department.active) return clone();
-    return atomic(() => {
-      database.departments = database.departments.map((item) =>
-        item.id === departmentId ? { ...item, active: false, headId: '' } : item,
-      );
-      addAudit(
-        'DEPARTMENT_DELETED',
-        actorId,
-        departmentId,
-        `Deleted ${department.name} from future use. Historical records are unchanged.`,
-      );
       return clone();
     });
   },

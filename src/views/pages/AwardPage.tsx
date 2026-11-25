@@ -9,9 +9,10 @@ import { StatusBadge } from '@/views/components/common/StatusBadge';
 import { EmptyState } from '@/views/components/common/EmptyState';
 import { SelectField } from '@/views/components/ui/SelectField';
 import { useSpark } from '@/controllers/SparkContext';
+import { useAwardRecipients } from '@/controllers/useAwardRecipients';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import type { AwardInput, SparkType } from '@/models';
-import { selectAwardTargets, selectGpmControlledCoordinators } from '@/models/selectors';
+import { selectGpmControlledCoordinators } from '@/models/selectors';
 import { focusFirstInvalid } from '@/utils/accessibility';
 import { formatDate } from '@/utils/formatters';
 import { gpmWhiteAwardQuota, isQualityGateActive } from '@/utils/sparkRules';
@@ -29,11 +30,9 @@ export function AwardPage() {
       ? ['Radiant']
       : activeRole === 'Head'
         ? ['White', 'Yellow', 'Blue']
-        : activeRole === 'Coordinator'
-          ? ['Yellow', 'White']
-          : activeRole === 'GPM'
-            ? ['White', 'Yellow']
-            : ['Yellow'],
+        : activeRole === 'GPM'
+          ? ['White', 'Yellow']
+          : ['Yellow'],
     [activeRole],
   );
   const [form, setForm] = useState<AwardInput>({
@@ -65,7 +64,7 @@ export function AwardPage() {
     .filter((request) => request.awardedBy === currentUserId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const selectedEmployee = snapshot!.employees.find((item) => item.id === form.employeeId);
-  const eligibleEmployees = selectAwardTargets(snapshot!, currentUserId, activeRole);
+  const eligibleEmployees = useAwardRecipients(snapshot!, currentUserId, activeRole);
   const controlledCoordinatorCount =
     activeRole === 'GPM'
       ? selectGpmControlledCoordinators(snapshot!, currentUserId).length
@@ -169,7 +168,7 @@ export function AwardPage() {
         eyebrow={`${activeRole} workspace`}
         title={activeRole === 'Top Management' ? 'Award a Radiant Spark' : 'Award a Spark'}
         description={activeRole === 'Coordinator'
-            ? 'White and Yellow awards are available for eligible colleagues in your departments and are submitted to the recipient’s Head.'
+            ? 'Yellow awards are available for eligible colleagues in your departments and are submitted to the recipient’s Head.'
             : activeRole === 'GPM'
               ? 'White and Yellow awards are submitted to the recipient’s Head. White allocation is based on the Coordinators and registrars under your control.'
             : 'Direct awards create an immediate, permanent transaction and achievement record.'}

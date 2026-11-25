@@ -1,11 +1,4 @@
-import type { AppSnapshot, Role } from './index';
-
-const activeWorkedProjectTeams = (snapshot: AppSnapshot, employeeId: string) =>
-  snapshot.projectTeams.filter(
-    (team) =>
-      team.active &&
-      team.members.some((member) => member.employeeId === employeeId && member.workedHours > 0),
-  );
+import type { AppSnapshot, Role, SparkType } from './index';
 
 const departmentScopeFor = (snapshot: AppSnapshot, actorId: string, role: Role) => {
   if (role === 'Head') {
@@ -15,21 +8,7 @@ const departmentScopeFor = (snapshot: AppSnapshot, actorId: string, role: Role) 
     if (headed.length) return new Set(headed);
   }
   const actor = snapshot.employees.find((employee) => employee.id === actorId);
-  return new Set(actor ? [actor.departmentId] : []);
-};
-
-export const selectActiveProjectColleagues = (snapshot: AppSnapshot, employeeId: string) => {
-  const colleagueIds = new Set(
-    activeWorkedProjectTeams(snapshot, employeeId).flatMap((team) =>
-      team.members
-        .filter((member) => member.employeeId !== employeeId && member.workedHours > 0)
-        .map((member) => member.employeeId),
-    ),
-  );
-  return snapshot.employees.filter(
-    (employee) =>
-      colleagueIds.has(employee.id) && employee.active && employee.role !== 'Administrator',
-  );
+  return new Set(actor?.departmentIds ?? (actor ? [actor.departmentId] : []));
 };
 
 export const selectGpmControlledCoordinators = (snapshot: AppSnapshot, gpmId: string) => {
@@ -64,7 +43,10 @@ export const selectAwardTargets = (snapshot: AppSnapshot, actorId: string, role:
     if (!employee.active || employee.role === 'Administrator' || employee.id === actorId) return false;
     if (role === 'Top Management') return true;
     if (!['Employee', 'Coordinator'].includes(employee.role)) return false;
-    if (role === 'Coordinator' || role === 'Head') return actorDepartments.has(employee.departmentId);
+    if (role === 'Coordinator') return (employee.departmentIds ?? [employee.departmentId])
+      .some((departmentId) => actorDepartments.has(departmentId));
+    if (role === 'Head') return (employee.departmentIds ?? [employee.departmentId])
+      .some((departmentId) => actorDepartments.has(departmentId));
     if (role === 'GPM') return gpmTeamMemberIds.has(employee.id);
     return false;
   });
@@ -74,7 +56,8 @@ export const selectTeamMembers = (snapshot: AppSnapshot, actorId: string, role: 
   const actorDepartments = departmentScopeFor(snapshot, actorId, role);
   return snapshot.employees.filter((employee) => {
     if (!employee.active || employee.role === 'Administrator') return false;
-    if (role === 'Head') return actorDepartments.has(employee.departmentId);
+    if (role === 'Head') return (employee.departmentIds ?? [employee.departmentId])
+      .some((departmentId) => actorDepartments.has(departmentId));
     if (role === 'GPM') return true;
     return role === 'Top Management';
   });
@@ -85,7 +68,7 @@ export const selectPendingRequests = (snapshot: AppSnapshot, actorId: string, ro
   const inDepartment = (employeeId: string) =>
     snapshot.employees.some(
       (employee) => employee.id === employeeId &&
-        actorDepartments.has(employee.departmentId),
+        (employee.departmentIds ?? [employee.departmentId]).some((id) => actorDepartments.has(id)),
     );
   if (role === 'Administrator') return { recognitions: [], awards: [] };
   return {
@@ -104,7 +87,8 @@ export const selectPendingRequests = (snapshot: AppSnapshot, actorId: string, ro
 
 export type ApprovalQueueItem = {
   id: string;
-  kind: 'Recognition' | 'Yellow Award';
+  kind: 'Recognition' | 'Award';
+  sparkType: SparkType;
   employeeId: string;
   awardedBy: string;
   category: string;
@@ -118,6 +102,7 @@ export const selectApprovalQueue = (snapshot: AppSnapshot, actorId: string): App
   const recognitions = pending.recognitions.map((item) => ({
     id: item.id,
     kind: 'Recognition' as const,
+    sparkType: 'White' as const,
     employeeId: item.recipientId,
     awardedBy: item.senderId,
     category: item.category,
@@ -127,7 +112,8 @@ export const selectApprovalQueue = (snapshot: AppSnapshot, actorId: string): App
   }));
   const awards = pending.awards.map((item) => ({
     id: item.id,
-    kind: 'Yellow Award' as const,
+    kind: 'Award' as const,
+    sparkType: item.sparkType,
     employeeId: item.employeeId,
     awardedBy: item.awardedBy,
     category: item.category,

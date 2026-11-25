@@ -13,9 +13,9 @@ import type {
 import { sparkService } from '@/services/sparkService';
 import { apiAuthService } from '@/services/apiAuthService';
 import { isApiMode } from '@/services/apiClient';
-import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '@/constants/security';
+import { validatePassword } from '@/constants/security';
 
-export { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '@/constants/security';
+export { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, validatePassword } from '@/constants/security';
 
 const AUTH_STATE_KEY = 'c-job-auth-state-v1';
 const AUTH_SESSION_KEY = 'c-job-auth-session-v1';
@@ -155,16 +155,6 @@ const withAuthWriteLock = <T>(operation: () => Promise<T>): Promise<T> => {
 };
 
 export const normalizeEmail = (value: string) => value.trim().toLowerCase();
-
-export const validatePassword = (password: string) => {
-  const issues: string[] = [];
-  if (password.length < MIN_PASSWORD_LENGTH) issues.push(`Use at least ${MIN_PASSWORD_LENGTH} characters.`);
-  if (password.length > MAX_PASSWORD_LENGTH) issues.push(`Use no more than ${MAX_PASSWORD_LENGTH} characters.`);
-  if (!/[a-z]/.test(password)) issues.push('Add a lowercase letter.');
-  if (!/[A-Z]/.test(password)) issues.push('Add an uppercase letter.');
-  if (!/\d/.test(password)) issues.push('Add a number.');
-  return { valid: issues.length === 0, issues };
-};
 
 const bytesToHex = (bytes: Uint8Array) =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -306,9 +296,7 @@ const accountUser = async (
     initials: employee.initials,
     title: employee.title,
     departmentId: employee.departmentId,
-    departmentIds: employee.role === 'Head'
-      ? (employee.departmentIds ?? [employee.departmentId])
-      : [employee.departmentId],
+    departmentIds: employee.departmentIds ?? [employee.departmentId],
     role: employee.role,
   };
 };
@@ -597,6 +585,7 @@ const demoAuthService = {
             initials: existingEmployee?.initials ?? '',
             title: employeeInput.title,
             departmentId: employeeInput.departmentId,
+            departmentIds: employeeInput.departmentIds ?? [employeeInput.departmentId],
             role: employeeInput.role,
             email: account.email,
             active: true,

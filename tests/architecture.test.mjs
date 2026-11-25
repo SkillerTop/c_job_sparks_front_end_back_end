@@ -36,3 +36,11 @@ test('source folders follow the documented MVC dependency direction', () => {
 
   assert.deepEqual(violations, []);
 });
+
+test('Award recipients use the authoritative eligibility endpoint', () => {
+  const awardPage = readFileSync(join(sourceRoot, 'views', 'pages', 'AwardPage.tsx'), 'utf8');
+  const recipientsController = readFileSync(join(sourceRoot, 'controllers', 'useAwardRecipients.ts'), 'utf8');
+  assert.match(awardPage, /useAwardRecipients/);
+  assert.doesNotMatch(awardPage, /selectAwardTargets/);
+  assert.match(recipientsController, /\/api\/v1\/eligible-recipients\?purpose=award/);
+});

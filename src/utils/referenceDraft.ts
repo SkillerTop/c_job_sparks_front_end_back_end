@@ -14,6 +14,7 @@ export const createReferenceDraft = (kind: ReferenceDraft['kind'], snapshot: App
           email: '',
           role: 'Employee',
           departmentId: primaryDepartmentId,
+          departmentIds: primaryDepartmentId ? [primaryDepartmentId] : [],
           hasCoordinationExperience: false,
           managerId: '',
           coordinatorIds: [],

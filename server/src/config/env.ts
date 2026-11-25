@@ -97,7 +97,3 @@ export const getEnvironment = (): Environment => {
   cachedEnvironment ??= parseEnvironment(process.env);
   return cachedEnvironment;
 };
-
-export const resetEnvironmentForTests = () => {
-  cachedEnvironment = undefined;
-};

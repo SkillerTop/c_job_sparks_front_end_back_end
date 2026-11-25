@@ -129,9 +129,4 @@ export const apiAuthService = {
   async deleteEmployeeAccount(_employeeId: string) {
     // The API deletes or tombstones the linked account in the same database transaction as the employee.
   },
-
-  resetForTesting() {
-    cachedSession = undefined;
-    lastRegistration = null;
-  },
 };

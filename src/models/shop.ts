@@ -12,7 +12,6 @@ export type DeliveryMethod = 'OfficePickup' | 'EmployeePaidDelivery' | 'WorkEmai
 export type InventoryStatus = 'Owned' | 'Active' | 'Used' | 'Expired';
 export type ShopSort = 'popular' | 'price-asc' | 'price-desc' | 'newest';
 export type ShopTransactionType = 'purchase' | 'refund' | 'adjustment';
-export type ShopTransactionFilter = 'all' | 'purchase' | 'credit' | 'refund';
 
 export interface SparkPriceComponent {
   sparkType: SpendableSparkType;

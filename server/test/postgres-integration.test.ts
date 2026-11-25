@@ -252,27 +252,6 @@ if (!sourceDatabaseUrl) {
       const createdDepartmentId = department.json<{ id: string }>().id;
       assert.equal(await count(`SELECT count(*) FROM app.departments
         WHERE id=$1 AND name=$2 AND head_employee_id IS NULL`, [createdDepartmentId, departmentName]), 1);
-      const forbiddenDepartmentDelete = await authenticated('Employee', 'DELETE',
-        `/api/v1/admin/departments/${encodeURIComponent(createdDepartmentId)}`);
-      assert.equal(forbiddenDepartmentDelete.statusCode, 403, forbiddenDepartmentDelete.body);
-      const deletedDepartment = await authenticated('Administrator', 'DELETE',
-        `/api/v1/admin/departments/${encodeURIComponent(createdDepartmentId)}`);
-      assert.equal(deletedDepartment.statusCode, 204, deletedDepartment.body);
-      assert.equal(await count(`SELECT count(*) FROM app.departments
-        WHERE id=$1 AND is_active=false`, [createdDepartmentId]), 1);
-      assert.equal(await count(`SELECT count(*) FROM app.audit_events
-        WHERE entity_id=$1 AND action='DEPARTMENT_DELETED'`, [createdDepartmentId]), 1);
-      const occupiedDepartment = await databasePool.query<{ id: string }>(`
-        SELECT department.id
-          FROM app.departments department
-          JOIN app.employee_departments membership ON membership.department_id=department.id
-          JOIN app.employees employee ON employee.id=membership.employee_id AND employee.is_active
-         WHERE department.is_active
-         LIMIT 1`);
-      assert.ok(occupiedDepartment.rows[0]);
-      const occupiedDepartmentDelete = await authenticated('Administrator', 'DELETE',
-        `/api/v1/admin/departments/${encodeURIComponent(occupiedDepartment.rows[0]!.id)}`);
-      assert.equal(occupiedDepartmentDelete.statusCode, 409, occupiedDepartmentDelete.body);
 
       const removableCategoryName = `Temporary category ${randomUUID()}`;
       const removableCategory = await authenticated('Administrator', 'POST', '/api/v1/admin/spark-categories', {
@@ -419,33 +398,6 @@ if (!sourceDatabaseUrl) {
       assert.equal(beforeLayoutResponse.statusCode, 200, beforeLayoutResponse.body);
       const beforePending = beforeLayoutResponse.json<{ shell: { pendingApprovals: number } }>()
         .shell.pendingApprovals;
-      const originalGpmDepartment = await databasePool.query<{ department_id: string }>(
-        `SELECT department_id FROM app.employees WHERE id=$1`, [employeeIds.gpm]);
-      const outsideDepartment = await databasePool.query<{ id: string }>(
-        `SELECT id FROM app.departments WHERE code='OPS'`);
-      await databasePool.query(`DELETE FROM app.employee_departments WHERE employee_id=$1`, [employeeIds.gpm]);
-      await databasePool.query(`UPDATE app.employees SET department_id=$2 WHERE id=$1`,
-        [employeeIds.gpm, outsideDepartment.rows[0]!.id]);
-      await databasePool.query(`INSERT INTO app.employee_departments (employee_id,department_id,is_primary)
-        VALUES ($1,$2,true)`, [employeeIds.gpm, outsideDepartment.rows[0]!.id]);
-      const departmentRecipients = await authenticated('Employee', 'GET',
-        '/api/v1/eligible-recipients?purpose=recognition');
-      assert.equal(departmentRecipients.statusCode, 200, departmentRecipients.body);
-      assert.equal(
-        departmentRecipients.json<Array<{ id: string }>>().some((employee) => employee.id === employeeIds.gpm),
-        false,
-      );
-      const crossDepartmentRecognition = await authenticated('Employee', 'POST', '/api/v1/recognitions', {
-        recipientId: employeeIds.gpm,
-        categoryId: categoryIds.peer,
-        description: 'A cross-department request must be rejected by the API.',
-      }, `recognition-cross-department-${randomUUID()}`);
-      assert.equal(crossDepartmentRecognition.statusCode, 400, crossDepartmentRecognition.body);
-      await databasePool.query(`DELETE FROM app.employee_departments WHERE employee_id=$1`, [employeeIds.gpm]);
-      await databasePool.query(`UPDATE app.employees SET department_id=$2 WHERE id=$1`,
-        [employeeIds.gpm, originalGpmDepartment.rows[0]!.department_id]);
-      await databasePool.query(`INSERT INTO app.employee_departments (employee_id,department_id,is_primary)
-        VALUES ($1,$2,true)`, [employeeIds.gpm, originalGpmDepartment.rows[0]!.department_id]);
       const response = await authenticated('Employee', 'POST', '/api/v1/recognitions', {
         recipientId: employeeIds.coordinator,
         categoryId: categoryIds.peer,
@@ -513,11 +465,6 @@ if (!sourceDatabaseUrl) {
           description: 'Successful referral contribution.', expectedStatus: 'Pending', expectedType: 'Yellow',
         },
         {
-          role: 'Coordinator', recipientId: employeeIds.employee, categoryId: categoryIds.whiteAward,
-          description: 'Department White recognition.', expectedStatus: 'Pending', expectedType: 'White',
-          releaseAfterCreation: true,
-        },
-        {
           role: 'GPM', recipientId: employeeIds.coordinator, categoryId: categoryIds.whiteAward,
           description: 'Smart solution delivered by the coordinator.', expectedStatus: 'Pending', expectedType: 'White',
         },
@@ -547,13 +494,6 @@ if (!sourceDatabaseUrl) {
         assert.equal(award.status, scenario.expectedStatus);
         assert.equal(award.sparkType, scenario.expectedType);
         assert.equal(await count(`SELECT count(*) FROM app.audit_events WHERE entity_type='Award' AND entity_id=$1`, [award.id]), 1);
-        if ('releaseAfterCreation' in scenario && scenario.releaseAfterCreation) {
-          const release = await authenticated('Head', 'POST', `/api/v1/award-requests/${award.id}/decision`, {
-            decision: 'Rejected',
-            reason: 'Release the category reservation after the Coordinator White integration check.',
-          }, `release-coordinator-white-${randomUUID()}`);
-          assert.equal(release.statusCode, 200, release.body);
-        }
         if (scenario.role === 'Top Management') {
           assert.equal(await count(`SELECT count(*) FROM app.reward_fulfillments WHERE award_request_id=$1`, [award.id]), 1);
           assert.equal(await count(`SELECT count(*) FROM app.outbox_events

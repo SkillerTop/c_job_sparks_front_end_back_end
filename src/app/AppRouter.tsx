@@ -14,7 +14,6 @@ import {
 import { useAuth } from '@/controllers/AuthContext';
 import { useSpark } from '@/controllers/SparkContext';
 import { AppShell } from '@/views/components/layout/AppShell';
-import { AsyncBoundary } from '@/views/components/common/AsyncBoundary';
 import { RouteGuard } from './RouteGuard';
 import { GuestOnly, RequireAuth } from './AuthGuard';
 import { RouteMetadata } from './RouteMetadata';
@@ -100,15 +99,13 @@ function WorkspaceLayout() {
       </div>
     );
   return (
-    <AsyncBoundary>
-      <AppShell key={currentUserId}>
-        <Suspense fallback={<RouteLoading />}>
-          <div key={location.pathname}>
-            {sectionLoading ? <RouteLoading /> : <Outlet />}
-          </div>
-        </Suspense>
-      </AppShell>
-    </AsyncBoundary>
+    <AppShell key={currentUserId}>
+      <Suspense fallback={<RouteLoading />}>
+        <div key={location.pathname}>
+          {sectionLoading ? <RouteLoading /> : <Outlet />}
+        </div>
+      </Suspense>
+    </AppShell>
   );
 }
 

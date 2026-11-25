@@ -459,6 +459,27 @@ export const bookTaskBoardItem = async (
   await appendEvent(db, id, principal.userId, 'Booked', before, taskState(updated));
   await createNotification(db, task.author_user_id, 'TaskBooked', 'Task booked',
     `${updated.assignee_name ?? 'An employee'} booked the task “${task.title}”.`, 'TaskBoardItem', id, '/task-board');
+  const headRecipients = await rows<{ user_id: string; department_name: string }>(db, `
+    SELECT DISTINCT head.user_id,department.name AS department_name
+      FROM app.employees assignee
+      JOIN app.departments department
+        ON department.id=assignee.department_id AND department.is_active
+      JOIN app.employees head
+        ON head.id=department.head_employee_id AND head.is_active AND head.user_id IS NOT NULL
+      JOIN app.users head_user
+        ON head_user.id=head.user_id AND head_user.account_status='Approved'
+      LEFT JOIN app.user_preferences preferences ON preferences.user_id=head.user_id
+     WHERE assignee.id=$1
+       AND assignee.is_active
+       AND head.user_id<>$2
+       AND head.user_id<>$3
+       AND COALESCE((preferences.notification_settings->>'taskBoard')::boolean,TRUE)
+     ORDER BY head.user_id`, [principal.employeeId, principal.userId, task.author_user_id]);
+  for (const recipient of headRecipients) {
+    await createNotification(db, recipient.user_id, 'TaskBooked', 'Task booked',
+      `${updated.assignee_name ?? 'An employee'} from ${recipient.department_name} booked the task “${task.title}”.`,
+      'TaskBoardItem', id, '/task-board');
+  }
   await writeAudit(db, { actorUserId: principal.userId, action: 'TASK_BOARD_BOOKED', objectType: 'TaskBoardItem',
     objectId: id, before, after: taskState(updated), requestId: trace.requestId, ip: trace.ip, userAgent: trace.userAgent });
   return publicTask(updated, principal);

@@ -44,4 +44,8 @@ test('localizes Task Board booking, completion and reward values', () => {
     localizeNotification('uk', 'Alex Stone booked the task “Prepare training”.'),
     'Alex Stone забронював(-ла) завдання «Prepare training».',
   );
+  assert.equal(
+    localizeNotification('ru', 'Alex Stone from Engineering booked the task “Prepare training”.'),
+    'Alex Stone из отдела «Engineering» забронировал(а) задание «Prepare training».',
+  );
 });

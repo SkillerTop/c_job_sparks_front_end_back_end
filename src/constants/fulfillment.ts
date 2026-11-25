@@ -1,16 +1,10 @@
 import type { FulfillmentContact } from '@/models';
-import type { RewardFulfillment } from '@/models/shop';
+import {
+  FULFILLMENT_TRANSITIONS,
+  type FulfillmentStatus,
+} from '../../server/shared/fulfillment-contract';
 
-export type FulfillmentStatus = RewardFulfillment['status'];
-
-export const FULFILLMENT_TRANSITIONS: Record<FulfillmentStatus, readonly FulfillmentStatus[]> = {
-  Requested: ['InProgress', 'Cancelled'],
-  InProgress: ['Ordered', 'Ready', 'Cancelled'],
-  Ordered: ['Ready', 'Cancelled'],
-  Ready: ['Delivered', 'Cancelled'],
-  Delivered: [],
-  Cancelled: [],
-};
+export { FULFILLMENT_TRANSITIONS, type FulfillmentStatus } from '../../server/shared/fulfillment-contract';
 
 export const fulfillmentStatusOptions = (current: FulfillmentStatus) =>
   [current, ...FULFILLMENT_TRANSITIONS[current]].map((status) => ({ value: status, label: status }));

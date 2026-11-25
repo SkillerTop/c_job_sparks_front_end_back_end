@@ -30,3 +30,14 @@ test('Task Board creation notifications have a saved user preference and server-
   assert.match(taskBoardBackend, /'TaskCreated'/);
   assert.match(taskBoardBackend, /'\/task-board'/);
 });
+
+test('Task Board booking notifies the assignee department Head without duplicates', () => {
+  assert.match(taskBoardBackend, /department\.id=assignee\.department_id AND department\.is_active/);
+  assert.match(taskBoardBackend, /head\.id=department\.head_employee_id AND head\.is_active/);
+  assert.match(taskBoardBackend, /head_user\.account_status='Approved'/);
+  assert.match(taskBoardBackend, /head\.user_id<>\$2/);
+  assert.match(taskBoardBackend, /head\.user_id<>\$3/);
+  assert.match(taskBoardBackend, /notification_settings->>'taskBoard'/);
+  assert.match(taskBoardBackend, /from \$\{recipient\.department_name\} booked the task/);
+  assert.match(taskBoardBackend, /'TaskBooked'/);
+});

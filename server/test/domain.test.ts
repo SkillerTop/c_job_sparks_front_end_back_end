@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { PoolClient } from 'pg';
 import {
   allowedAwardTypes,
   canPurchase,
@@ -22,6 +23,7 @@ import {
 } from '../src/performance-rules.js';
 import { SEED_CATEGORY_CATALOG } from '../src/category-catalog.js';
 import { departmentScopeIds, hasDepartmentScope } from '../src/authorization.js';
+import { listEligibleRecipients } from '../src/recognition.js';
 
 const rules: EffectiveRuleSet = {
   currentQuarter: 'Q4 2026',
@@ -57,7 +59,7 @@ test('quota formulas preserve the frontend business contract', () => {
 });
 
 test('roles determine award type on the server', () => {
-  assert.deepEqual(allowedAwardTypes('Coordinator'), ['White', 'Yellow']);
+  assert.deepEqual(allowedAwardTypes('Coordinator'), ['Yellow']);
   assert.deepEqual(allowedAwardTypes('GPM'), ['White', 'Yellow']);
   assert.deepEqual(allowedAwardTypes('Head'), ['White', 'Yellow', 'Blue']);
   assert.deepEqual(allowedAwardTypes('Top Management'), ['Radiant']);
@@ -95,21 +97,6 @@ test('department authorization accepts every explicit Head scope without widenin
   assert.equal(hasDepartmentScope(principal, 'department-one'), true);
   assert.equal(hasDepartmentScope(principal, 'department-two'), true);
   assert.equal(hasDepartmentScope(principal, 'department-primary'), false);
-});
-
-test('department authorization ignores extra memberships for non-Head roles', () => {
-  const principal = {
-    userId: 'user-coordinator',
-    accountId: 'user-coordinator',
-    employeeId: 'employee-coordinator',
-    email: 'coordinator@example.test',
-    role: 'Coordinator' as const,
-    departmentId: 'department-primary',
-    departmentIds: ['department-primary', 'department-other'],
-    sessionId: 'session-coordinator',
-  };
-  assert.deepEqual(departmentScopeIds(principal), ['department-primary']);
-  assert.equal(hasDepartmentScope(principal, 'department-other'), false);
 });
 
 test('quarters use UTC calendar boundaries', () => {
@@ -177,4 +164,44 @@ test('passwords use Argon2id and tokens are stored as digests', async () => {
   assert.equal(await verifyPassword(digest, 'wrong password'), false);
   assert.equal(tokenHash('secret'), tokenHash('secret'));
   assert.notEqual(tokenHash('secret'), 'secret');
+});
+
+test('award eligibility is independent from previous rejected requests', async () => {
+  let queryText = '';
+  const db = {
+    async query(text: string) {
+      queryText = text;
+      return {
+        rowCount: 1,
+        rows: [{
+          id: 'employee-recipient',
+          departmentId: 'department-one',
+          departmentIds: ['department-one'],
+          name: 'Eligible Recipient',
+          title: 'Engineer',
+          role: 'Employee',
+        }],
+      };
+    },
+  } as unknown as PoolClient;
+  const recipients = await listEligibleRecipients(db, {
+    userId: 'user-coordinator',
+    accountId: 'user-coordinator',
+    employeeId: 'employee-coordinator',
+    email: 'coordinator@example.test',
+    role: 'Coordinator',
+    departmentId: 'department-one',
+    departmentIds: ['department-one'],
+    sessionId: 'session-coordinator',
+  }, 'award');
+
+  assert.deepEqual(recipients, [{
+    id: 'employee-recipient',
+    departmentId: 'department-one',
+    departmentIds: ['department-one'],
+    name: 'Eligible Recipient',
+    title: 'Engineer',
+    role: 'Employee',
+  }]);
+  assert.doesNotMatch(queryText, /award_requests|quota_reservations/i);
 });

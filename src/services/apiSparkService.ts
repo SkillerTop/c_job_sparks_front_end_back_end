@@ -240,22 +240,12 @@ export const apiSparkService = {
           ? '/api/v1/admin/departments'
           : '/api/v1/admin/spark-categories';
     const id = draft.data.id;
-    const payload = draft.kind === 'employees'
-      ? Object.fromEntries(Object.entries(draft.data).filter(([key]) => key !== 'departmentIds'))
-      : draft.data;
-    await mutation(id ? `${route}/${encodeURIComponent(id)}` : route, payload, id ? 'PATCH' : 'POST', 0);
+    await mutation(id ? `${route}/${encodeURIComponent(id)}` : route, draft.data, id ? 'PATCH' : 'POST', 0);
     return workspace();
   },
 
   async deleteCategory(_actorId: string, categoryId: string) {
     await apiRequest<void>(`/api/v1/admin/spark-categories/${encodeURIComponent(categoryId)}`, {
-      method: 'DELETE',
-    });
-    return workspace();
-  },
-
-  async deleteDepartment(_actorId: string, departmentId: string) {
-    await apiRequest<void>(`/api/v1/admin/departments/${encodeURIComponent(departmentId)}`, {
       method: 'DELETE',
     });
     return workspace();
@@ -267,7 +257,6 @@ export const apiSparkService = {
   },
 
   reset() {
-    if (!currentWorkspace) throw new Error('The workspace has not loaded yet.');
-    return structuredClone(currentWorkspace);
+    throw new Error('Demo reset is unavailable while the application is connected to the API.');
   },
 };

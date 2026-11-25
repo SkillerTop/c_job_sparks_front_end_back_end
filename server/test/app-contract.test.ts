@@ -48,6 +48,16 @@ test('the complete route graph registers and protected routes fail closed', asyn
     assert.equal(microsoftConfig.statusCode, 200);
     assert.deepEqual(microsoftConfig.json(), { enabled: false, registrationEnabled: true });
 
+    const openApiResponse = await app.inject({ method: 'GET', url: '/api/v1/openapi.json' });
+    assert.equal(openApiResponse.statusCode, 200);
+    const openApi = openApiResponse.json<{ paths: Record<string, Record<string, unknown>> }>();
+    const operationCount = Object.values(openApi.paths)
+      .reduce((count, path) => count + Object.keys(path).length, 0);
+    assert.ok(operationCount >= 100, `Expected the complete route graph, received ${operationCount} operations.`);
+    assert.ok(openApi.paths['/api/v1/eligible-recipients']?.get);
+    assert.ok(openApi.paths['/api/v1/admin/employees/{id}']?.patch);
+    assert.ok(openApi.paths['/api/v1/award-requests/{id}/decision']?.post);
+
     const microsoftStart = await app.inject({ method: 'GET', url: '/api/v1/auth/microsoft/start' });
     assert.equal(microsoftStart.statusCode, 503);
     assert.equal(microsoftStart.json().code, 'MICROSOFT_AUTH_DISABLED');

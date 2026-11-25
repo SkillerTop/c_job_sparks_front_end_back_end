@@ -58,7 +58,7 @@ test('the MVP schema is complete and ordered', async () => {
   ]) assert.match(sql, new RegExp(`CREATE TABLE app\\.${table}\\s*\\(`));
 });
 
-test('department memberships preserve one primary department and support Head scopes', async () => {
+test('employees can belong to multiple departments and keep one primary department', async () => {
   const migration = await readFile(resolve(migrationsDirectory, '0027_employee_departments.sql'), 'utf8');
   assert.match(migration, /PRIMARY KEY \(employee_id, department_id\)/);
   assert.match(migration, /employee_departments_one_primary_idx/);

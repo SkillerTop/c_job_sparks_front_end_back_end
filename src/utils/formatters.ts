@@ -17,9 +17,6 @@ export const formatDateTime = (value: string, locale = getActiveLocale()) =>
     minute: '2-digit',
   }).format(new Date(value));
 
-export const pluralize = (value: number, singular: string, plural = `${singular}s`) =>
-  `${value} ${value === 1 ? singular : plural}`;
-
 export const makeId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 import { getActiveLocale } from '@/utils/locale';
 

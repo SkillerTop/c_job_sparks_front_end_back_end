@@ -140,7 +140,6 @@ export function RulesPage() {
             <li><LocalizedText>Recipients are active Employees, Coordinators or GPMs; self-recognition is blocked.</LocalizedText></li>
             <li><LocalizedText>Pending requests reserve a nomination. Rejection releases it.</LocalizedText></li>
             <li><LocalizedText>Unused peer recognition expires on the last day of each quarter.</LocalizedText></li>
-            <li><LocalizedText>Peer Recognition is limited to eligible colleagues in the selected department.</LocalizedText></li>
             <li><LocalizedText>The recipient’s Head approves or rejects the request. A rejection always includes a reason.</LocalizedText></li>
             <li>
               <LocalizedText>The sender must fill in all required details during Peer recognition, including the work, the
@@ -165,7 +164,7 @@ export function RulesPage() {
             <div>
               <dt><LocalizedText>Coordinator</LocalizedText></dt>
               <dd>
-                <LocalizedText>Peer recognition and White/Yellow award requests with department-based recipient selection.
+                <LocalizedText>Peer recognition and Yellow award requests with department-based recipient selection.
               </LocalizedText></dd>
             </div>
             <div>
@@ -214,7 +213,7 @@ export function RulesPage() {
               </LocalizedText></dd>
             </div>
             <div>
-              <dt><LocalizedText>Coordinator and GPM White/Yellow awards</LocalizedText></dt>
+              <dt><LocalizedText>Coordinator Yellow and GPM White/Yellow awards</LocalizedText></dt>
               <dd>
                 <LocalizedText>They remain Pending until the recipient’s Head approves them. Rejections always include a
                 reason.
@@ -455,12 +454,12 @@ export function RulesPage() {
             <Users size={20} />
           </div>
           <ul className={rulesStyles.rulesList}>
-            <li><LocalizedText>Every Peer Recognition sender chooses a colleague from their primary department.</LocalizedText></li>
+            <li><LocalizedText>A Coordinator chooses a department directly in Peer recognition.</LocalizedText></li>
             <li>
-              <LocalizedText>A Coordinator can award eligible colleagues from their primary department; project and team membership are not required.
+              <LocalizedText>A Coordinator can award eligible colleagues from any of their departments; project and team membership are not required.
             </LocalizedText></li>
             <li><LocalizedText>A GPM sees active colleagues across the whole company.</LocalizedText></li>
-            <li><LocalizedText>A Head works with every department where they are assigned as Department Head.</LocalizedText></li>
+            <li><LocalizedText>A Head works with their own department and can see the balances needed for management.</LocalizedText></li>
             <li><LocalizedText>GPM team cards keep colleague balances private.</LocalizedText></li>
           </ul>
         </section>

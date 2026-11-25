@@ -12,6 +12,7 @@ import { createPool } from './db/pool.js';
 import { ApiError, installErrorHandler } from './errors.js';
 import { GraphMailWorker } from './mail.js';
 import { cleanupExpiredIdempotencyKeys } from './idempotency.js';
+import type { RegisteredRoute } from './openapi.js';
 import { registerRoutes } from './routes.js';
 
 declare module 'fastify' {
@@ -36,14 +37,6 @@ const serializeLogError = (error: FastifyError) => {
     code: error.code,
   };
 };
-
-export const sessionCookieOptions = (environment: Environment) => ({
-  path: '/',
-  httpOnly: true,
-  secure: environment.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  maxAge: environment.SESSION_TTL_HOURS * 60 * 60,
-});
 
 export const buildApp = async (options: BuildAppOptions = {}): Promise<FastifyInstance> => {
   const environment = options.environment ?? getEnvironment();
@@ -81,6 +74,11 @@ export const buildApp = async (options: BuildAppOptions = {}): Promise<FastifyIn
         censor: '[REDACTED]',
       },
     },
+  });
+  const registeredRoutes: RegisteredRoute[] = [];
+  app.addHook('onRoute', (routeOptions) => {
+    const methods = Array.isArray(routeOptions.method) ? routeOptions.method : [routeOptions.method];
+    for (const method of methods) registeredRoutes.push({ method, url: routeOptions.url });
   });
 
   app.decorate('db', pool);
@@ -138,7 +136,7 @@ export const buildApp = async (options: BuildAppOptions = {}): Promise<FastifyIn
     }
   });
 
-  await registerRoutes(app, environment);
+  await registerRoutes(app, environment, registeredRoutes);
 
   app.addHook('onReady', async () => {
     mailWorker.start();

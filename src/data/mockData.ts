@@ -8,7 +8,6 @@ import {
 } from '@/constants/app';
 import { REWARD_FULFILLMENT_CONTACTS } from '@/constants/fulfillment';
 
-export const CURRENT_USER_ID = 'emp-alex';
 export const DEMO_ROLE_ACTORS: Record<Role, string> = {
   Employee: 'emp-alex',
   Coordinator: 'emp-sam',

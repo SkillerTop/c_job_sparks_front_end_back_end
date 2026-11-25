@@ -37,7 +37,7 @@ export function TeamPage() {
     .map((department) => department.id);
   const currentDepartmentIds = activeRole === 'Head' && headedDepartmentIds.length
     ? headedDepartmentIds
-    : [current.departmentId];
+    : (current.departmentIds ?? [current.departmentId]);
   const currentDepartmentSet = new Set(currentDepartmentIds);
   const [reportDepartmentId, setReportDepartmentId] = useState(
     currentDepartmentIds.includes(current.departmentId) ? current.departmentId : currentDepartmentIds[0]!,
@@ -86,7 +86,7 @@ export function TeamPage() {
     .filter((gate) =>
       snapshot!.employees.some(
         (employee) => employee.id === gate.employeeId &&
-          currentDepartmentSet.has(employee.departmentId),
+          (employee.departmentIds ?? [employee.departmentId]).some((id) => currentDepartmentSet.has(id)),
       ),
     )
     .sort((a, b) => b.startDate.localeCompare(a.startDate));
@@ -152,7 +152,10 @@ export function TeamPage() {
                     <h2>{member.name}</h2>
                     <p>{member.title}</p>
                     <span>
-                      {snapshot!.departments.find((item) => item.id === member.departmentId)?.name}
+                      {(member.departmentIds ?? [member.departmentId])
+                        .map((departmentId) => snapshot!.departments.find((item) => item.id === departmentId)?.name)
+                        .filter(Boolean)
+                        .join(' · ')}
                     </span>
                   </div>
                   <div className={styles.personCardControls}>

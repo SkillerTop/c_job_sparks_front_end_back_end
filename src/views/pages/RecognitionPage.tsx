@@ -19,7 +19,7 @@ import { CategoryDetailsCard } from '@/views/components/common/CategoryDetailsCa
 export function RecognitionPage() {
   const { localize } = useUserPreferences();
   const controller = useRecognitionController();
-  const { snapshot } = useSpark();
+  const { snapshot, activeRole } = useSpark();
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const remaining = Math.max(0, controller.quota - controller.usedCount);
   const selectedCategory = controller.categories.find((category) => category.name === controller.form.category);
@@ -32,7 +32,7 @@ export function RecognitionPage() {
       <PageHeader
         eyebrow="Peer recognition"
         title="Make great work visible"
-        description="Recognize an eligible Employee, Coordinator or GPM from your primary department. The selected category controls the White Spark amount; approval also creates a permanent achievement card."
+        description="Recognize an active Employee, Coordinator or GPM. The selected category controls the White Spark amount; approval also creates a permanent achievement card."
       />
       <div className={styles.formLayout}>
         <form
@@ -59,6 +59,22 @@ export function RecognitionPage() {
             <Feedback tone={controller.message.tone}>{controller.message.text}</Feedback>
           )}
           <div className={styles.fieldGrid}>
+            {activeRole === 'Coordinator' && (
+              <label className={`${styles.formField} ${styles.fieldFull}`}>
+                <span><LocalizedText>Department </LocalizedText><b aria-hidden="true">*</b></span>
+                <SelectField
+                  value={controller.departmentId}
+                  required
+                  onChange={controller.selectDepartment}
+                  options={[
+                    { value: '', label: 'Choose department' },
+                    ...controller.departments.map((department) => ({ value: department.id, label: department.name })),
+                  ]}
+                  ariaLabel="Recognition department"
+                />
+                <small><LocalizedText>Choose a department, then select an eligible colleague.</LocalizedText></small>
+              </label>
+            )}
             <label className={`${styles.formField} ${styles.fieldFull}`}>
               <span>
                 <LocalizedText>Recipient </LocalizedText><b aria-hidden="true">*</b>

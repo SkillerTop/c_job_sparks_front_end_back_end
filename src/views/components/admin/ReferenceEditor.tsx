@@ -4,6 +4,7 @@ import { ALL_ROLES } from '@/constants/app';
 import { Modal } from '@/views/components/common/Modal';
 import { Feedback } from '@/views/components/common/Feedback';
 import { SelectField } from '@/views/components/ui/SelectField';
+import { DepartmentMembershipPicker } from './DepartmentMembershipPicker';
 import { useAuth } from '@/controllers/AuthContext';
 import type { AppSnapshot, Department, Employee, ReferenceDraft, SparkCategory } from '@/models';
 import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
@@ -51,19 +52,16 @@ export function ReferenceEditor({
     }
   };
   const remove = async () => {
-    const confirmation = draft.kind === 'employees'
-      ? `Delete ${draft.data.name} from Employee Directory? Access will be disabled. Ledger and audit history will be preserved. This cannot be undone.`
-      : draft.kind === 'departments'
-        ? `Delete ${draft.data.name} from future use? Active employees must be moved first. Historical references will be preserved.`
-        : `Delete ${draft.data.name} from future awards? Existing requests, Ledger entries and audit history will be preserved.`;
-    if (!onDelete || deleting || !window.confirm(confirmation)) return;
+    if (!onDelete || deleting || !window.confirm(
+      `Delete ${draft.data.name} from Employee Directory? Access will be disabled. Ledger and audit history will be preserved. This cannot be undone.`,
+    )) return;
     setDeleting(true);
     setError('');
     try {
       await onDelete();
       onClose();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not delete this record.');
+      setError(caught instanceof Error ? caught.message : 'Could not delete this employee.');
     } finally {
       setDeleting(false);
     }
@@ -128,7 +126,10 @@ export function ReferenceEditor({
                 </span>
                 <SelectField
                   value={draft.data.departmentId}
-                  onChange={(value) => update('departmentId', value)}
+                   onChange={(value) => {
+                     update('departmentId', value);
+                     update('departmentIds', [...new Set([value, ...(draft.data.departmentIds ?? [])])].filter(Boolean));
+                   }}
                   options={[
                     { value: '', label: 'Choose department' },
                     ...snapshot.departments.map((department) => ({
@@ -140,6 +141,12 @@ export function ReferenceEditor({
                   required
                 />
               </label>
+              <DepartmentMembershipPicker
+                departments={snapshot.departments}
+                primaryDepartmentId={draft.data.departmentId}
+                selectedDepartmentIds={draft.data.departmentIds ?? [draft.data.departmentId]}
+                onChange={(departmentIds) => update('departmentIds', departmentIds)}
+              />
               <label className={styles.formField}>
                 <span><LocalizedText>Business role</LocalizedText></span>
                 <SelectField
@@ -339,7 +346,7 @@ export function ReferenceEditor({
           {onDelete && (
             <button type="button" className={styles.rejectButton} onClick={() => void remove()} disabled={saving || deleting}>
               {deleting ? <span className={styles.spinner} /> : <Trash2 size={16} />}
-              <LocalizedText>{deleting ? 'Deleting…' : 'Delete'}</LocalizedText>
+              <LocalizedText>{deleting ? 'Deleting…' : 'Delete employee'}</LocalizedText>
             </button>
           )}
           <button type="button" className={styles.secondaryButton} onClick={onClose} disabled={saving || deleting}>
