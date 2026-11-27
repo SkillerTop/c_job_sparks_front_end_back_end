@@ -121,6 +121,38 @@
   transition: width 240ms ease;
 }
 
+.progressStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.5rem;
+  margin: 0.65rem 0 0;
+}
+
+.progressStats > div {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.58rem;
+  background: color-mix(in srgb, var(--surface) 76%, transparent);
+}
+
+.progressStats dt {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.progressStats dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 .progressHint {
   display: block;
   margin-top: 0.55rem;

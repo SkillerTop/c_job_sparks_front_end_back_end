@@ -30,15 +30,33 @@ const tierDescriptions: Record<SparkType, string> = {
   Radiant: 'Permanent company-wide distinction from Top Management.',
 };
 
-const performanceThresholdDescription = (tiers: PerformanceRewardTier[]) => {
+const performanceThresholdBands = (tiers: PerformanceRewardTier[]) => {
   const score = (value: number) => value.toFixed(2);
+
+  if (tiers.length === 0) return [];
+
   return [
-    `x < ${score(tiers[0]!.minimum)} = 0`,
+    { range: `x < ${score(tiers[0]!.minimum)}`, reward: 0 },
     ...tiers.map((tier, index) => index < tiers.length - 1
-      ? `${score(tier.minimum)} ≤ x < ${score(tiers[index + 1]!.minimum)} = ${tier.reward}`
-      : `x ≥ ${score(tier.minimum)} = ${tier.reward}`),
-  ].join(' · ');
+      ? { range: `${score(tier.minimum)} ≤ x < ${score(tiers[index + 1]!.minimum)}`, reward: tier.reward }
+      : { range: `x ≥ ${score(tier.minimum)}`, reward: tier.reward }),
+  ];
 };
+
+function PerformanceThresholds({ tiers }: { tiers: PerformanceRewardTier[] }) {
+  return (
+    <ul className={rulesStyles.thresholdBands}>
+      {performanceThresholdBands(tiers).map((band) => (
+        <li key={`${band.range}-${band.reward}`}>
+          <span className={rulesStyles.thresholdRange}>{band.range}</span>
+          <strong className={rulesStyles.thresholdReward}>
+            {band.reward} <LocalizedText>White</LocalizedText>
+          </strong>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function RulesPage() {
   const { snapshot } = useSpark();
@@ -268,11 +286,11 @@ export function RulesPage() {
           <dl className={rulesStyles.roleRuleList}>
             <div>
               <dt><LocalizedText>KPI thresholds</LocalizedText></dt>
-              <dd>{performanceThresholdDescription(settings.performanceThresholds.kpi)} <LocalizedText>White.</LocalizedText></dd>
+              <dd><PerformanceThresholds tiers={settings.performanceThresholds.kpi} /></dd>
             </div>
             <div>
               <dt><LocalizedText>Personal cards thresholds</LocalizedText></dt>
-              <dd>{performanceThresholdDescription(settings.performanceThresholds.personalCards)} <LocalizedText>White.</LocalizedText></dd>
+              <dd><PerformanceThresholds tiers={settings.performanceThresholds.personalCards} /></dd>
             </div>
             <div>
               <dt><LocalizedText>Quarterly import</LocalizedText></dt>

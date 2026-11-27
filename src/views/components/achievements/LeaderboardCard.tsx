@@ -132,7 +132,7 @@ export function LeaderboardCard({ snapshot, currentUserId }: {
                   <span>
                     {current.rank <= 10
                       ? <LocalizedText>You are in the Top 10</LocalizedText>
-                      : <><LocalizedText>Progress to the Top 10</LocalizedText> · {current.amount}/{data.topTenThreshold || '—'}</>}
+                      : <LocalizedText>Progress to the Top 10</LocalizedText>}
                   </span>
                   <strong>{progress}%</strong>
                 </div>
@@ -140,11 +140,25 @@ export function LeaderboardCard({ snapshot, currentUserId }: {
                   <span style={{ width: `${progress}%` }} />
                 </div>
                 {current.rank > 10 && (
-                  <small className={styles.progressHint}>
-                    {data.topTenThreshold > 0
-                      ? <><LocalizedText>Earn </LocalizedText>{amountToTopTen} <LocalizedText>Sparks to reach the Top 10.</LocalizedText></>
-                      : <LocalizedText>Earn your first Spark to start climbing the leaderboard.</LocalizedText>}
-                  </small>
+                  <>
+                    <dl className={styles.progressStats}>
+                      <div>
+                        <dt><LocalizedText>Current score</LocalizedText></dt>
+                        <dd>{current.amount}</dd>
+                      </div>
+                      {data.topTenThreshold > 0 && (
+                        <div>
+                          <dt><LocalizedText>Top 10 target</LocalizedText></dt>
+                          <dd>{data.topTenThreshold}</dd>
+                        </div>
+                      )}
+                    </dl>
+                    <small className={styles.progressHint}>
+                      {data.topTenThreshold > 0
+                        ? <><LocalizedText>Earn </LocalizedText>{amountToTopTen} <LocalizedText>leaderboard points to reach the Top 10.</LocalizedText></>
+                        : <LocalizedText>Earn your first leaderboard point to start climbing.</LocalizedText>}
+                    </small>
+                  </>
                 )}
               </>
             ) : (

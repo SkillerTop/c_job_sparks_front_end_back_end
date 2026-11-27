@@ -67,6 +67,11 @@ test('Achievements leaderboard filters and ranking states are keyboard and scree
   assert.doesNotMatch(component, /aria-pressed|Sort leaderboard by Spark value/);
   assert.match(component, /aria-expanded=\{expanded\}/);
   assert.match(component, /role="alert"/);
+  assert.match(component, /<dl className=\{styles\.progressStats\}>/);
+  assert.match(component, /<LocalizedText>Current score<\/LocalizedText>/);
+  assert.match(component, /<LocalizedText>Top 10 target<\/LocalizedText>/);
+  assert.doesNotMatch(component, /Progress to the Top 10<\/LocalizedText> ·/);
+  assert.doesNotMatch(component, /topTenThreshold \|\| '—'/);
 });
 
 test('Rules uses configured Yellow limit and progressive category disclosure', async () => {
@@ -76,6 +81,11 @@ test('Rules uses configured Yellow limit and progressive category disclosure', a
   assert.doesNotMatch(source, />7 <LocalizedText>per employee per quarter/);
   assert.match(source, /Search award categories/);
   assert.match(source, /open=\{normalizedCategoryQuery \? true : undefined\}/);
+  assert.match(source, /<ul className=\{rulesStyles\.thresholdBands\}>/);
+  assert.match(source, /<span className=\{rulesStyles\.thresholdRange\}>/);
+  assert.match(source, /<strong className=\{rulesStyles\.thresholdReward\}>/);
+  assert.doesNotMatch(source, /\.join\(' · '\)/);
+  assert.match(styles, /\.thresholdBands\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,/s);
   assert.match(styles, /\.rulesDisclosure li > div\s*\{[^}]*flex:\s*1 1 12rem;/s);
   assert.match(styles, /\.rulesDisclosure li span\s*\{[^}]*max-width:\s*46%;[^}]*flex:\s*0 1 46%;/s);
   assert.match(styles, /@media \(max-width:\s*42rem\)[^]*\.rulesDisclosure li[^]*flex-direction:\s*column;/);
