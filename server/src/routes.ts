@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { PoolClient } from 'pg';
 import { z } from 'zod';
-import { LEADERBOARD_SPARK_TYPES } from '../shared/leaderboard-contract.js';
 import type { Environment } from './config/env.js';
 import {
   authenticate,
@@ -693,13 +692,12 @@ export const registerRoutes = async (
       const principal = principalOf(request);
       requireWorkspaceSection(principal, 'achievements');
       const query = z.object({
-        sparkType: z.enum(LEADERBOARD_SPARK_TYPES).default('White'),
         departmentId: idSchema.optional(),
       }).parse(request.query);
       void reply.header('cache-control', 'private, no-store');
       return withTransaction(
         app.db,
-        (db) => listLeaderboard(db, principal, query.sparkType, query.departmentId),
+        (db) => listLeaderboard(db, principal, query.departmentId),
         { readOnly: true },
       );
     });

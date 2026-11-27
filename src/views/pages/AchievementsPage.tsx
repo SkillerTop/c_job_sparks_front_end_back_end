@@ -34,22 +34,6 @@ export function AchievementsPage() {
         eyebrow="Permanent record"
         title="My achievements"
         description="Achievement cards preserve the story behind every approved recognition, even after the related Sparks are spent."
-        action={
-          <SelectField
-            value={filter}
-            onChange={(value) => {
-              setFilter(value as 'All' | SparkType);
-              setExpanded(false);
-            }}
-            options={['All', 'White', 'Yellow', 'Blue', 'Radiant'].map((value) => ({
-              value: value as 'All' | SparkType,
-              label: value,
-            }))}
-            ariaLabel="Filter achievements by Spark type"
-            icon={<Layers3 size={15} />}
-            variant="filter"
-          />
-        }
       />
       {PERFORMANCE_ROLES.includes(activeRole) && <PerformanceOverview />}
       <section aria-labelledby="lifetime-title">
@@ -75,14 +59,30 @@ export function AchievementsPage() {
           counting the same value twice, and import corrections are netted automatically.
         </LocalizedText></p>
       </section>
-      <div className={leaderboardStyles.pageGrid}>
-        <section className={leaderboardStyles.achievementColumn} aria-labelledby="recognition-history-title">
-          <div className={styles.sectionHeading}>
+      <LeaderboardCard snapshot={snapshot!} currentUserId={currentUserId} />
+      <section className={leaderboardStyles.achievementColumn} aria-labelledby="recognition-history-title">
+          <div className={`${styles.sectionHeading} ${leaderboardStyles.achievementHeading}`}>
             <div>
               <p className={styles.eyebrow}><LocalizedText>Your recognition</LocalizedText></p>
               <h2 id="recognition-history-title"><LocalizedText>Achievements</LocalizedText></h2>
             </div>
-            <span className={styles.mutedCopy}><LocalizedText>Latest first</LocalizedText></span>
+            <div className={leaderboardStyles.achievementTools}>
+              <span className={styles.mutedCopy}><LocalizedText>Latest first</LocalizedText></span>
+              <SelectField
+                value={filter}
+                onChange={(value) => {
+                  setFilter(value as 'All' | SparkType);
+                  setExpanded(false);
+                }}
+                options={['All', 'White', 'Yellow', 'Blue', 'Radiant'].map((value) => ({
+                  value: value as 'All' | SparkType,
+                  label: value,
+                }))}
+                ariaLabel="Filter achievements by Spark type"
+                icon={<Layers3 size={15} />}
+                variant="filter"
+              />
+            </div>
           </div>
           {items.length === 0 ? (
             <EmptyState
@@ -124,9 +124,7 @@ export function AchievementsPage() {
               </button>
             )}
           </div>
-        </section>
-        <LeaderboardCard snapshot={snapshot!} currentUserId={currentUserId} />
-      </div>
+      </section>
     </PageTransition>
   );
 }

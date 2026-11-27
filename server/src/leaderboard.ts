@@ -1,8 +1,5 @@
 import type { PoolClient } from 'pg';
-import {
-  createLeaderboardResponse,
-  type LeaderboardSparkType,
-} from '../shared/leaderboard-contract.js';
+import { createLeaderboardResponse } from '../shared/leaderboard-contract.js';
 import type { AuthenticatedPrincipal } from './domain.js';
 import { notFound } from './errors.js';
 import { maybeOne, rows } from './sql.js';
@@ -10,7 +7,6 @@ import { maybeOne, rows } from './sql.js';
 export const listLeaderboard = async (
   db: PoolClient,
   principal: AuthenticatedPrincipal,
-  sparkType: LeaderboardSparkType,
   departmentId?: string,
 ) => {
   if (departmentId) {
@@ -56,7 +52,6 @@ export const listLeaderboard = async (
         ) active_role ON true
         LEFT JOIN app.achievements achievement
           ON achievement.employee_id=employee.id
-         AND achievement.spark_type=$1
          AND (
            achievement.source_type<>'PerformanceRecord'
            OR EXISTS (
@@ -67,12 +62,12 @@ export const listLeaderboard = async (
          )
        WHERE employee.is_active
          AND active_role.code=ANY(ARRAY['Employee','Coordinator','GPM','Head','Top Management']::text[])
-         AND ($2::uuid IS NULL OR EXISTS (
+         AND ($1::uuid IS NULL OR EXISTS (
            SELECT 1 FROM app.employee_departments membership
-            WHERE membership.employee_id=employee.id AND membership.department_id=$2
+            WHERE membership.employee_id=employee.id AND membership.department_id=$1
          ))
        GROUP BY employee.id,employee.display_name,position.title,employee.department_id
-       ORDER BY employee.display_name,employee.id`, [sparkType, departmentId ?? null]),
+       ORDER BY employee.display_name,employee.id`, [departmentId ?? null]),
   ]);
 
   return createLeaderboardResponse(
@@ -85,7 +80,6 @@ export const listLeaderboard = async (
       previousAmount: Number(row.previous_amount),
     })),
     principal.employeeId,
-    sparkType,
     departmentId ?? null,
     departments,
   );

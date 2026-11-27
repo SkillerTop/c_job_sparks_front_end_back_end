@@ -45,7 +45,7 @@ test('leaderboard ranks deterministically and reports monthly movement', () => {
     { employeeId: 'leader', name: 'A Leader', title: 'Lead', departmentId: 'dep-b', amount: 12, previousAmount: 12 },
     { employeeId: 'peer-b', name: 'Beta Peer', title: 'Engineer', departmentId: 'dep-a', amount: 7, previousAmount: 8 },
     { employeeId: 'peer-a', name: 'Alpha Peer', title: 'Engineer', departmentId: 'dep-a', amount: 7, previousAmount: 2 },
-  ], 'current', 'Blue', null, [], '2026-11-27T00:00:00.000Z');
+  ], 'current', null, [], '2026-11-27T00:00:00.000Z');
 
   assert.deepEqual(result.topTen.map((entry) => entry.employeeId), ['leader', 'peer-a', 'peer-b', 'current']);
   assert.equal(result.currentUser?.rank, 4);
@@ -58,7 +58,7 @@ test('leaderboard ranks deterministically and reports monthly movement', () => {
 test('leaderboard handles a department that does not contain the current employee', () => {
   const result = createLeaderboardResponse([
     { employeeId: 'peer', name: 'Department Peer', title: 'Engineer', departmentId: 'dep-b', amount: 2, previousAmount: 2 },
-  ], 'current', 'White', 'dep-b');
+  ], 'current', 'dep-b');
 
   assert.equal(result.currentUser, null);
   assert.deepEqual(result.aroundCurrentUser, []);

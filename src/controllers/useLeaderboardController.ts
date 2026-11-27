@@ -3,7 +3,6 @@ import type { AppSnapshot, Role } from '@/models';
 import {
   createLeaderboardResponse,
   type LeaderboardResponse,
-  type LeaderboardSparkType,
 } from '@/models/leaderboard';
 import { apiRequest, isApiMode } from '@/services/apiClient';
 import { calculateLifetimeEarnings } from '@/utils/sparkRules';
@@ -13,7 +12,6 @@ const leaderboardRoles: Role[] = ['Employee', 'Coordinator', 'GPM', 'Head', 'Top
 const localLeaderboard = (
   snapshot: AppSnapshot,
   currentUserId: string,
-  sparkType: LeaderboardSparkType,
   departmentId: string,
 ) => {
   const startOfMonth = new Date();
@@ -28,17 +26,19 @@ const localLeaderboard = (
       leaderboardRoles.includes(employee.role) &&
       (!departmentId || (employee.departmentIds ?? [employee.departmentId]).includes(departmentId)),
   );
+  const totalEarned = (transactions: AppSnapshot['transactions'], employeeId: string) =>
+    Object.values(calculateLifetimeEarnings(transactions, employeeId))
+      .reduce((total, amount) => total + amount, 0);
   return createLeaderboardResponse(
     employees.map((employee) => ({
       employeeId: employee.id,
       name: employee.name,
       title: employee.title,
       departmentId: employee.departmentId,
-      amount: calculateLifetimeEarnings(snapshot.transactions, employee.id)[sparkType],
-      previousAmount: calculateLifetimeEarnings(previousTransactions, employee.id)[sparkType],
+      amount: totalEarned(snapshot.transactions, employee.id),
+      previousAmount: totalEarned(previousTransactions, employee.id),
     })),
     currentUserId,
-    sparkType,
     departmentId || null,
     snapshot.departments
       .filter((department) => department.active)
@@ -48,7 +48,6 @@ const localLeaderboard = (
 };
 
 export const useLeaderboardController = (snapshot: AppSnapshot, currentUserId: string) => {
-  const [sparkType, setSparkType] = useState<LeaderboardSparkType>('Blue');
   const [departmentId, setDepartmentId] = useState('');
   const [serverData, setServerData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(isApiMode);
@@ -56,18 +55,19 @@ export const useLeaderboardController = (snapshot: AppSnapshot, currentUserId: s
   const [refreshToken, setRefreshToken] = useState(0);
 
   const demoData = useMemo(
-    () => localLeaderboard(snapshot, currentUserId, sparkType, departmentId),
-    [snapshot, currentUserId, sparkType, departmentId],
+    () => localLeaderboard(snapshot, currentUserId, departmentId),
+    [snapshot, currentUserId, departmentId],
   );
 
   useEffect(() => {
     if (!isApiMode) return;
     const controller = new AbortController();
-    const query = new URLSearchParams({ sparkType });
+    const query = new URLSearchParams();
     if (departmentId) query.set('departmentId', departmentId);
     setLoading(true);
     setError(null);
-    void apiRequest<LeaderboardResponse>(`/api/v1/leaderboard?${query.toString()}`, {
+    const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    void apiRequest<LeaderboardResponse>(`/api/v1/leaderboard${suffix}`, {
       signal: controller.signal,
     })
       .then(setServerData)
@@ -79,7 +79,7 @@ export const useLeaderboardController = (snapshot: AppSnapshot, currentUserId: s
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [currentUserId, departmentId, refreshToken, sparkType]);
+  }, [currentUserId, departmentId, refreshToken]);
 
   const retry = useCallback(() => setRefreshToken((current) => current + 1), []);
 
@@ -90,7 +90,5 @@ export const useLeaderboardController = (snapshot: AppSnapshot, currentUserId: s
     loading,
     retry,
     setDepartmentId,
-    setSparkType,
-    sparkType,
   };
 };

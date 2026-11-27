@@ -61,10 +61,10 @@ test('Achievements leaderboard filters and ranking states are keyboard and scree
   const component = await read('src/views/components/achievements/LeaderboardCard.tsx');
 
   assert.match(page, /LeaderboardCard/);
+  assert.ok(page.indexOf('<LeaderboardCard') < page.indexOf('recognition-history-title'));
   assert.match(component, /aria-busy=\{controller\.loading\}/);
   assert.match(component, /ariaLabel="Filter leaderboard by department"/);
-  assert.match(component, /role="group"/);
-  assert.match(component, /aria-pressed=\{controller\.sparkType === type\}/);
+  assert.doesNotMatch(component, /aria-pressed|Sort leaderboard by Spark value/);
   assert.match(component, /aria-expanded=\{expanded\}/);
   assert.match(component, /role="alert"/);
 });

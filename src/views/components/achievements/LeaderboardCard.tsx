@@ -1,11 +1,10 @@
-import { ChevronDown, ChevronUp, Crown, RefreshCw, Trophy, TrendingDown, TrendingUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Crown, RefreshCw, Sparkles, Trophy, TrendingDown, TrendingUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { AppSnapshot } from '@/models';
-import { LEADERBOARD_SPARK_TYPES, type LeaderboardEntry } from '@/models/leaderboard';
+import type { LeaderboardEntry } from '@/models/leaderboard';
 import { useLeaderboardController } from '@/controllers/useLeaderboardController';
 import { useUserPreferences } from '@/controllers/UserPreferencesContext';
 import { LocalizedText } from '@/views/components/common/LocalizedText';
-import { SparkIcon } from '@/views/components/common/SparkIcon';
 import { SelectField } from '@/views/components/ui/SelectField';
 import appStyles from '@/views/styles/app.module.css';
 import styles from '@/views/styles/leaderboard.module.css';
@@ -17,10 +16,7 @@ const initials = (name: string) => name
   .map((part) => part[0]?.toUpperCase())
   .join('') || 'CJ';
 
-function RankingRow({ entry, sparkType }: {
-  entry: LeaderboardEntry;
-  sparkType: (typeof LEADERBOARD_SPARK_TYPES)[number];
-}) {
+function RankingRow({ entry }: { entry: LeaderboardEntry }) {
   return (
     <li className={entry.isCurrentUser ? styles.currentRow : undefined}>
       <span className={styles.position} aria-label={`Rank ${entry.rank}`}>
@@ -32,7 +28,7 @@ function RankingRow({ entry, sparkType }: {
         <small>{entry.title}</small>
       </span>
       <span className={styles.score}>
-        <SparkIcon type={sparkType} size={12} animated={false} />
+        <Sparkles size={13} aria-hidden="true" />
         <strong>{entry.amount}</strong>
       </span>
     </li>
@@ -90,23 +86,6 @@ export function LeaderboardCard({ snapshot, currentUserId }: {
           ariaLabel="Filter leaderboard by department"
           variant="filter"
         />
-        <div className={styles.sparkTabs} role="group" aria-label={localize('Sort leaderboard by Spark value')}>
-          {LEADERBOARD_SPARK_TYPES.map((type) => (
-            <button
-              key={type}
-              type="button"
-              className={controller.sparkType === type ? styles.activeSpark : undefined}
-              aria-pressed={controller.sparkType === type}
-              onClick={() => {
-                controller.setSparkType(type);
-                setExpanded(false);
-              }}
-            >
-              <SparkIcon type={type} size={10} animated={false} />
-              <LocalizedText>{type}</LocalizedText>
-            </button>
-          ))}
-        </div>
       </div>
 
       {controller.error && (
@@ -132,7 +111,8 @@ export function LeaderboardCard({ snapshot, currentUserId }: {
         </div>
       ) : data ? (
         <>
-          <section className={styles.summary} aria-label={localize('Your leaderboard position')}>
+          <div className={styles.boardGrid}>
+            <section className={styles.summary} aria-label={localize('Your leaderboard position')}>
             {current ? (
               <>
                 <div className={styles.rankLine}>
@@ -162,7 +142,7 @@ export function LeaderboardCard({ snapshot, currentUserId }: {
                 {current.rank > 10 && (
                   <small className={styles.progressHint}>
                     {data.topTenThreshold > 0
-                      ? <><LocalizedText>Earn </LocalizedText>{amountToTopTen} {controller.sparkType} <LocalizedText>Sparks to reach the Top 10.</LocalizedText></>
+                      ? <><LocalizedText>Earn </LocalizedText>{amountToTopTen} <LocalizedText>Sparks to reach the Top 10.</LocalizedText></>
                       : <LocalizedText>Earn your first Spark to start climbing the leaderboard.</LocalizedText>}
                   </small>
                 )}
@@ -172,41 +152,42 @@ export function LeaderboardCard({ snapshot, currentUserId }: {
                 <LocalizedText>You are not part of the selected department, but you can still view its leaders.</LocalizedText>
               </div>
             )}
-          </section>
+            </section>
 
-          {current && data.aroundCurrentUser.length > 0 && (
-            <section className={styles.rankingSection} aria-labelledby="around-you-title">
-              <h3 id="around-you-title"><LocalizedText>Around you</LocalizedText></h3>
+            {current && data.aroundCurrentUser.length > 0 && (
+              <section className={styles.rankingSection} aria-labelledby="around-you-title">
+                <h3 id="around-you-title"><LocalizedText>Around you</LocalizedText></h3>
+                <ol className={styles.rankingList}>
+                  {data.aroundCurrentUser.map((entry) => (
+                    <RankingRow key={entry.employeeId} entry={entry} />
+                  ))}
+                </ol>
+              </section>
+            )}
+
+            <section className={styles.rankingSection} aria-labelledby="leaders-title">
+              <div className={styles.sectionTitle}>
+                <h3 id="leaders-title"><LocalizedText>Leading the way</LocalizedText></h3>
+                <Crown size={16} aria-hidden="true" />
+              </div>
               <ol className={styles.rankingList}>
-                {data.aroundCurrentUser.map((entry) => (
-                  <RankingRow key={entry.employeeId} entry={entry} sparkType={controller.sparkType} />
+                {leaders.map((entry) => (
+                  <RankingRow key={entry.employeeId} entry={entry} />
                 ))}
               </ol>
+              {data.topTen.length > 3 && (
+                <button
+                  type="button"
+                  className={styles.expandButton}
+                  aria-expanded={expanded}
+                  onClick={() => setExpanded((value) => !value)}
+                >
+                  <LocalizedText>{expanded ? 'Show top 3' : 'See top 10'}</LocalizedText>
+                  {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                </button>
+              )}
             </section>
-          )}
-
-          <section className={styles.rankingSection} aria-labelledby="leaders-title">
-            <div className={styles.sectionTitle}>
-              <h3 id="leaders-title"><LocalizedText>Leading the way</LocalizedText></h3>
-              <Crown size={16} aria-hidden="true" />
-            </div>
-            <ol className={styles.rankingList}>
-              {leaders.map((entry) => (
-                <RankingRow key={entry.employeeId} entry={entry} sparkType={controller.sparkType} />
-              ))}
-            </ol>
-            {data.topTen.length > 3 && (
-              <button
-                type="button"
-                className={styles.expandButton}
-                aria-expanded={expanded}
-                onClick={() => setExpanded((value) => !value)}
-              >
-                <LocalizedText>{expanded ? 'Show top 3' : 'See top 10'}</LocalizedText>
-                {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-              </button>
-            )}
-          </section>
+          </div>
           <p className={styles.disclaimer}>
             <LocalizedText>Ranked by lifetime earned Sparks. Conversions and spending do not increase the score.</LocalizedText>
           </p>

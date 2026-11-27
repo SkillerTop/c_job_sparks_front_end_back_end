@@ -1,7 +1,3 @@
-export const LEADERBOARD_SPARK_TYPES = ['White', 'Yellow', 'Blue', 'Radiant'] as const;
-
-export type LeaderboardSparkType = (typeof LEADERBOARD_SPARK_TYPES)[number];
-
 export interface LeaderboardDepartment {
   id: string;
   name: string;
@@ -19,7 +15,6 @@ export interface LeaderboardEntry {
 }
 
 export interface LeaderboardResponse {
-  sparkType: LeaderboardSparkType;
   departmentId: string | null;
   departments: LeaderboardDepartment[];
   topTen: LeaderboardEntry[];
@@ -48,7 +43,6 @@ const byScore = (score: 'amount' | 'previousAmount') =>
 export const createLeaderboardResponse = (
   candidates: readonly LeaderboardCandidate[],
   currentEmployeeId: string,
-  sparkType: LeaderboardSparkType,
   departmentId: string | null,
   departments: LeaderboardDepartment[] = [],
   generatedAt = new Date().toISOString(),
@@ -75,7 +69,6 @@ export const createLeaderboardResponse = (
   const currentIndex = entries.findIndex((entry) => entry.isCurrentUser);
   const topTen = entries.slice(0, 10);
   return {
-    sparkType,
     departmentId,
     departments,
     topTen,
