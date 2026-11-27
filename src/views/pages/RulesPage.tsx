@@ -476,7 +476,7 @@ export function RulesPage() {
             <li>
               <LocalizedText>A Coordinator can award eligible colleagues from any of their departments; project and team membership are not required.
             </LocalizedText></li>
-            <li><LocalizedText>A GPM can award eligible colleagues from any department the GPM belongs to; project membership is not required.</LocalizedText></li>
+            <li><LocalizedText>A GPM can award any active Employee or Coordinator across the company; project and department membership are not required.</LocalizedText></li>
             <li><LocalizedText>A Head works with their own department and can see the balances needed for management.</LocalizedText></li>
             <li><LocalizedText>GPM team cards keep colleague balances private.</LocalizedText></li>
           </ul>

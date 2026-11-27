@@ -423,7 +423,6 @@ test('Direct Yellow cap is unchanged by spending or conversion', async () => {
 });
 test('Yellow request reserves its category and approval creates the configured amount', async () => {
   const employeeId = 'emp-nora';
-  await updateEmployee('emp-elena', { departmentId: 'dep-eng', departmentIds: ['dep-eng'] });
   await sparkService.reviewAward('award-001', 'Rejected', 'Replace the seeded request for this test.', HEAD);
   const beforeYellow = calculateBalances((await snapshot()).transactions, employeeId).Yellow;
   const input = award(employeeId, 'Yellow', YELLOW_CATEGORIES[0].label);
@@ -434,9 +433,8 @@ test('Yellow request reserves its category and approval creates the configured a
   assert.equal(calculateBalances(state.transactions, employeeId).Yellow, beforeYellow + 1);
   assert.ok(state.achievements.some((item) => item.employeeId === employeeId && item.title === input.category));
 });
-test('Coordinator and GPM awards use department membership without requiring project membership', async () => {
+test('Coordinator awards stay department-scoped while GPM awards are company-wide', async () => {
   const departmentColleague = await addEmployee({ departmentId: 'dep-ops' });
-  const gpmDepartmentColleague = await addEmployee({ departmentId: 'dep-ops' });
   const outsideDepartment = await addEmployee({ departmentId: 'dep-eng' });
   const departmentAward = await sparkService.createAward(
     'emp-sam',
@@ -453,21 +451,17 @@ test('Coordinator and GPM awards use department membership without requiring pro
   assert.equal(selectAwardTargets(state, 'emp-sam', 'Coordinator').some((item) => item.id === departmentColleague.id), true);
   assert.equal(selectAwardTargets(state, 'emp-sam', 'Coordinator').some((item) => item.id === outsideDepartment.id), false);
   assert.equal(selectAwardTargets(state, 'emp-sam', 'Coordinator').some((item) => item.id === 'emp-maya'), false);
-  assert.equal(selectAwardTargets(state, 'emp-elena', 'GPM').some((item) => item.id === gpmDepartmentColleague.id), true);
-  assert.equal(selectAwardTargets(state, 'emp-elena', 'GPM').some((item) => item.id === outsideDepartment.id), false);
-  await assert.rejects(
-    sparkService.createAward('emp-elena', 'GPM', award(outsideDepartment.id, 'Yellow', YELLOW_CATEGORIES[0].label)),
-    /eligible|scope|target/i,
-  );
+  assert.equal(selectAwardTargets(state, 'emp-elena', 'GPM').some((item) => item.id === outsideDepartment.id), true);
+  assert.equal(selectAwardTargets(state, 'emp-elena', 'GPM').some((item) => item.id === 'emp-maya'), false);
+  assert.equal(selectAwardTargets(state, 'emp-elena', 'GPM').some((item) => item.id === 'emp-elena'), false);
   const result = await sparkService.createAward(
     'emp-elena',
     'GPM',
-    award(gpmDepartmentColleague.id, 'Yellow', YELLOW_CATEGORIES[0].label),
+    award(outsideDepartment.id, 'Yellow', YELLOW_CATEGORIES[0].label),
   );
   assert.equal(result.request.status, 'Pending');
 });
 test('GPM can request White awards using the controlled Coordinator quota', async () => {
-  await updateEmployee('emp-elena', { departmentId: 'dep-eng', departmentIds: ['dep-eng'] });
   const first = await sparkService.createAward('emp-elena', 'GPM', award('emp-alex', 'White', RECOGNITION_CATEGORIES[0]));
   assert.equal(first.request.status, 'Pending');
   const approvalItem = selectApprovalQueue(first.snapshot, HEAD).find((item) => item.id === first.request.id);
