@@ -32,22 +32,13 @@ export const selectGpmControlledCoordinators = (snapshot: AppSnapshot, gpmId: st
 
 export const selectAwardTargets = (snapshot: AppSnapshot, actorId: string, role: Role) => {
   const actorDepartments = departmentScopeFor(snapshot, actorId, role);
-  const gpmTeamMemberIds = new Set(
-    role === 'GPM'
-      ? snapshot.projectTeams
-          .filter((team) => team.active && team.gpmId === actorId)
-          .flatMap((team) => team.members.map((member) => member.employeeId))
-      : [],
-  );
   return snapshot.employees.filter((employee) => {
     if (!employee.active || employee.role === 'Administrator' || employee.id === actorId) return false;
     if (role === 'Top Management') return true;
     if (!['Employee', 'Coordinator'].includes(employee.role)) return false;
-    if (role === 'Coordinator') return (employee.departmentIds ?? [employee.departmentId])
+    if (role === 'Coordinator' || role === 'Head' || role === 'GPM')
+      return (employee.departmentIds ?? [employee.departmentId])
       .some((departmentId) => actorDepartments.has(departmentId));
-    if (role === 'Head') return (employee.departmentIds ?? [employee.departmentId])
-      .some((departmentId) => actorDepartments.has(departmentId));
-    if (role === 'GPM') return gpmTeamMemberIds.has(employee.id);
     return false;
   });
 };

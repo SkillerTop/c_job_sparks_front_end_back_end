@@ -45,6 +45,23 @@ test('Award recipients use the authoritative eligibility endpoint', () => {
   assert.match(recipientsController, /\/api\/v1\/eligible-recipients\?purpose=award/);
 });
 
+test('GPM Award scope is automatic and derived from the GPM department memberships', () => {
+  const awardPage = readFileSync(join(sourceRoot, 'views', 'pages', 'AwardPage.tsx'), 'utf8');
+  const selectors = readFileSync(join(sourceRoot, 'models', 'selectors.ts'), 'utf8');
+  const recognitionBackend = readFileSync(join(sourceRoot, '..', 'server', 'src', 'recognition.ts'), 'utf8');
+
+  assert.doesNotMatch(awardPage, /Award department|selectedDepartmentId/);
+  assert.match(selectors, /role === 'Coordinator' \|\| role === 'Head' \|\| role === 'GPM'/);
+  assert.match(
+    recognitionBackend,
+    /\$2='GPM' AND EXISTS \([\s\S]*?FROM app\.employee_departments membership[\s\S]*?membership\.department_id=ANY\(\$3::uuid\[\]\)/,
+  );
+  assert.match(
+    recognitionBackend,
+    /\['Head', 'Coordinator', 'GPM'\]\.includes\(principal\.role\)[\s\S]*?principalDepartmentIds\(principal\)\.includes\(id\)/,
+  );
+});
+
 test('Peer Recognition recipients use the global authoritative eligibility endpoint', () => {
   const recognitionPage = readFileSync(join(sourceRoot, 'views', 'pages', 'RecognitionPage.tsx'), 'utf8');
   const recognitionController = readFileSync(join(sourceRoot, 'controllers', 'useRecognitionController.ts'), 'utf8');

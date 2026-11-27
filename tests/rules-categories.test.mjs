@@ -36,3 +36,4 @@ test('Rules keeps Peer and Award categories separate and uses current configured
     [{ id: 'award-blue', amount: 5 }],
   ]);
 });
+

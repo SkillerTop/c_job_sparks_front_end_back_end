@@ -529,7 +529,7 @@ const demoSparkService = {
     if (!canTarget) {
       if (role === 'Coordinator')
         throw new Error('Coordinators can award only eligible colleagues in their departments.');
-      if (role === 'GPM') throw new Error('GPMs can award only eligible Employees or Coordinators in managed teams.');
+      if (role === 'GPM') throw new Error('GPMs can award only eligible Employees or Coordinators in their departments.');
       if (role === 'Head') throw new Error('Heads can award only eligible Employees or Coordinators within their department.');
       throw new Error('Choose an eligible award recipient.');
     }

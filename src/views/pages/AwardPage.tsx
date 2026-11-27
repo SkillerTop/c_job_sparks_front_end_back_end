@@ -170,7 +170,7 @@ export function AwardPage() {
         description={activeRole === 'Coordinator'
             ? 'Yellow awards are available for eligible colleagues in your departments and are submitted to the recipient’s Head.'
             : activeRole === 'GPM'
-              ? 'White and Yellow awards are submitted to the recipient’s Head. White allocation is based on the Coordinators and registrars under your control.'
+              ? 'White and Yellow awards are available for eligible colleagues in your departments and are submitted to the recipient’s Head. White allocation is based on the Coordinators and registrars under your control.'
             : 'Direct awards create an immediate, permanent transaction and achievement record.'}
       />
       {message && <Feedback tone={message.tone}>{message.text}</Feedback>}

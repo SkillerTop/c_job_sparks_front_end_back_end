@@ -338,27 +338,14 @@ export const decideRecognition = async (
 };
 
 const canTargetAwardRecipient = async (
-  db: PoolClient,
   principal: AuthenticatedPrincipal,
   recipient: EmployeeRow,
 ) => {
   if (recipient.id === principal.employeeId) return false;
   if (principal.role === 'Top Management') return recipient.role !== 'Administrator';
   if (!['Employee', 'Coordinator'].includes(recipient.role)) return false;
-  if (principal.role === 'Head')
+  if (principal.role === 'Head' || principal.role === 'Coordinator' || principal.role === 'GPM')
     return employeeDepartmentIds(recipient).some((id) => principalDepartmentIds(principal).includes(id));
-  if (principal.role === 'Coordinator')
-    return employeeDepartmentIds(recipient).some((id) => principalDepartmentIds(principal).includes(id));
-  if (principal.role === 'GPM') {
-    const result = await db.query(
-      `SELECT 1 FROM app.project_teams team
-        LEFT JOIN app.project_members member ON member.team_id=team.id AND member.is_active
-       WHERE team.gpm_employee_id=$1 AND team.is_active
-         AND (member.employee_id=$2 OR team.coordinator_employee_id=$2) LIMIT 1`,
-      [principal.employeeId, recipient.id],
-    );
-    return Boolean(result.rowCount);
-  }
   return false;
 };
 
@@ -381,8 +368,8 @@ export const createAward = async (
   const allowed = allowedAwardTypes(principal.role);
   if (allowed.length === 0) throw forbidden();
   const recipient = await employeeWithRole(db, input.recipientId);
-  if (!(await canTargetAwardRecipient(db, principal, recipient))) throw forbidden('This employee is outside your award scope.');
-  const recipientDepartmentId = principal.role === 'Head' || principal.role === 'Coordinator'
+  if (!(await canTargetAwardRecipient(principal, recipient))) throw forbidden('This employee is outside your award scope.');
+  const recipientDepartmentId = ['Head', 'Coordinator', 'GPM'].includes(principal.role)
     ? employeeDepartmentIds(recipient).find((id) => principalDepartmentIds(principal).includes(id)) ?? recipient.department_id
     : recipient.department_id;
   const radiant = principal.role === 'Top Management';
@@ -762,15 +749,10 @@ export const listEligibleRecipients = async (
              ))
              OR
              ($2='GPM' AND EXISTS (
-               SELECT 1
-                 FROM app.project_teams team
-                 LEFT JOIN app.project_members member
-                   ON member.team_id=team.id
-                  AND member.is_active
-                  AND member.employee_id=employee.id
-                WHERE team.gpm_employee_id=$1
-                  AND team.is_active
-                  AND (member.employee_id IS NOT NULL OR team.coordinator_employee_id=employee.id)
+                SELECT 1
+                  FROM app.employee_departments membership
+                 WHERE membership.employee_id=employee.id
+                   AND membership.department_id=ANY($3::uuid[])
              ))
            ))
          ))
