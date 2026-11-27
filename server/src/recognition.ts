@@ -217,6 +217,7 @@ export const decideRecognition = async (
     status: string;
     recipient_employee_id: string;
     recipient_department_id: string;
+    current_recipient_department_id: string;
     nominator_employee_id: string;
     category_version_id: string;
     spark_amount: string | number;
@@ -224,14 +225,16 @@ export const decideRecognition = async (
     description: string;
   }>(
     db,
-    `SELECT r.*, v.amount AS spark_amount
-       FROM app.recognitions r JOIN app.spark_category_versions v ON v.id=r.category_version_id
+    `SELECT r.*, v.amount AS spark_amount, recipient.department_id AS current_recipient_department_id
+       FROM app.recognitions r
+       JOIN app.spark_category_versions v ON v.id=r.category_version_id
+       JOIN app.employees recipient ON recipient.id=r.recipient_employee_id
       WHERE r.id=$1 FOR UPDATE OF r`,
     [recognitionId],
   ).catch(() => {
     throw notFound('Recognition');
   });
-  if (!principalDepartmentIds(principal).includes(recognition.recipient_department_id))
+  if (!principalDepartmentIds(principal).includes(recognition.current_recipient_department_id))
     throw forbidden('This request is outside your departments.');
   if (recognition.status !== 'Pending') throw conflict('ALREADY_DECIDED', 'This recognition is no longer pending.');
   if (decision === 'Rejected') {
@@ -717,7 +720,29 @@ export const listEligibleRecipients = async (
      WHERE employee.is_active
        AND employee.id<>$1
        AND (
-         ($4='recognition' AND active_role.code=ANY(ARRAY['Employee','Coordinator','GPM']::text[]))
+         ($4='recognition'
+           AND active_role.code=ANY(ARRAY['Employee','Coordinator','GPM']::text[])
+           AND EXISTS (
+             SELECT 1
+               FROM app.departments recipient_department
+               JOIN app.employees recipient_head
+                 ON recipient_head.id=recipient_department.head_employee_id
+                AND recipient_head.is_active
+               JOIN app.users recipient_head_user
+                 ON recipient_head_user.id=recipient_head.user_id
+                AND recipient_head_user.account_status='Approved'
+              WHERE recipient_department.id=employee.department_id
+                AND recipient_department.is_active
+                AND EXISTS (
+                  SELECT 1
+                    FROM app.role_assignments head_assignment
+                    JOIN app.roles head_role ON head_role.id=head_assignment.role_id
+                   WHERE head_assignment.user_id=recipient_head_user.id
+                     AND head_role.code='Head'
+                     AND head_assignment.starts_at<=clock_timestamp()
+                     AND (head_assignment.ends_at IS NULL OR head_assignment.ends_at>clock_timestamp())
+                )
+           ))
          OR
          ($4='award' AND (
            ($2='Top Management' AND active_role.code<>'Administrator')

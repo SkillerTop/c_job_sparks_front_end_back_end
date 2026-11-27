@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { PoolClient } from 'pg';
 import { z } from 'zod';
+import { LEADERBOARD_SPARK_TYPES } from '../shared/leaderboard-contract.js';
 import type { Environment } from './config/env.js';
 import {
   authenticate,
@@ -31,6 +32,7 @@ import { cancelDisenchantRequest, createDisenchantRequest, convertSparks, disenc
 import { ApiError, badRequest, conflict, notFound } from './errors.js';
 import { withIdempotency } from './idempotency.js';
 import { employeeBalances, postLedgerOperation } from './ledger.js';
+import { listLeaderboard } from './leaderboard.js';
 import { loadImage, storeImage } from './media.js';
 import { localizeNotification, type NotificationLanguage } from './notification-localization.js';
 import { principalOf, requestMetadata } from './request.js';
@@ -687,6 +689,21 @@ export const registerRoutes = async (
       return withTransaction(app.db, (db) => listEligibleRecipients(db, principal, purpose), { readOnly: true });
     });
 
+    protectedApp.get('/api/v1/leaderboard', async (request, reply) => {
+      const principal = principalOf(request);
+      requireWorkspaceSection(principal, 'achievements');
+      const query = z.object({
+        sparkType: z.enum(LEADERBOARD_SPARK_TYPES).default('White'),
+        departmentId: idSchema.optional(),
+      }).parse(request.query);
+      void reply.header('cache-control', 'private, no-store');
+      return withTransaction(
+        app.db,
+        (db) => listLeaderboard(db, principal, query.sparkType, query.departmentId),
+        { readOnly: true },
+      );
+    });
+
     protectedApp.get('/api/v1/task-board', async (request, reply) => {
       const principal = principalOf(request);
       requireWorkspaceSection(principal, 'task-board');
@@ -802,7 +819,7 @@ export const registerRoutes = async (
         JOIN app.employees nominator ON nominator.id=recognition.nominator_employee_id
         JOIN app.employees recipient ON recipient.id=recognition.recipient_employee_id
         WHERE (recognition.nominator_employee_id=$1 OR recognition.recipient_employee_id=$1
-          OR ($2='Head' AND recognition.recipient_department_id=ANY($3::uuid[])))
+          OR ($2='Head' AND recipient.department_id=ANY($3::uuid[])))
           AND ($4::timestamptz IS NULL OR (recognition.requested_at,recognition.id)<($4::timestamptz,$5::uuid))
         ORDER BY recognition.requested_at DESC,recognition.id DESC LIMIT $6`,
       [principal.employeeId, principal.role, departmentScopeIds(principal), query.cursor?.value ?? null,
@@ -837,7 +854,7 @@ export const registerRoutes = async (
             JOIN app.spark_category_versions version ON version.id=recognition.category_version_id
             JOIN app.employees recipient ON recipient.id=recognition.recipient_employee_id
             JOIN app.employees nominator ON nominator.id=recognition.nominator_employee_id
-            WHERE recognition.status='Pending' AND recognition.recipient_department_id=ANY($1::uuid[])
+            WHERE recognition.status='Pending' AND recipient.department_id=ANY($1::uuid[])
             ORDER BY recognition.requested_at`, [departmentScopeIds(principal)]),
           rows<any>(app.db, `SELECT award.*,COALESCE(version.name,award.spark_type || ' Award') AS category,
             recipient.display_name AS recipient_name,requester.display_name AS requester_name
@@ -879,10 +896,18 @@ export const registerRoutes = async (
         async (db) => {
           const recognition = await createRecognition(db, principal, input, request.id);
           const approver = await maybeOne<{ user_id: string }>(db, `SELECT head.user_id FROM app.employees recipient
-            JOIN app.departments department ON department.id=recipient.department_id
-            JOIN app.employees head ON head.id=department.head_employee_id
-            WHERE recipient.id=$1 AND head.user_id IS NOT NULL`, [input.recipientId]);
-          if (approver) await createNotification(db, approver.user_id, 'ApprovalRequested', 'Peer Recognition approval',
+            JOIN app.departments department ON department.id=recipient.department_id AND department.is_active
+            JOIN app.employees head ON head.id=department.head_employee_id AND head.is_active
+            JOIN app.users head_user ON head_user.id=head.user_id AND head_user.account_status='Approved'
+            WHERE recipient.id=$1 AND EXISTS (
+              SELECT 1 FROM app.role_assignments assignment
+              JOIN app.roles role ON role.id=assignment.role_id
+              WHERE assignment.user_id=head_user.id AND role.code='Head'
+                AND assignment.starts_at<=clock_timestamp()
+                AND (assignment.ends_at IS NULL OR assignment.ends_at>clock_timestamp()))`, [input.recipientId]);
+          if (!approver)
+            throw conflict('RECIPIENT_HEAD_UNAVAILABLE', 'The recipient department does not have an active Head for approval.');
+          await createNotification(db, approver.user_id, 'ApprovalRequested', 'Peer Recognition approval',
             'A new Peer Recognition request needs your decision.', 'Recognition', recognition.id);
           await enqueueOutbox(db, 'RecognitionRequested', 'Recognition', recognition.id, recognition);
           await writeAudit(db, { actorUserId: principal.userId, action: 'RECOGNITION_REQUESTED', objectType: 'Recognition',

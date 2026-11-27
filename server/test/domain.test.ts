@@ -24,6 +24,7 @@ import {
 import { SEED_CATEGORY_CATALOG } from '../src/category-catalog.js';
 import { departmentScopeIds, hasDepartmentScope } from '../src/authorization.js';
 import { listEligibleRecipients } from '../src/recognition.js';
+import { createLeaderboardResponse } from '../shared/leaderboard-contract.js';
 
 const rules: EffectiveRuleSet = {
   currentQuarter: 'Q4 2026',
@@ -37,6 +38,32 @@ const rules: EffectiveRuleSet = {
   currency: 'EUR',
   sparkMoneyValues: { White: 1, Yellow: 10, Blue: 50 },
 };
+
+test('leaderboard ranks deterministically and reports monthly movement', () => {
+  const result = createLeaderboardResponse([
+    { employeeId: 'current', name: 'Current User', title: 'Engineer', departmentId: 'dep-a', amount: 7, previousAmount: 3 },
+    { employeeId: 'leader', name: 'A Leader', title: 'Lead', departmentId: 'dep-b', amount: 12, previousAmount: 12 },
+    { employeeId: 'peer-b', name: 'Beta Peer', title: 'Engineer', departmentId: 'dep-a', amount: 7, previousAmount: 8 },
+    { employeeId: 'peer-a', name: 'Alpha Peer', title: 'Engineer', departmentId: 'dep-a', amount: 7, previousAmount: 2 },
+  ], 'current', 'Blue', null, [], '2026-11-27T00:00:00.000Z');
+
+  assert.deepEqual(result.topTen.map((entry) => entry.employeeId), ['leader', 'peer-a', 'peer-b', 'current']);
+  assert.equal(result.currentUser?.rank, 4);
+  assert.equal(result.currentUser?.rankChange, -1);
+  assert.deepEqual(result.aroundCurrentUser.map((entry) => entry.rank), [3, 4]);
+  assert.equal(result.totalUsers, 4);
+  assert.equal(result.topTenThreshold, 0);
+});
+
+test('leaderboard handles a department that does not contain the current employee', () => {
+  const result = createLeaderboardResponse([
+    { employeeId: 'peer', name: 'Department Peer', title: 'Engineer', departmentId: 'dep-b', amount: 2, previousAmount: 2 },
+  ], 'current', 'White', 'dep-b');
+
+  assert.equal(result.currentUser, null);
+  assert.deepEqual(result.aroundCurrentUser, []);
+  assert.equal(result.topTen[0]?.rank, 1);
+});
 
 test('conversion applies a fee per output bundle', () => {
   assert.deepEqual(conversionFor('White', 20, rules), {

@@ -23,6 +23,12 @@ test('localizes interface copy into natural Ukrainian and Russian', () => {
   assert.equal(localizeContent('ru', source), 'Здесь появятся запросы на распыление от сотрудников этого отдела. Этот интерфейс не выполняет выплаты.');
 });
 
+test('localizes the Achievements leaderboard controls and empty state', () => {
+  assert.equal(localizeContent('uk', 'Your place in the team'), 'Ваше місце в команді');
+  assert.equal(localizeContent('ru', 'See top 10'), 'Показать Top 10');
+  assert.equal(localizeContent('uk', 'No leaderboard data'), 'Немає даних рейтингу');
+});
+
 test('uses correct plural forms for dynamic category counts', () => {
   assert.equal(localizeContent('uk', '1 active categories'), '1 активна категорія');
   assert.equal(localizeContent('uk', '3 active categories'), '3 активні категорії');

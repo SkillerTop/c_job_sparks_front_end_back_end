@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { RecognitionInput } from '@/models';
 import { useSpark } from '@/controllers/SparkContext';
+import { useRecognitionRecipients } from '@/controllers/useRecognitionRecipients';
 import { recognitionQuota } from '@/utils/sparkRules';
 import { quarterForDate } from '@/utils/quarter';
 
@@ -11,46 +12,18 @@ export function useRecognitionController() {
   const { snapshot, currentUserId, activeRole, createRecognition } = useSpark();
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState<RecognitionInput>(emptyForm);
-  const [departmentId, setDepartmentId] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
 
-  const activeDepartmentId = departmentId ||
-    (activeRole === 'Coordinator'
-      ? snapshot?.employees.find((employee) => employee.id === currentUserId)?.departmentId ?? ''
-      : '');
-  const recipients = useMemo(() => {
-    if (!snapshot) return [];
-    return snapshot.employees.filter(
-      (employee) =>
-        employee.active &&
-        employee.id !== currentUserId &&
-        ['Employee', 'Coordinator', 'GPM'].includes(employee.role) &&
-        (activeRole !== 'Coordinator' || !activeDepartmentId ||
-          (employee.departmentIds ?? [employee.departmentId]).includes(activeDepartmentId)),
-    );
-  }, [snapshot, currentUserId, activeRole, activeDepartmentId]);
+  const recipients = useRecognitionRecipients(snapshot, currentUserId);
   const requestedRecipient = searchParams.get('recipient');
   useEffect(() => {
-    if (!requestedRecipient || !snapshot) return;
-    const requested = snapshot.employees.find((employee) => employee.id === requestedRecipient && employee.active);
-    if (!requested || !['Employee', 'Coordinator', 'GPM'].includes(requested.role)) return;
-    if (activeRole === 'Coordinator' &&
-      !(requested.departmentIds ?? [requested.departmentId]).includes(activeDepartmentId))
-      setDepartmentId(requested.departmentIds?.[0] ?? requested.departmentId);
-    if (!recipients.some((employee) => employee.id === requestedRecipient) && activeRole !== 'Coordinator') return;
+    if (!requestedRecipient || !recipients.some((employee) => employee.id === requestedRecipient)) return;
     setForm((current) =>
       current.recipientId ? current : { ...current, recipientId: requestedRecipient },
     );
-  }, [requestedRecipient, recipients, snapshot, activeRole, activeDepartmentId]);
-
-  const selectDepartment = (value: string) => {
-    setDepartmentId(value);
-    setForm((current) => ({ ...current, recipientId: '' }));
-    setErrors((current) => ({ ...current, recipientId: '' }));
-    setMessage(null);
-  };
+  }, [requestedRecipient, recipients]);
   const ownRecognitions = useMemo(
     () =>
       snapshot?.recognitions
@@ -93,7 +66,7 @@ export function useRecognitionController() {
     try {
       await createRecognition(form);
       setForm(emptyForm);
-      setMessage({ tone: 'success', text: 'Recognition sent to the Head for approval.' });
+      setMessage({ tone: 'success', text: "Recognition sent to the recipient's Head for approval." });
       return true;
     } catch (caught) {
       setMessage({
@@ -113,9 +86,6 @@ export function useRecognitionController() {
     submitting,
     message,
     recipients,
-    departmentId: activeDepartmentId,
-    departments: snapshot?.departments.filter((department) => department.active) ?? [],
-    selectDepartment,
     ownRecognitions,
     quota,
     usedCount,

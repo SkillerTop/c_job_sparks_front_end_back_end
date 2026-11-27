@@ -13,7 +13,9 @@ import type { SparkType } from '@/models';
 import { formatDate } from '@/utils/formatters';
 import { selectAuthoritativeLifetimeEarnings } from '@/utils/personalBalances';
 import { PerformanceOverview } from '@/views/components/achievements/PerformanceOverview';
-import styles from '@/views/styles/app.module.css';import { LocalizedText } from '@/views/components/common/LocalizedText';
+import { LeaderboardCard } from '@/views/components/achievements/LeaderboardCard';
+import styles from '@/views/styles/app.module.css';import leaderboardStyles from '@/views/styles/leaderboard.module.css';
+import { LocalizedText } from '@/views/components/common/LocalizedText';
 
 
 export function AchievementsPage() {
@@ -73,45 +75,57 @@ export function AchievementsPage() {
           counting the same value twice, and import corrections are netted automatically.
         </LocalizedText></p>
       </section>
-      {items.length === 0 ? (
-        <EmptyState
-          title="No achievements in this view"
-          description="Choose another Spark type to see your recognition history."
-        />
-      ) : (
-        <div className={styles.achievementGrid}>
-          {visibleItems.map((item) => (
-            <article className={`${styles.achievementCard} ${styles[`tone${item.sparkType}`]}`} key={item.id}>
-              <div className={styles.achievementTop}>
-                <SparkBadge type={item.sparkType} />
-              </div>
-              <h2>{item.category}</h2>
-              <p>{item.description}</p>
-              <footer>
-                <time dateTime={item.date}>
-                  <CalendarDays size={14} />
-                  {formatDate(item.date)}
-                </time>
-                <strong><LocalizedText>Awarded by </LocalizedText>{personName(item.awardedBy)}</strong>
-              </footer>
-            </article>
-          ))}
-        </div>
-      )}
-      <div className={styles.achievementActions}>
-        <Link className={styles.darkButton} to="/sparks">
-          <History size={16} /> <LocalizedText>View Spark Ledger </LocalizedText><ArrowRight size={15} />
-        </Link>
-        {items.length > 3 && (
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            aria-expanded={expanded}
-            onClick={() => setExpanded((value) => !value)}
-          >
-            <LocalizedText>{expanded ? 'Show less' : `Show more achievements (${items.length - 3})`}</LocalizedText>
-          </button>
-        )}
+      <div className={leaderboardStyles.pageGrid}>
+        <section className={leaderboardStyles.achievementColumn} aria-labelledby="recognition-history-title">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.eyebrow}><LocalizedText>Your recognition</LocalizedText></p>
+              <h2 id="recognition-history-title"><LocalizedText>Achievements</LocalizedText></h2>
+            </div>
+            <span className={styles.mutedCopy}><LocalizedText>Latest first</LocalizedText></span>
+          </div>
+          {items.length === 0 ? (
+            <EmptyState
+              title="No achievements in this view"
+              description="Choose another Spark type to see your recognition history."
+            />
+          ) : (
+            <div className={leaderboardStyles.achievementList}>
+              {visibleItems.map((item) => (
+                <article className={`${styles.achievementCard} ${styles[`tone${item.sparkType}`]}`} key={item.id}>
+                  <div className={styles.achievementTop}>
+                    <SparkBadge type={item.sparkType} />
+                  </div>
+                  <h2>{item.category}</h2>
+                  <p>{item.description}</p>
+                  <footer>
+                    <time dateTime={item.date}>
+                      <CalendarDays size={14} />
+                      {formatDate(item.date)}
+                    </time>
+                    <strong><LocalizedText>Awarded by </LocalizedText>{personName(item.awardedBy)}</strong>
+                  </footer>
+                </article>
+              ))}
+            </div>
+          )}
+          <div className={styles.achievementActions}>
+            <Link className={styles.darkButton} to="/sparks">
+              <History size={16} /> <LocalizedText>View Spark Ledger </LocalizedText><ArrowRight size={15} />
+            </Link>
+            {items.length > 3 && (
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                aria-expanded={expanded}
+                onClick={() => setExpanded((value) => !value)}
+              >
+                <LocalizedText>{expanded ? 'Show less' : `Show more achievements (${items.length - 3})`}</LocalizedText>
+              </button>
+            )}
+          </div>
+        </section>
+        <LeaderboardCard snapshot={snapshot!} currentUserId={currentUserId} />
       </div>
     </PageTransition>
   );

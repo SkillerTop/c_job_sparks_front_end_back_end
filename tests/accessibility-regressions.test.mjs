@@ -47,6 +47,28 @@ test('Employee Recognition history is not role-limited', async () => {
   assert.match(source, /ownRecognitions\.length > 2/);
 });
 
+test('Peer Recognition uses one global recipient field without a department gate', async () => {
+  const page = await read('src/views/pages/RecognitionPage.tsx');
+  const controller = await read('src/controllers/useRecognitionController.ts');
+
+  assert.doesNotMatch(page, /Recognition department|Choose a department/);
+  assert.doesNotMatch(controller, /activeDepartmentId|selectDepartment/);
+  assert.match(page, /ariaLabel="Recognition recipient"/);
+});
+
+test('Achievements leaderboard filters and ranking states are keyboard and screen-reader exposed', async () => {
+  const page = await read('src/views/pages/AchievementsPage.tsx');
+  const component = await read('src/views/components/achievements/LeaderboardCard.tsx');
+
+  assert.match(page, /LeaderboardCard/);
+  assert.match(component, /aria-busy=\{controller\.loading\}/);
+  assert.match(component, /ariaLabel="Filter leaderboard by department"/);
+  assert.match(component, /role="group"/);
+  assert.match(component, /aria-pressed=\{controller\.sparkType === type\}/);
+  assert.match(component, /aria-expanded=\{expanded\}/);
+  assert.match(component, /role="alert"/);
+});
+
 test('Rules uses configured Yellow limit and progressive category disclosure', async () => {
   const source = await read('src/views/pages/RulesPage.tsx');
   const styles = await read('src/views/styles/rules.module.css');

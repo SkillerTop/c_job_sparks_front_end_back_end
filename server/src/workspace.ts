@@ -54,7 +54,9 @@ export const buildWorkspaceLayout = async (db: PoolClient, principal: Authentica
     () => rows<any>(db, `SELECT spark_type,balance FROM app.spark_accounts WHERE employee_id=$1`,
       [principal.employeeId]),
     () => rows<any>(db, `SELECT
-      (SELECT count(*)::int FROM app.recognitions WHERE status='Pending' AND recipient_department_id=ANY($1::uuid[])) +
+      (SELECT count(*)::int FROM app.recognitions recognition
+        JOIN app.employees recipient ON recipient.id=recognition.recipient_employee_id
+        WHERE recognition.status='Pending' AND recipient.department_id=ANY($1::uuid[])) +
       (SELECT count(*)::int FROM app.award_requests WHERE status='Pending' AND recipient_department_id=ANY($1::uuid[]))
         AS pending_approvals,
       (SELECT count(*)::int FROM app.disenchant_requests
@@ -279,8 +281,9 @@ export const buildWorkspace = async (
       SELECT r.*, cv.name AS category, cv.amount, c.id AS category_id
         FROM app.recognitions r JOIN app.spark_category_versions cv ON cv.id=r.category_version_id
         JOIN app.spark_categories c ON c.id=cv.category_id
+        JOIN app.employees recipient ON recipient.id=r.recipient_employee_id
        WHERE r.nominator_employee_id=$1 OR r.recipient_employee_id=$1
-          OR ($2='Head' AND r.recipient_department_id=ANY($3::uuid[]))
+          OR ($2='Head' AND recipient.department_id=ANY($3::uuid[]))
        ORDER BY r.requested_at DESC LIMIT 200`, [principal.employeeId, principal.role, principal.departmentIds ?? [principal.departmentId]]) : Promise.resolve([]),
     () => include('awards') ? rows<any>(db, `
       SELECT a.*, COALESCE(cv.name,a.metadata->>'radiantReason',a.spark_type || ' Award') AS category,

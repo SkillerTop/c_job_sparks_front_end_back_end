@@ -331,6 +331,18 @@ test('Peer Recognition blocks self and Admin recipients but allows cross-departm
   assert.equal(result.recognition.status, 'Pending');
   assert.equal(Object.hasOwn(result.recognition, 'projectId'), false);
 });
+test("Cross-department Peer Recognition is decided only by the recipient's Head", async () => {
+  await sparkService.reviewRecognition('rec-002', 'Rejected', 'Replaced by a cross-department request.', HEAD);
+  const recipient = await addEmployee({ departmentId: 'dep-design' });
+  const created = await sparkService.createRecognition('emp-alex', 'Employee', recognition(recipient.id));
+
+  await assert.rejects(
+    sparkService.reviewRecognition(created.recognition.id, 'Approved', '', HEAD),
+    /department scope/,
+  );
+  const approved = await sparkService.reviewRecognition(created.recognition.id, 'Approved', '', 'emp-olivia');
+  assert.equal(approved.recognitions.find((item) => item.id === created.recognition.id)?.status, 'Approved');
+});
 test('Head cannot create Peer Recognition and sees created department disenchant requests', async () => {
   await assert.rejects(
     sparkService.createRecognition(HEAD, 'Head', recognition('emp-alex')),

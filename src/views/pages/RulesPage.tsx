@@ -164,7 +164,7 @@ export function RulesPage() {
             <div>
               <dt><LocalizedText>Coordinator</LocalizedText></dt>
               <dd>
-                <LocalizedText>Peer recognition and Yellow award requests with department-based recipient selection.
+                <LocalizedText>Company-wide Peer Recognition and Yellow award requests with department-based recipient selection.
               </LocalizedText></dd>
             </div>
             <div>
@@ -454,7 +454,7 @@ export function RulesPage() {
             <Users size={20} />
           </div>
           <ul className={rulesStyles.rulesList}>
-            <li><LocalizedText>A Coordinator chooses a department directly in Peer recognition.</LocalizedText></li>
+            <li><LocalizedText>Peer Recognition recipient selection is company-wide and does not require choosing a department.</LocalizedText></li>
             <li>
               <LocalizedText>A Coordinator can award eligible colleagues from any of their departments; project and team membership are not required.
             </LocalizedText></li>
