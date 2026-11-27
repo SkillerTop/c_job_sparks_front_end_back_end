@@ -27,6 +27,10 @@ test('localizes the Achievements leaderboard controls and empty state', () => {
   assert.equal(localizeContent('uk', 'Your place in the team'), 'Ваше місце в команді');
   assert.equal(localizeContent('ru', 'See top 10'), 'Показать Top 10');
   assert.equal(localizeContent('uk', 'No leaderboard data'), 'Немає даних рейтингу');
+  assert.match(
+    localizeContent('ru', 'Leaderboard score: White ×1, Yellow ×10, Blue ×100. Radiant Sparks are excluded.'),
+    /Radiant Sparks не учитываются/,
+  );
 });
 
 test('uses correct plural forms for dynamic category counts', () => {

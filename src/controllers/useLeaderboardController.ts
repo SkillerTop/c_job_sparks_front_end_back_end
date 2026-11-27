@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AppSnapshot, Role } from '@/models';
 import {
+  calculateLeaderboardScore,
   createLeaderboardResponse,
   type LeaderboardResponse,
 } from '@/models/leaderboard';
@@ -27,8 +28,7 @@ const localLeaderboard = (
       (!departmentId || (employee.departmentIds ?? [employee.departmentId]).includes(departmentId)),
   );
   const totalEarned = (transactions: AppSnapshot['transactions'], employeeId: string) =>
-    Object.values(calculateLifetimeEarnings(transactions, employeeId))
-      .reduce((total, amount) => total + amount, 0);
+    calculateLeaderboardScore(calculateLifetimeEarnings(transactions, employeeId));
   return createLeaderboardResponse(
     employees.map((employee) => ({
       employeeId: employee.id,

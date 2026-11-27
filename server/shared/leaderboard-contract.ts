@@ -1,3 +1,16 @@
+export const LEADERBOARD_SPARK_WEIGHTS = {
+  White: 1,
+  Yellow: 10,
+  Blue: 100,
+  Radiant: 0,
+} as const;
+
+export const calculateLeaderboardScore = (
+  amounts: Partial<Record<keyof typeof LEADERBOARD_SPARK_WEIGHTS, number>>,
+) => Object.entries(LEADERBOARD_SPARK_WEIGHTS)
+  .reduce((score, [sparkType, weight]) =>
+    score + (amounts[sparkType as keyof typeof LEADERBOARD_SPARK_WEIGHTS] ?? 0) * weight, 0);
+
 export interface LeaderboardDepartment {
   id: string;
   name: string;

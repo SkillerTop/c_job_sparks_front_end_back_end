@@ -24,7 +24,11 @@ import {
 import { SEED_CATEGORY_CATALOG } from '../src/category-catalog.js';
 import { departmentScopeIds, hasDepartmentScope } from '../src/authorization.js';
 import { listEligibleRecipients } from '../src/recognition.js';
-import { createLeaderboardResponse } from '../shared/leaderboard-contract.js';
+import {
+  calculateLeaderboardScore,
+  createLeaderboardResponse,
+  LEADERBOARD_SPARK_WEIGHTS,
+} from '../shared/leaderboard-contract.js';
 
 const rules: EffectiveRuleSet = {
   currentQuarter: 'Q4 2026',
@@ -38,6 +42,11 @@ const rules: EffectiveRuleSet = {
   currency: 'EUR',
   sparkMoneyValues: { White: 1, Yellow: 10, Blue: 50 },
 };
+
+test('leaderboard applies configured Spark weights and excludes Radiant', () => {
+  assert.deepEqual(LEADERBOARD_SPARK_WEIGHTS, { White: 1, Yellow: 10, Blue: 100, Radiant: 0 });
+  assert.equal(calculateLeaderboardScore({ White: 4, Yellow: 3, Blue: 2, Radiant: 999 }), 234);
+});
 
 test('leaderboard ranks deterministically and reports monthly movement', () => {
   const result = createLeaderboardResponse([

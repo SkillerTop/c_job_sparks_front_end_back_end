@@ -189,7 +189,7 @@ export function LeaderboardCard({ snapshot, currentUserId }: {
             </section>
           </div>
           <p className={styles.disclaimer}>
-            <LocalizedText>Ranked by lifetime earned Sparks. Conversions and spending do not increase the score.</LocalizedText>
+            <LocalizedText>Leaderboard score: White ×1, Yellow ×10, Blue ×100. Radiant Sparks are excluded.</LocalizedText>
           </p>
         </>
       ) : null}

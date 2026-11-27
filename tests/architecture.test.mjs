@@ -79,10 +79,10 @@ test('Achievements leaderboard uses a role-protected read model instead of clien
   assert.match(routes, /cache-control', 'private, no-store'/);
   assert.match(backend, /JOIN app\.achievements achievement/);
   assert.match(backend, /current_performance\.status<>'Superseded'/);
-  assert.match(backend, /COALESCE\(sum\(achievement\.spark_amount\),0\) AS amount/);
-  assert.doesNotMatch(backend, /achievement\.spark_type=/);
+  assert.match(backend, /LEADERBOARD_SPARK_WEIGHTS\.White/);
+  assert.match(backend, /achievement\.spark_type<>'Radiant'/);
   assert.match(controller, /\/api\/v1\/leaderboard/);
-  assert.match(controller, /Object\.values\(calculateLifetimeEarnings/);
+  assert.match(controller, /calculateLeaderboardScore\(calculateLifetimeEarnings/);
   assert.match(component, /All users/);
   assert.match(component, /See top 10/);
   assert.doesNotMatch(component, /LEADERBOARD_SPARK_TYPES|setSparkType|activeSpark/);

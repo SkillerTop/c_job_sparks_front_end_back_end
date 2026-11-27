@@ -1,8 +1,14 @@
 import type { PoolClient } from 'pg';
-import { createLeaderboardResponse } from '../shared/leaderboard-contract.js';
+import { createLeaderboardResponse, LEADERBOARD_SPARK_WEIGHTS } from '../shared/leaderboard-contract.js';
 import type { AuthenticatedPrincipal } from './domain.js';
 import { notFound } from './errors.js';
 import { maybeOne, rows } from './sql.js';
+
+const leaderboardScoreSql = `achievement.spark_amount * CASE achievement.spark_type
+  WHEN 'White' THEN ${LEADERBOARD_SPARK_WEIGHTS.White}
+  WHEN 'Yellow' THEN ${LEADERBOARD_SPARK_WEIGHTS.Yellow}
+  WHEN 'Blue' THEN ${LEADERBOARD_SPARK_WEIGHTS.Blue}
+  ELSE 0 END`;
 
 export const listLeaderboard = async (
   db: PoolClient,
@@ -30,8 +36,8 @@ export const listLeaderboard = async (
              employee.display_name AS name,
              COALESCE(position.title,'') AS title,
              employee.department_id,
-             COALESCE(sum(achievement.spark_amount),0) AS amount,
-             COALESCE(sum(achievement.spark_amount) FILTER (
+             COALESCE(sum(${leaderboardScoreSql}),0) AS amount,
+             COALESCE(sum(${leaderboardScoreSql}) FILTER (
                WHERE achievement.occurred_at <
                  (date_trunc('month',clock_timestamp() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')
              ),0) AS previous_amount
@@ -52,6 +58,7 @@ export const listLeaderboard = async (
         ) active_role ON true
         LEFT JOIN app.achievements achievement
           ON achievement.employee_id=employee.id
+         AND achievement.spark_type<>'Radiant'
          AND (
            achievement.source_type<>'PerformanceRecord'
            OR EXISTS (
