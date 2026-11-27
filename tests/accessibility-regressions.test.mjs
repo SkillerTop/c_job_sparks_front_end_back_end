@@ -85,7 +85,8 @@ test('Rules uses configured Yellow limit and progressive category disclosure', a
   assert.match(source, /<span className=\{rulesStyles\.thresholdRange\}>/);
   assert.match(source, /<strong className=\{rulesStyles\.thresholdReward\}>/);
   assert.doesNotMatch(source, /\.join\(' · '\)/);
-  assert.match(styles, /\.thresholdBands\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,/s);
+  assert.match(styles, /\.thresholdBands\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/s);
+  assert.match(styles, /@media \(max-width:\s*42rem\)[^]*\.thresholdBands\s*\{[^}]*grid-template-columns:\s*1fr;/s);
   assert.match(styles, /\.rulesDisclosure li > div\s*\{[^}]*flex:\s*1 1 12rem;/s);
   assert.match(styles, /\.rulesDisclosure li span\s*\{[^}]*max-width:\s*46%;[^}]*flex:\s*0 1 46%;/s);
   assert.match(styles, /@media \(max-width:\s*42rem\)[^]*\.rulesDisclosure li[^]*flex-direction:\s*column;/);
