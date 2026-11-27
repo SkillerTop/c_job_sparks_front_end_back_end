@@ -241,3 +241,28 @@ test('award eligibility is independent from previous rejected requests', async (
   }]);
   assert.doesNotMatch(queryText, /award_requests|quota_reservations/i);
 });
+
+test('GPM award eligibility is company-wide for active Employees and Coordinators', async () => {
+  let queryText = '';
+  const db = {
+    async query(text: string) {
+      queryText = text;
+      return { rowCount: 0, rows: [] };
+    },
+  } as unknown as PoolClient;
+
+  await listEligibleRecipients(db, {
+    userId: 'user-gpm',
+    accountId: 'user-gpm',
+    employeeId: 'employee-gpm',
+    email: 'gpm@example.test',
+    role: 'GPM',
+    departmentId: 'department-one',
+    departmentIds: ['department-one'],
+    sessionId: 'session-gpm',
+  }, 'award');
+
+  assert.match(queryText, /active_role\.code=ANY\(ARRAY\['Employee','Coordinator'\]::text\[\]\)/);
+  assert.match(queryText, /\(\$2='GPM'\)/);
+  assert.doesNotMatch(queryText, /\$2='GPM' AND EXISTS/);
+});

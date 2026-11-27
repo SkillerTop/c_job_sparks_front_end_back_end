@@ -344,7 +344,8 @@ const canTargetAwardRecipient = async (
   if (recipient.id === principal.employeeId) return false;
   if (principal.role === 'Top Management') return recipient.role !== 'Administrator';
   if (!['Employee', 'Coordinator'].includes(recipient.role)) return false;
-  if (principal.role === 'Head' || principal.role === 'Coordinator' || principal.role === 'GPM')
+  if (principal.role === 'GPM') return true;
+  if (principal.role === 'Head' || principal.role === 'Coordinator')
     return employeeDepartmentIds(recipient).some((id) => principalDepartmentIds(principal).includes(id));
   return false;
 };
@@ -369,7 +370,7 @@ export const createAward = async (
   if (allowed.length === 0) throw forbidden();
   const recipient = await employeeWithRole(db, input.recipientId);
   if (!(await canTargetAwardRecipient(principal, recipient))) throw forbidden('This employee is outside your award scope.');
-  const recipientDepartmentId = ['Head', 'Coordinator', 'GPM'].includes(principal.role)
+  const recipientDepartmentId = ['Head', 'Coordinator'].includes(principal.role)
     ? employeeDepartmentIds(recipient).find((id) => principalDepartmentIds(principal).includes(id)) ?? recipient.department_id
     : recipient.department_id;
   const radiant = principal.role === 'Top Management';
@@ -748,12 +749,7 @@ export const listEligibleRecipients = async (
                    AND membership.department_id=ANY($3::uuid[])
              ))
              OR
-             ($2='GPM' AND EXISTS (
-                SELECT 1
-                  FROM app.employee_departments membership
-                 WHERE membership.employee_id=employee.id
-                   AND membership.department_id=ANY($3::uuid[])
-             ))
+              ($2='GPM')
            ))
          ))
        )

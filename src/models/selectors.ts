@@ -36,7 +36,8 @@ export const selectAwardTargets = (snapshot: AppSnapshot, actorId: string, role:
     if (!employee.active || employee.role === 'Administrator' || employee.id === actorId) return false;
     if (role === 'Top Management') return true;
     if (!['Employee', 'Coordinator'].includes(employee.role)) return false;
-    if (role === 'Coordinator' || role === 'Head' || role === 'GPM')
+    if (role === 'GPM') return true;
+    if (role === 'Coordinator' || role === 'Head')
       return (employee.departmentIds ?? [employee.departmentId])
       .some((departmentId) => actorDepartments.has(departmentId));
     return false;
